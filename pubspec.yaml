@@ -1,0 +1,43 @@
+name: noughtplan
+description: A new Flutter project.
+version: 1.0.0+1
+environment: 
+  sdk: '>=2.12.0 <3.0.0'
+dependencies: 
+  flutter: 
+    sdk: flutter
+  provider: ^6.0.5
+  cached_network_image: ^3.2.1
+  flutter_svg: ^1.1.6
+  flutter_switch: ^0.3.2
+  country_pickers: ^2.0.0
+  flutter_svg_provider: ^1.0.3
+  intl: ^0.17.0
+  animated_splash_screen: ^1.3.0
+dev_dependencies: 
+  flutter_test: 
+    sdk: flutter
+flutter: 
+  uses-material-design: true
+  assets: 
+    - assets/
+    - assets/images/
+  fonts: 
+    - family: Helvetica Now Text
+      fonts: 
+        - asset: assets/fonts/HelveticaNowTextBold.ttf
+          weight: 700
+        - asset: assets/fonts/HelveticaNowTextMedium.ttf
+          weight: 500
+    - family: Manrope
+      fonts: 
+        - asset: assets/fonts/ManropeRegular.ttf
+          weight: 400
+        - asset: assets/fonts/ManropeSemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/ManropeExtraBold.ttf
+          weight: 800
+        - asset: assets/fonts/ManropeBold.ttf
+          weight: 700
+        - asset: assets/fonts/ManropeMedium.ttf
+          weight: 500

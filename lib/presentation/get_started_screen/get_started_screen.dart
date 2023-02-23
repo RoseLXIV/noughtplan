@@ -1,0 +1,181 @@
+import 'package:flutter/material.dart';
+import 'package:noughtplan/core/app_export.dart';
+import 'package:noughtplan/widgets/custom_button.dart';
+
+class GetStartedScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Scaffold(
+        backgroundColor: ColorConstant.whiteA700,
+        body: Container(
+          width: double.maxFinite,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              Container(
+                height: getVerticalSize(
+                  400,
+                ),
+                width: double.maxFinite,
+                child: Stack(
+                  alignment: Alignment.topCenter,
+                  children: [
+                    CustomImageView(
+                      imagePath: ImageConstant.imgTopographic8,
+                      height: getVerticalSize(
+                        395,
+                      ),
+                      width: getHorizontalSize(
+                        375,
+                      ),
+                      alignment: Alignment.topCenter,
+                    ),
+                    CustomImageView(
+                      imagePath: ImageConstant.imgTopographic8309x375,
+                      height: getVerticalSize(
+                        350,
+                      ),
+                      width: getHorizontalSize(
+                        375,
+                      ),
+                      alignment: Alignment.topCenter,
+                    ),
+                    CustomImageView(
+                      imagePath: ImageConstant.imgMainlogo1,
+                      height: getVerticalSize(
+                        200,
+                      ),
+                      width: getHorizontalSize(
+                        352,
+                      ),
+                      alignment: Alignment.bottomCenter,
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                "Get Started",
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.left,
+                style: AppStyle.txtHelveticaNowTextBold24,
+              ),
+              Padding(
+                padding: getPadding(
+                  top: 7,
+                ),
+                child: Text(
+                  "The Nought Plan - A.I. Powered Budgeting App",
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.left,
+                  style: AppStyle.txtManropeRegular14.copyWith(
+                    letterSpacing: getHorizontalSize(
+                      0.3,
+                    ),
+                  ),
+                ),
+              ),
+              CustomButton(
+                height: getVerticalSize(
+                  56,
+                ),
+                fontStyle: ButtonFontStyle.HelveticaNowTextBold16,
+                text: "Continue with Email",
+                margin: getMargin(
+                  left: 24,
+                  top: 24,
+                  right: 24,
+                ),
+              ),
+              CustomButton(
+                height: getVerticalSize(
+                  56,
+                ),
+                text: "Continue with Apple",
+                margin: getMargin(
+                  left: 24,
+                  top: 16,
+                  right: 24,
+                ),
+                variant: ButtonVariant.OutlineIndigo50,
+                padding: ButtonPadding.PaddingT14,
+                fontStyle: ButtonFontStyle.HelveticaNowTextBold16Gray900,
+                prefixWidget: Container(
+                  margin: getMargin(
+                    right: 8,
+                  ),
+                  child: CustomImageView(
+                    svgPath: ImageConstant.imgEye,
+                  ),
+                ),
+              ),
+              CustomButton(
+                height: getVerticalSize(
+                  56,
+                ),
+                text: "Continue with Google",
+                margin: getMargin(
+                  left: 24,
+                  top: 16,
+                  right: 24,
+                ),
+                variant: ButtonVariant.OutlineIndigo50,
+                padding: ButtonPadding.PaddingT14,
+                fontStyle: ButtonFontStyle.HelveticaNowTextBold16Gray900,
+                prefixWidget: Container(
+                  margin: getMargin(
+                    right: 8,
+                  ),
+                  child: CustomImageView(
+                    svgPath: ImageConstant.imgGoogle,
+                  ),
+                ),
+              ),
+              Padding(
+                padding: getPadding(
+                  top: 39,
+                  bottom: 5,
+                ),
+                child: RichText(
+                  text: TextSpan(
+                    children: [
+                      TextSpan(
+                        text: "Don’t have an account? ",
+                        style: TextStyle(
+                          color: ColorConstant.blueGray500,
+                          fontSize: getFontSize(
+                            14,
+                          ),
+                          fontFamily: 'Manrope',
+                          fontWeight: FontWeight.w400,
+                          letterSpacing: getHorizontalSize(
+                            0.3,
+                          ),
+                        ),
+                      ),
+                      TextSpan(
+                        text: "Sign Up",
+                        style: TextStyle(
+                          color: ColorConstant.blueA700,
+                          fontSize: getFontSize(
+                            14,
+                          ),
+                          fontFamily: 'Helvetica Now Text ',
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: getHorizontalSize(
+                            0.3,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  textAlign: TextAlign.left,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
