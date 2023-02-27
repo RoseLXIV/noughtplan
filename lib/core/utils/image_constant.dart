@@ -90,6 +90,8 @@ class ImageConstant {
 
   static String imgGroup23 = 'assets/images/img_group23.png';
 
+  static String Topographic = 'assets/images/Topographic.png';
+
   static String imgReply = 'assets/images/img_reply.svg';
 
   static String imgCarBlueGray300 = 'assets/images/img_car_blue_gray_300.svg';

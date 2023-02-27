@@ -76,6 +76,9 @@ class GetStartedScreen extends StatelessWidget {
                 ),
               ),
               CustomButton(
+                onTap: () {
+                  Navigator.pushNamed(context, '/login_page_screen');
+                },
                 height: getVerticalSize(
                   56,
                 ),

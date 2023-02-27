@@ -62,7 +62,7 @@ class LoginPageScreen extends StatelessWidget {
                                                     onTapImgClose(context);
                                                   }),
                                               Padding(
-                                                  padding: getPadding(top: 104),
+                                                  padding: getPadding(top: 160),
                                                   child: Text("Welcome Back!",
                                                       overflow:
                                                           TextOverflow.ellipsis,
@@ -71,7 +71,7 @@ class LoginPageScreen extends StatelessWidget {
                                                           .txtHelveticaNowTextBold24)),
                                               Padding(
                                                   padding: getPadding(
-                                                      top: 6, bottom: 11),
+                                                      top: 6, bottom: 20),
                                                   child: Text(
                                                       "Sign in to your account",
                                                       overflow:
@@ -115,7 +115,7 @@ class LoginPageScreen extends StatelessWidget {
                                     isObscureText: true),
                                 Padding(
                                     padding: getPadding(
-                                        left: 24, top: 17, right: 24),
+                                        left: 24, top: 24, right: 24),
                                     child: Row(
                                         mainAxisAlignment:
                                             MainAxisAlignment.spaceBetween,
@@ -187,13 +187,13 @@ class LoginPageScreen extends StatelessWidget {
                                         ])),
                                 Padding(
                                     padding: getPadding(
-                                        left: 24, top: 23, right: 24),
+                                        left: 24, top: 15, right: 24),
                                     child: Row(
                                         mainAxisAlignment:
-                                            MainAxisAlignment.center,
+                                            MainAxisAlignment.end,
                                         children: [
                                           CustomButton(
-                                              height: getVerticalSize(56),
+                                              height: getVerticalSize(55),
                                               width: getHorizontalSize(155),
                                               text: "Apple",
                                               variant:
@@ -223,7 +223,7 @@ class LoginPageScreen extends StatelessWidget {
                                                           .imgGoogle)))
                                         ])),
                                 Padding(
-                                    padding: getPadding(top: 74),
+                                    padding: getPadding(top: 29),
                                     child: RichText(
                                         text: TextSpan(children: [
                                           TextSpan(
@@ -253,12 +253,12 @@ class LoginPageScreen extends StatelessWidget {
                           alignment: Alignment.topCenter,
                           child: Container(
                               padding: getPadding(
-                                  left: 143, top: 40, right: 143, bottom: 40),
+                                  left: 143, top: 40, right: 143, bottom: 123),
                               decoration: BoxDecoration(
                                   image: DecorationImage(
                                       image:
-                                          AssetImage(ImageConstant.imgGroup23),
-                                      fit: BoxFit.cover)),
+                                          AssetImage(ImageConstant.Topographic),
+                                      fit: BoxFit.none)),
                               child: Column(
                                   mainAxisSize: MainAxisSize.min,
                                   mainAxisAlignment: MainAxisAlignment.start,
@@ -267,7 +267,7 @@ class LoginPageScreen extends StatelessWidget {
                                         imagePath: ImageConstant.imgGroup182982,
                                         height: getSize(87),
                                         width: getSize(87),
-                                        margin: getMargin(bottom: 68))
+                                        margin: getMargin(top: 52))
                                   ])))
                     ])))));
   }
