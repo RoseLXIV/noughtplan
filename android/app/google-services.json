@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "226214731322",
+    "project_id": "noughtplan-e101c",
+    "storage_bucket": "noughtplan-e101c.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:226214731322:android:c714e82164aa212b909f03",
+        "android_client_info": {
+          "package_name": "com.noughtplan.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "226214731322-409tfeok3f5ts788tvh6rqh94aq0s95o.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDmw9qeWAJ_HVoxBsFsxnhEK_A8DHwfKPk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "226214731322-409tfeok3f5ts788tvh6rqh94aq0s95o.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
