@@ -2,26 +2,28 @@ import 'package:flutter/material.dart';
 import 'package:noughtplan/core/app_export.dart';
 
 class CustomTextFormField extends StatelessWidget {
-  CustomTextFormField(
-      {this.shape,
-      this.padding,
-      this.variant,
-      this.fontStyle,
-      this.alignment,
-      this.width,
-      this.margin,
-      this.controller,
-      this.focusNode,
-      this.isObscureText = false,
-      this.textInputAction = TextInputAction.next,
-      this.textInputType = TextInputType.text,
-      this.maxLines,
-      this.hintText,
-      this.prefix,
-      this.prefixConstraints,
-      this.suffix,
-      this.suffixConstraints,
-      this.validator});
+  CustomTextFormField({
+    this.shape,
+    this.padding,
+    this.variant,
+    this.fontStyle,
+    this.alignment,
+    this.width,
+    this.margin,
+    this.controller,
+    this.focusNode,
+    this.isObscureText = false,
+    this.textInputAction = TextInputAction.next,
+    this.textInputType = TextInputType.text,
+    this.maxLines,
+    this.hintText,
+    this.prefix,
+    this.prefixConstraints,
+    this.suffix,
+    this.suffixConstraints,
+    this.validator,
+    this.decoration,
+  });
 
   TextFormFieldShape? shape;
 
@@ -30,6 +32,8 @@ class CustomTextFormField extends StatelessWidget {
   TextFormFieldVariant? variant;
 
   TextFormFieldFontStyle? fontStyle;
+
+  InputDecoration? decoration;
 
   Alignment? alignment;
 
@@ -133,6 +137,15 @@ class CustomTextFormField extends StatelessWidget {
           height: getVerticalSize(
             1.50,
           ),
+        );
+      case TextFormFieldFontStyle.txtHelveticaNowTextBold40:
+        return TextStyle(
+          color: ColorConstant.gray900,
+          fontSize: getFontSize(
+            40,
+          ),
+          fontFamily: 'Helvetica Now Text',
+          fontWeight: FontWeight.w700,
         );
       case TextFormFieldFontStyle.ManropeRegular14:
         return TextStyle(
@@ -277,4 +290,5 @@ enum TextFormFieldFontStyle {
   ManropeRegular16Bluegray100,
   HelveticaNowTextBold12,
   ManropeRegular14,
+  txtHelveticaNowTextBold40
 }

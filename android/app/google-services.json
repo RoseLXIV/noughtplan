@@ -14,7 +14,15 @@
       },
       "oauth_client": [
         {
-          "client_id": "226214731322-409tfeok3f5ts788tvh6rqh94aq0s95o.apps.googleusercontent.com",
+          "client_id": "226214731322-7ba86fi0nj7gaerkhk1bml73jeotsr3m.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.noughtplan.app",
+            "certificate_hash": "8757dd80dea445913db810855f5af7d4e2da6089"
+          }
+        },
+        {
+          "client_id": "226214731322-9vinjom1lcucjmdt0qr9u4bjsjr6irr7.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
@@ -29,6 +37,13 @@
             {
               "client_id": "226214731322-409tfeok3f5ts788tvh6rqh94aq0s95o.apps.googleusercontent.com",
               "client_type": 3
+            },
+            {
+              "client_id": "226214731322-4mhd2f5g1db7jnlk5lk73rbrh9ol50fv.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.noughtplan.app"
+              }
             }
           ]
         }

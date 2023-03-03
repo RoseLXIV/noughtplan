@@ -113,7 +113,7 @@ class CustomCheckbox extends StatelessWidget {
           fontSize: getFontSize(
             14,
           ),
-          fontFamily: 'Helvetica Now Text ',
+          fontFamily: 'Helvetica Now Text',
           fontWeight: FontWeight.w500,
           height: getVerticalSize(
             1.50,

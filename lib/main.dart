@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:noughtplan/core/auth/providers/is_logged_in_provider.dart';
+import 'package:noughtplan/presentation/generator_salary_screen/generator_salary_screen.dart';
+import 'package:noughtplan/presentation/get_started_screen/get_started_screen.dart';
 import 'package:noughtplan/routes/app_routes.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
@@ -12,7 +16,7 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  runApp(MyApp());
+  runApp(ProviderScope(child: MyApp()));
 }
 
 class MyApp extends StatelessWidget {
@@ -24,8 +28,20 @@ class MyApp extends StatelessWidget {
       ),
       title: 'noughtplan',
       debugShowCheckedModeBanner: false,
-      initialRoute: AppRoutes.splashScreen,
-      routes: AppRoutes.routes,
+      home: Consumer(
+        builder: (context, ref, child) {
+          final isLoggedIn = ref.watch(isLoggedInProvider);
+          if (isLoggedIn) {
+            isLoggedIn.log();
+            return GeneratorSalaryScreen();
+          } else {
+            isLoggedIn.log();
+            return GetStartedScreen();
+          }
+        },
+      ),
+      // initialRoute: AppRoutes.splashScreen,
+      // routes: AppRoutes.routes,
     );
   }
 }

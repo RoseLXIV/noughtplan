@@ -7,7 +7,7 @@ class AppStyle {
     fontSize: getFontSize(
       40,
     ),
-    fontFamily: 'Helvetica Now Text ',
+    fontFamily: 'Helvetica Now Text',
     fontWeight: FontWeight.w700,
   );
 
@@ -25,7 +25,7 @@ class AppStyle {
     fontSize: getFontSize(
       14,
     ),
-    fontFamily: 'Helvetica Now Text ',
+    fontFamily: 'Helvetica Now Text',
     fontWeight: FontWeight.w500,
   );
 
@@ -34,7 +34,7 @@ class AppStyle {
     fontSize: getFontSize(
       12,
     ),
-    fontFamily: 'Helvetica Now Text ',
+    fontFamily: 'Helvetica Now Text',
     fontWeight: FontWeight.w700,
   );
 
@@ -70,7 +70,7 @@ class AppStyle {
     fontSize: getFontSize(
       16,
     ),
-    fontFamily: 'Helvetica Now Text ',
+    fontFamily: 'Helvetica Now Text',
     fontWeight: FontWeight.w700,
   );
 
@@ -142,7 +142,7 @@ class AppStyle {
     fontSize: getFontSize(
       24,
     ),
-    fontFamily: 'Helvetica Now Text ',
+    fontFamily: 'Helvetica Now Text',
     fontWeight: FontWeight.w500,
   );
 
@@ -160,7 +160,7 @@ class AppStyle {
     fontSize: getFontSize(
       14,
     ),
-    fontFamily: 'Helvetica Now Text ',
+    fontFamily: 'Helvetica Now Text',
     fontWeight: FontWeight.w500,
   );
 
@@ -178,7 +178,7 @@ class AppStyle {
     fontSize: getFontSize(
       14,
     ),
-    fontFamily: 'Helvetica Now Text ',
+    fontFamily: 'Helvetica Now Text',
     fontWeight: FontWeight.w700,
   );
 
@@ -196,7 +196,7 @@ class AppStyle {
     fontSize: getFontSize(
       12,
     ),
-    fontFamily: 'Helvetica Now Text ',
+    fontFamily: 'Helvetica Now Text',
     fontWeight: FontWeight.w700,
   );
 
@@ -205,7 +205,7 @@ class AppStyle {
     fontSize: getFontSize(
       14,
     ),
-    fontFamily: 'Helvetica Now Text ',
+    fontFamily: 'Helvetica Now Text',
     fontWeight: FontWeight.w500,
   );
 
@@ -214,7 +214,7 @@ class AppStyle {
     fontSize: getFontSize(
       18,
     ),
-    fontFamily: 'Helvetica Now Text ',
+    fontFamily: 'Helvetica Now Text',
     fontWeight: FontWeight.w700,
   );
 
@@ -223,7 +223,7 @@ class AppStyle {
     fontSize: getFontSize(
       16,
     ),
-    fontFamily: 'Helvetica Now Text ',
+    fontFamily: 'Helvetica Now Text',
     fontWeight: FontWeight.w700,
   );
 
@@ -268,7 +268,7 @@ class AppStyle {
     fontSize: getFontSize(
       14,
     ),
-    fontFamily: 'Helvetica Now Text ',
+    fontFamily: 'Helvetica Now Text',
     fontWeight: FontWeight.w500,
   );
 
@@ -295,7 +295,7 @@ class AppStyle {
     fontSize: getFontSize(
       24,
     ),
-    fontFamily: 'Helvetica Now Text ',
+    fontFamily: 'Helvetica Now Text',
     fontWeight: FontWeight.w700,
   );
 
@@ -304,7 +304,7 @@ class AppStyle {
     fontSize: getFontSize(
       20,
     ),
-    fontFamily: 'Helvetica Now Text ',
+    fontFamily: 'Helvetica Now Text',
     fontWeight: FontWeight.w700,
   );
 
@@ -331,7 +331,7 @@ class AppStyle {
     fontSize: getFontSize(
       24,
     ),
-    fontFamily: 'Helvetica Now Text ',
+    fontFamily: 'Helvetica Now Text',
     fontWeight: FontWeight.w700,
   );
 
@@ -367,7 +367,7 @@ class AppStyle {
     fontSize: getFontSize(
       18,
     ),
-    fontFamily: 'Helvetica Now Text ',
+    fontFamily: 'Helvetica Now Text',
     fontWeight: FontWeight.w700,
   );
 
@@ -412,7 +412,7 @@ class AppStyle {
     fontSize: getFontSize(
       16,
     ),
-    fontFamily: 'Helvetica Now Text ',
+    fontFamily: 'Helvetica Now Text',
     fontWeight: FontWeight.w700,
   );
 
@@ -421,7 +421,7 @@ class AppStyle {
     fontSize: getFontSize(
       14,
     ),
-    fontFamily: 'Helvetica Now Text ',
+    fontFamily: 'Helvetica Now Text',
     fontWeight: FontWeight.w700,
   );
 
@@ -430,7 +430,7 @@ class AppStyle {
     fontSize: getFontSize(
       12,
     ),
-    fontFamily: 'Helvetica Now Text ',
+    fontFamily: 'Helvetica Now Text',
     fontWeight: FontWeight.w700,
   );
 
@@ -439,7 +439,7 @@ class AppStyle {
     fontSize: getFontSize(
       12,
     ),
-    fontFamily: 'Helvetica Now Text ',
+    fontFamily: 'Helvetica Now Text',
     fontWeight: FontWeight.w700,
   );
 
@@ -448,7 +448,7 @@ class AppStyle {
     fontSize: getFontSize(
       32,
     ),
-    fontFamily: 'Helvetica Now Text ',
+    fontFamily: 'Helvetica Now Text',
     fontWeight: FontWeight.w700,
   );
 
@@ -511,7 +511,7 @@ class AppStyle {
     fontSize: getFontSize(
       32,
     ),
-    fontFamily: 'Helvetica Now Text ',
+    fontFamily: 'Helvetica Now Text',
     fontWeight: FontWeight.w700,
   );
 

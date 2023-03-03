@@ -9,6 +9,10 @@ class ImageConstant {
 
   static String imgCar = 'assets/images/img_car.svg';
 
+  static String imgJamaica = 'assets/images/ja.png';
+
+  static String imgUsa = 'assets/images/us.png';
+
   static String imgQrcode = 'assets/images/img_qrcode.svg';
 
   static String imgAvatar = 'assets/images/img_avatar.png';
@@ -229,6 +233,8 @@ class ImageConstant {
       'assets/images/img_ticket_blue_gray_300.svg';
 
   static String imgEye = 'assets/images/img_eye.svg';
+
+  static String imgFacebook = 'assets/images/img_facebook.png';
 
   static String imgTrophy = 'assets/images/img_trophy.svg';
 

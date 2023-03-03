@@ -195,17 +195,18 @@ class LoginPageScreen extends StatelessWidget {
                                           CustomButton(
                                               height: getVerticalSize(55),
                                               width: getHorizontalSize(155),
-                                              text: "Apple",
+                                              text: "Facebook",
                                               variant:
                                                   ButtonVariant.OutlineIndigo50,
                                               padding: ButtonPadding.PaddingT14,
                                               fontStyle: ButtonFontStyle
                                                   .HelveticaNowTextBold16Gray900,
                                               prefixWidget: Container(
-                                                  margin: getMargin(right: 8),
+                                                  margin: getMargin(right: 15),
                                                   child: CustomImageView(
-                                                      svgPath: ImageConstant
-                                                          .imgEye))),
+                                                    imagePath: ImageConstant
+                                                        .imgFacebook,
+                                                  ))),
                                           CustomButton(
                                               height: getVerticalSize(56),
                                               width: getHorizontalSize(155),
@@ -217,7 +218,7 @@ class LoginPageScreen extends StatelessWidget {
                                               fontStyle: ButtonFontStyle
                                                   .HelveticaNowTextBold16Gray900,
                                               prefixWidget: Container(
-                                                  margin: getMargin(right: 8),
+                                                  margin: getMargin(right: 15),
                                                   child: CustomImageView(
                                                       svgPath: ImageConstant
                                                           .imgGoogle)))

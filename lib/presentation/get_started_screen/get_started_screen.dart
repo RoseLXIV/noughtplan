@@ -1,12 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:noughtplan/core/app_export.dart';
+import 'package:noughtplan/core/auth/backend/authenticator.dart';
+import 'package:noughtplan/core/auth/providers/auth_state_provider.dart';
 import 'package:noughtplan/widgets/custom_button.dart';
 
-class GetStartedScreen extends StatelessWidget {
+import 'dart:developer' as devtools show log;
+
+extension Log on Object {
+  void log() => devtools.log(toString());
+}
+
+class GetStartedScreen extends ConsumerWidget {
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return SafeArea(
       child: Scaffold(
+        resizeToAvoidBottomInset: false,
         backgroundColor: ColorConstant.whiteA700,
         body: Container(
           width: double.maxFinite,
@@ -91,28 +101,7 @@ class GetStartedScreen extends StatelessWidget {
                 ),
               ),
               CustomButton(
-                height: getVerticalSize(
-                  56,
-                ),
-                text: "Continue with Apple",
-                margin: getMargin(
-                  left: 24,
-                  top: 16,
-                  right: 24,
-                ),
-                variant: ButtonVariant.OutlineIndigo50,
-                padding: ButtonPadding.PaddingT14,
-                fontStyle: ButtonFontStyle.HelveticaNowTextBold16Gray900,
-                prefixWidget: Container(
-                  margin: getMargin(
-                    right: 8,
-                  ),
-                  child: CustomImageView(
-                    svgPath: ImageConstant.imgEye,
-                  ),
-                ),
-              ),
-              CustomButton(
+                onTap: ref.read(authStateProvider.notifier).loginWithGoogle,
                 height: getVerticalSize(
                   56,
                 ),
@@ -131,6 +120,29 @@ class GetStartedScreen extends StatelessWidget {
                   ),
                   child: CustomImageView(
                     svgPath: ImageConstant.imgGoogle,
+                  ),
+                ),
+              ),
+              CustomButton(
+                onTap: ref.read(authStateProvider.notifier).loginWithFacebook,
+                height: getVerticalSize(
+                  56,
+                ),
+                text: "Continue with Facebook",
+                margin: getMargin(
+                  left: 24,
+                  top: 16,
+                  right: 24,
+                ),
+                variant: ButtonVariant.OutlineIndigo50,
+                padding: ButtonPadding.PaddingT14,
+                fontStyle: ButtonFontStyle.HelveticaNowTextBold16Gray900,
+                prefixWidget: Container(
+                  margin: getMargin(
+                    right: 8,
+                  ),
+                  child: CustomImageView(
+                    imagePath: ImageConstant.imgFacebook,
                   ),
                 ),
               ),

@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">noughtplan</string>
-    
+    <string name="facebook_app_id">922510352501253</string>
+    <string name="fb_login_protocol_scheme">fb922510352501253</string>
+    <string name="facebook_client_token">06e58534f3e8c2866b9f3242f3a2f6e1</string>
 </resources>
