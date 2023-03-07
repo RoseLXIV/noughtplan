@@ -1,5 +1,3 @@
-import 'dart:collection';
-
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -8,7 +6,6 @@ import 'package:intl/intl.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:noughtplan/core/auth/providers/auth_state_provider.dart';
 
-import '../generator_salary_screen/widgets/listdatatypeone_item_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:noughtplan/core/app_export.dart';
 import 'package:noughtplan/widgets/app_bar/appbar_image.dart';

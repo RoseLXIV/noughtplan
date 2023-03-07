@@ -227,6 +227,15 @@ class AppStyle {
     fontWeight: FontWeight.w700,
   );
 
+  static TextStyle txtHelveticaNowTextBold16Blue = TextStyle(
+    color: ColorConstant.blueA700,
+    fontSize: getFontSize(
+      16,
+    ),
+    fontFamily: 'Helvetica Now Text',
+    fontWeight: FontWeight.w700,
+  );
+
   static TextStyle txtManropeRegular10 = TextStyle(
     color: ColorConstant.blueGray300,
     fontSize: getFontSize(

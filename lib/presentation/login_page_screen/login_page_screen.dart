@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:noughtplan/core/app_export.dart';
+import 'package:noughtplan/core/auth/providers/auth_state_provider.dart';
 import 'package:noughtplan/widgets/custom_button.dart';
 import 'package:noughtplan/widgets/custom_checkbox.dart';
 import 'package:noughtplan/widgets/custom_text_form_field.dart';
@@ -10,7 +12,7 @@ import 'package:noughtplan/widgets/custom_text_form_field.dart';
 // ignore_for_file: must_be_immutable
 
 // ignore_for_file: must_be_immutable
-class LoginPageScreen extends StatelessWidget {
+class LoginPageScreen extends ConsumerWidget {
   TextEditingController inputEmailController = TextEditingController();
 
   TextEditingController inputPasswordController = TextEditingController();
@@ -20,7 +22,7 @@ class LoginPageScreen extends StatelessWidget {
   GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return SafeArea(
         child: Scaffold(
             backgroundColor: ColorConstant.whiteA700,
@@ -70,8 +72,7 @@ class LoginPageScreen extends StatelessWidget {
                                                       style: AppStyle
                                                           .txtHelveticaNowTextBold24)),
                                               Padding(
-                                                  padding: getPadding(
-                                                      top: 6, bottom: 20),
+                                                  padding: getPadding(top: 6),
                                                   child: Text(
                                                       "Sign in to your account",
                                                       overflow:
@@ -115,7 +116,7 @@ class LoginPageScreen extends StatelessWidget {
                                     isObscureText: true),
                                 Padding(
                                     padding: getPadding(
-                                        left: 24, top: 24, right: 24),
+                                        left: 24, top: 15, right: 24),
                                     child: Row(
                                         mainAxisAlignment:
                                             MainAxisAlignment.spaceBetween,
@@ -131,23 +132,38 @@ class LoginPageScreen extends StatelessWidget {
                                                 checkbox = value;
                                               }),
                                           Padding(
-                                              padding: getPadding(top: 1),
-                                              child: Text("Forgot Password?",
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  textAlign: TextAlign.left,
+                                            padding: getPadding(top: 1),
+                                            child: TextButton(
+                                              onPressed: () {
+                                                Navigator.pushNamed(context,
+                                                    '/forgot_password_screen');
+                                              },
+                                              child: Text('Forget Password?',
                                                   style: AppStyle
                                                       .txtHelveticaNowTextBold14
                                                       .copyWith(
                                                           letterSpacing:
                                                               getHorizontalSize(
-                                                                  0.3))))
+                                                                  0.3))),
+                                            ),
+                                            // Text(
+                                            //   "Forgot Password?",
+                                            //   overflow: TextOverflow.ellipsis,
+                                            //   textAlign: TextAlign.left,
+                                            //   style: AppStyle
+                                            //       .txtHelveticaNowTextBold14
+                                            //       .copyWith(
+                                            //     letterSpacing:
+                                            //         getHorizontalSize(0.3),
+                                            //   ),
+                                            // ),
+                                          ),
                                         ])),
                                 CustomButton(
                                     height: getVerticalSize(56),
                                     text: "Sign In",
                                     margin: getMargin(
-                                        left: 24, top: 24, right: 24)),
+                                        left: 24, top: 20, right: 24)),
                                 Padding(
                                     padding: getPadding(top: 27),
                                     child: Row(
@@ -193,6 +209,10 @@ class LoginPageScreen extends StatelessWidget {
                                             MainAxisAlignment.end,
                                         children: [
                                           CustomButton(
+                                              onTap: ref
+                                                  .read(authStateProvider
+                                                      .notifier)
+                                                  .loginWithFacebook,
                                               height: getVerticalSize(55),
                                               width: getHorizontalSize(155),
                                               text: "Facebook",
@@ -208,6 +228,10 @@ class LoginPageScreen extends StatelessWidget {
                                                         .imgFacebook,
                                                   ))),
                                           CustomButton(
+                                              onTap: ref
+                                                  .read(authStateProvider
+                                                      .notifier)
+                                                  .loginWithGoogle,
                                               height: getVerticalSize(56),
                                               width: getHorizontalSize(155),
                                               text: "Google",
@@ -224,31 +248,55 @@ class LoginPageScreen extends StatelessWidget {
                                                           .imgGoogle)))
                                         ])),
                                 Padding(
-                                    padding: getPadding(top: 29),
-                                    child: RichText(
-                                        text: TextSpan(children: [
-                                          TextSpan(
-                                              text: "Don’t have an account? ",
-                                              style: TextStyle(
-                                                  color:
-                                                      ColorConstant.blueGray500,
-                                                  fontSize: getFontSize(14),
-                                                  fontFamily: 'Manrope',
-                                                  fontWeight: FontWeight.w400,
-                                                  letterSpacing:
-                                                      getHorizontalSize(0.3))),
-                                          TextSpan(
-                                              text: "Sign Up",
-                                              style: TextStyle(
-                                                  color: ColorConstant.blueA700,
-                                                  fontSize: getFontSize(14),
-                                                  fontFamily:
-                                                      'Helvetica Now Text ',
-                                                  fontWeight: FontWeight.w700,
-                                                  letterSpacing:
-                                                      getHorizontalSize(0.3)))
-                                        ]),
-                                        textAlign: TextAlign.left))
+                                    padding: getPadding(top: 10),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        RichText(
+                                            text: TextSpan(children: [
+                                              TextSpan(
+                                                  text:
+                                                      "Don’t have an account? ",
+                                                  style: TextStyle(
+                                                      color: ColorConstant
+                                                          .blueGray500,
+                                                      fontSize: getFontSize(14),
+                                                      fontFamily: 'Manrope',
+                                                      fontWeight:
+                                                          FontWeight.w400,
+                                                      letterSpacing:
+                                                          getHorizontalSize(
+                                                              0.3))),
+                                              // TextSpan(
+                                              //     text: "Sign Up",
+                                              //     style: TextStyle(
+                                              //         color: ColorConstant
+                                              //             .blueA700,
+                                              //         fontSize: getFontSize(14),
+                                              //         fontFamily:
+                                              //             'Helvetica Now Text ',
+                                              //         fontWeight:
+                                              //             FontWeight.w700,
+                                              //         letterSpacing:
+                                              //             getHorizontalSize(
+                                              //                 0.3)))
+                                            ]),
+                                            textAlign: TextAlign.left),
+                                        TextButton(
+                                          onPressed: () {
+                                            Navigator.pushNamed(context,
+                                                '/sign_up_email_screen');
+                                          },
+                                          child: Text(
+                                            "Sign Up",
+                                            style: AppStyle
+                                                .txtHelveticaNowTextBold16Blue,
+                                            textAlign: TextAlign.left,
+                                          ),
+                                        ),
+                                      ],
+                                    ))
                               ])),
                       Align(
                           alignment: Alignment.topCenter,

@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:noughtplan/core/auth/providers/is_logged_in_provider.dart';
+import 'package:noughtplan/core/providers/is_loading_provider.dart';
 import 'package:noughtplan/presentation/generator_salary_screen/generator_salary_screen.dart';
 import 'package:noughtplan/presentation/get_started_screen/get_started_screen.dart';
 import 'package:noughtplan/routes/app_routes.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:noughtplan/views/components/constants/loading/loading_screen.dart';
 import 'firebase_options.dart';
 
 void main() async {
@@ -30,6 +32,16 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       home: Consumer(
         builder: (context, ref, child) {
+          ref.listen<bool>(
+            isLoadingProvider,
+            (_, isLoading) {
+              if (isLoading) {
+                LoadingScreen.instance().show(context: context);
+              } else {
+                LoadingScreen.instance().hide();
+              }
+            },
+          );
           final isLoggedIn = ref.watch(isLoggedInProvider);
           if (isLoggedIn) {
             isLoggedIn.log();
@@ -41,7 +53,7 @@ class MyApp extends StatelessWidget {
         },
       ),
       // initialRoute: AppRoutes.splashScreen,
-      // routes: AppRoutes.routes,
+      routes: AppRoutes.routes,
     );
   }
 }

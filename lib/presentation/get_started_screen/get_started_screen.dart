@@ -25,7 +25,7 @@ class GetStartedScreen extends ConsumerWidget {
             children: [
               Container(
                 height: getVerticalSize(
-                  400,
+                  410,
                 ),
                 width: double.maxFinite,
                 child: Stack(
@@ -148,43 +148,58 @@ class GetStartedScreen extends ConsumerWidget {
               ),
               Padding(
                 padding: getPadding(
-                  top: 39,
+                  top: 10,
                   bottom: 5,
                 ),
-                child: RichText(
-                  text: TextSpan(
-                    children: [
-                      TextSpan(
-                        text: "Don’t have an account? ",
-                        style: TextStyle(
-                          color: ColorConstant.blueGray500,
-                          fontSize: getFontSize(
-                            14,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    RichText(
+                      text: TextSpan(
+                        children: [
+                          TextSpan(
+                            text: "Don’t have an account? ",
+                            style: TextStyle(
+                              color: ColorConstant.blueGray500,
+                              fontSize: getFontSize(
+                                14,
+                              ),
+                              fontFamily: 'Manrope',
+                              fontWeight: FontWeight.w400,
+                              letterSpacing: getHorizontalSize(
+                                0.3,
+                              ),
+                            ),
                           ),
-                          fontFamily: 'Manrope',
-                          fontWeight: FontWeight.w400,
-                          letterSpacing: getHorizontalSize(
-                            0.3,
-                          ),
-                        ),
+                          // TextSpan(
+                          //   text: "Sign Up",
+                          //   style: TextStyle(
+                          //     color: ColorConstant.blueA700,
+                          //     fontSize: getFontSize(
+                          //       14,
+                          //     ),
+                          //     fontFamily: 'Helvetica Now Text ',
+                          //     fontWeight: FontWeight.w700,
+                          //     letterSpacing: getHorizontalSize(
+                          //       0.3,
+                          //     ),
+                          //   ),
+                          // ),
+                        ],
                       ),
-                      TextSpan(
-                        text: "Sign Up",
-                        style: TextStyle(
-                          color: ColorConstant.blueA700,
-                          fontSize: getFontSize(
-                            14,
-                          ),
-                          fontFamily: 'Helvetica Now Text ',
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: getHorizontalSize(
-                            0.3,
-                          ),
-                        ),
+                      textAlign: TextAlign.left,
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pushNamed(context, '/sign_up_email_screen');
+                      },
+                      child: Text(
+                        "Sign Up",
+                        style: AppStyle.txtHelveticaNowTextBold16Blue,
+                        textAlign: TextAlign.left,
                       ),
-                    ],
-                  ),
-                  textAlign: TextAlign.left,
+                    ),
+                  ],
                 ),
               ),
             ],

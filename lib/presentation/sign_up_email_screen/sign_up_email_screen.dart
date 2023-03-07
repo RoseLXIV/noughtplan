@@ -28,8 +28,9 @@ class SignUpEmailScreen extends StatelessWidget {
                 key: _formKey,
                 child: Container(
                     width: double.maxFinite,
+                    height: size.height,
                     padding:
-                        getPadding(left: 24, top: 16, right: 24, bottom: 16),
+                        getPadding(left: 24, top: 24, right: 24, bottom: 16),
                     child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisAlignment: MainAxisAlignment.start,
@@ -50,7 +51,7 @@ class SignUpEmailScreen extends StatelessWidget {
                           Padding(
                               padding: getPadding(top: 8),
                               child: Text(
-                                  "Let’s get started with a free Financy account.",
+                                  "Let’s get started with a free Nought Plan account.",
                                   overflow: TextOverflow.ellipsis,
                                   textAlign: TextAlign.left,
                                   style: AppStyle.txtManropeRegular14.copyWith(
@@ -96,7 +97,7 @@ class SignUpEmailScreen extends StatelessWidget {
                                         svgPath: ImageConstant.imgVideocamera,
                                         height: getSize(24),
                                         width: getSize(24),
-                                        margin: getMargin(bottom: 17)),
+                                        margin: getMargin(bottom: 10)),
                                     Expanded(
                                         child: Container(
                                             width: getHorizontalSize(276),
@@ -104,8 +105,7 @@ class SignUpEmailScreen extends StatelessWidget {
                                             child: RichText(
                                                 text: TextSpan(children: [
                                                   TextSpan(
-                                                      text:
-                                                          "I certify that I’m 18 years of age or older, and I agree to the ",
+                                                      text: "I agree to the ",
                                                       style: TextStyle(
                                                           color: ColorConstant
                                                               .gray900,
@@ -164,7 +164,7 @@ class SignUpEmailScreen extends StatelessWidget {
                           Align(
                               alignment: Alignment.center,
                               child: Padding(
-                                  padding: getPadding(top: 26),
+                                  padding: getPadding(top: 19),
                                   child: Row(
                                       mainAxisAlignment:
                                           MainAxisAlignment.center,
@@ -181,7 +181,7 @@ class SignUpEmailScreen extends StatelessWidget {
                                                         .indigo50))),
                                         Padding(
                                             padding: getPadding(left: 12),
-                                            child: Text("Or sign up with",
+                                            child: Text("Or sign up with  ",
                                                 overflow: TextOverflow.ellipsis,
                                                 textAlign: TextAlign.left,
                                                 style: AppStyle
@@ -205,20 +205,23 @@ class SignUpEmailScreen extends StatelessWidget {
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     Expanded(
-                                        child: CustomButton(
-                                            height: getVerticalSize(56),
-                                            text: "Apple",
-                                            margin: getMargin(right: 8),
-                                            variant:
-                                                ButtonVariant.OutlineIndigo50,
-                                            padding: ButtonPadding.PaddingT14,
-                                            fontStyle: ButtonFontStyle
-                                                .HelveticaNowTextBold16Gray900,
-                                            prefixWidget: Container(
-                                                margin: getMargin(right: 8),
-                                                child: CustomImageView(
-                                                    svgPath: ImageConstant
-                                                        .imgEye)))),
+                                      child: CustomButton(
+                                        height: getVerticalSize(56),
+                                        text: "Facebook",
+                                        margin: getMargin(right: 8),
+                                        variant: ButtonVariant.OutlineIndigo50,
+                                        padding: ButtonPadding.PaddingT14,
+                                        fontStyle: ButtonFontStyle
+                                            .HelveticaNowTextBold16Gray900,
+                                        prefixWidget: Container(
+                                          margin: getMargin(right: 15),
+                                          child: CustomImageView(
+                                            imagePath:
+                                                ImageConstant.imgFacebook,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
                                     Expanded(
                                         child: CustomButton(
                                             height: getVerticalSize(56),
@@ -230,49 +233,49 @@ class SignUpEmailScreen extends StatelessWidget {
                                             fontStyle: ButtonFontStyle
                                                 .HelveticaNowTextBold16Gray900,
                                             prefixWidget: Container(
-                                                margin: getMargin(right: 8),
+                                                margin: getMargin(right: 15),
                                                 child: CustomImageView(
                                                     svgPath: ImageConstant
                                                         .imgGoogle))))
                                   ])),
-                          Align(
-                              alignment: Alignment.center,
-                              child: Padding(
-                                  padding: getPadding(top: 73, bottom: 5),
-                                  child: RichText(
-                                      text: TextSpan(children: [
-                                        TextSpan(
-                                            text: "Already h",
-                                            style: TextStyle(
-                                                color:
-                                                    ColorConstant.blueGray500,
-                                                fontSize: getFontSize(14),
-                                                fontFamily: 'Manrope',
-                                                fontWeight: FontWeight.w400,
-                                                letterSpacing:
-                                                    getHorizontalSize(0.3))),
-                                        TextSpan(
-                                            text: "ave an account? ",
-                                            style: TextStyle(
-                                                color:
-                                                    ColorConstant.blueGray500,
-                                                fontSize: getFontSize(14),
-                                                fontFamily: 'Manrope',
-                                                fontWeight: FontWeight.w400,
-                                                letterSpacing:
-                                                    getHorizontalSize(0.3))),
-                                        TextSpan(
-                                            text: "Sign In",
-                                            style: TextStyle(
-                                                color: ColorConstant.blueA700,
-                                                fontSize: getFontSize(14),
-                                                fontFamily:
-                                                    'Helvetica Now Text ',
-                                                fontWeight: FontWeight.w700,
-                                                letterSpacing:
-                                                    getHorizontalSize(0.3)))
-                                      ]),
-                                      textAlign: TextAlign.left)))
+                          // Align(
+                          //     alignment: Alignment.center,
+                          //     child: Padding(
+                          //         padding: getPadding(top: 73, bottom: 5),
+                          //         child: RichText(
+                          //             text: TextSpan(children: [
+                          //               TextSpan(
+                          //                   text: "Already h",
+                          //                   style: TextStyle(
+                          //                       color:
+                          //                           ColorConstant.blueGray500,
+                          //                       fontSize: getFontSize(14),
+                          //                       fontFamily: 'Manrope',
+                          //                       fontWeight: FontWeight.w400,
+                          //                       letterSpacing:
+                          //                           getHorizontalSize(0.3))),
+                          //               TextSpan(
+                          //                   text: "ave an account? ",
+                          //                   style: TextStyle(
+                          //                       color:
+                          //                           ColorConstant.blueGray500,
+                          //                       fontSize: getFontSize(14),
+                          //                       fontFamily: 'Manrope',
+                          //                       fontWeight: FontWeight.w400,
+                          //                       letterSpacing:
+                          //                           getHorizontalSize(0.3))),
+                          //               // TextSpan(
+                          //               //     text: "Sign In",
+                          //               //     style: TextStyle(
+                          //               //         color: ColorConstant.blueA700,
+                          //               //         fontSize: getFontSize(14),
+                          //               //         fontFamily:
+                          //               //             'Helvetica Now Text ',
+                          //               //         fontWeight: FontWeight.w700,
+                          //               //         letterSpacing:
+                          //               //             getHorizontalSize(0.3)))
+                          //             ]),
+                          //             textAlign: TextAlign.left)))
                         ])))));
   }
 
