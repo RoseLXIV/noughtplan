@@ -44,6 +44,24 @@ class AuthStateNotifier extends StateNotifier<AuthState> {
     state = AuthState(result: result, userId: userId, isLoading: false);
   }
 
+  Future<void> signUpWithEmailAndPassword({
+    required String email,
+    required String password,
+    required String name,
+  }) async {
+    state = state.copiedWithIsLoading(true);
+    final result = await _authenticator.signUpWithEmailAndPassword(
+      email: email,
+      password: password,
+      name: name,
+    );
+    final userId = _authenticator.userId;
+    if (result == AuthResult.success && userId != null) {
+      await saveUserInfo(userId: userId);
+    }
+    state = AuthState(result: result, userId: userId, isLoading: false);
+  }
+
   Future<void> saveUserInfo({required UserId userId}) =>
       _userInfoStorage.saveUserInfo(
           id: userId,

@@ -1,34 +1,55 @@
 import 'package:flutter/material.dart';
-import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:noughtplan/core/app_export.dart';
 import 'package:noughtplan/core/auth/providers/auth_state_provider.dart';
+import 'package:noughtplan/core/auth/providers/is_logged_in_provider.dart';
+import 'package:noughtplan/core/auth/providers/password_visibility_provider_signin.dart';
+import 'package:noughtplan/presentation/generator_salary_screen/generator_salary_screen.dart';
 import 'package:noughtplan/widgets/custom_button.dart';
+import 'package:noughtplan/widgets/custom_button_form.dart'
+    hide ButtonVariant, ButtonPadding, ButtonFontStyle;
 import 'package:noughtplan/widgets/custom_checkbox.dart';
 import 'package:noughtplan/widgets/custom_text_form_field.dart';
-// ignore_for_file: must_be_immutable
+import 'package:noughtplan/core/auth/signin/controller/signin_controller.dart';
+import 'package:noughtplan/core/forms/form_validators.dart';
 
-// ignore_for_file: must_be_immutable
+// import 'dart:developer' as devtools show log;
 
-// ignore_for_file: must_be_immutable
+// extension Log on Object {
+//   void log() => devtools.log(toString());
+// }
 
-// ignore_for_file: must_be_immutable
 class LoginPageScreen extends ConsumerWidget {
-  TextEditingController inputEmailController = TextEditingController();
+  final inputEmailController = TextEditingController();
 
-  TextEditingController inputPasswordController = TextEditingController();
+  final inputPasswordController = TextEditingController();
 
-  bool checkbox = false;
+  final emailFocusNode = FocusNode();
+
+  final passwordFocusNode = FocusNode();
+
+  // bool checkbox = false;
 
   GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final signInState = ref.watch(signInProvider);
+    final showErrorEmail = signInState.email.error;
+    final showErrorPassword = signInState.password.error;
+    final isLoggedIn = ref.watch(isLoggedInProvider);
+    final signInController = ref.read(signInProvider.notifier);
+    final passwordVisibility = ref.watch(passwordVisibilityProviderSignIn);
+    final bool isValidated = signInState.status.isValidated;
+    if (isLoggedIn) {
+      return GeneratorSalaryScreen();
+    }
     return SafeArea(
         child: Scaffold(
             backgroundColor: ColorConstant.whiteA700,
             resizeToAvoidBottomInset: false,
             body: Form(
-                key: _formKey,
+                // key: _formKey,
                 child: Container(
                     height: size.height,
                     width: double.maxFinite,
@@ -86,84 +107,106 @@ class LoginPageScreen extends ConsumerWidget {
                                                                       0.3))))
                                             ]))),
                                 CustomTextFormField(
-                                    focusNode: FocusNode(),
-                                    controller: inputEmailController,
-                                    hintText: "Email",
-                                    margin:
-                                        getMargin(left: 24, top: 24, right: 24),
-                                    textInputType: TextInputType.emailAddress),
+                                  focusNode: emailFocusNode,
+                                  controller: inputEmailController,
+                                  hintText: "Email",
+                                  errorText: signInState.email.error != null &&
+                                          emailFocusNode.hasFocus
+                                      ? Text(
+                                          Email.showEmailErrorMessage(
+                                                  showErrorEmail)
+                                              .toString(),
+                                        )
+                                      : null,
+                                  margin:
+                                      getMargin(left: 24, top: 24, right: 24),
+                                  textInputType: TextInputType.emailAddress,
+                                  onChanged: (email) =>
+                                      signInController.onEmailChange(email),
+                                ),
                                 CustomTextFormField(
-                                    focusNode: FocusNode(),
-                                    controller: inputPasswordController,
-                                    hintText: "Password",
-                                    margin:
-                                        getMargin(left: 24, top: 16, right: 24),
-                                    padding: TextFormFieldPadding.PaddingT16,
-                                    textInputAction: TextInputAction.done,
-                                    textInputType:
-                                        TextInputType.visiblePassword,
-                                    suffix: Container(
-                                        margin: getMargin(
-                                            left: 30,
-                                            top: 16,
-                                            right: 16,
-                                            bottom: 16),
-                                        child: CustomImageView(
-                                            svgPath: ImageConstant
-                                                .imgEyeBlueGray300)),
-                                    suffixConstraints: BoxConstraints(
-                                        maxHeight: getVerticalSize(56)),
-                                    isObscureText: true),
+                                  focusNode: passwordFocusNode,
+                                  controller: inputPasswordController,
+                                  hintText: "Password",
+                                  errorText:
+                                      signInState.password.error != null &&
+                                              passwordFocusNode.hasFocus
+                                          ? Text(
+                                              PasswordSignIn
+                                                      .showPasswordErrorMessage(
+                                                          showErrorPassword)
+                                                  .toString(),
+                                            )
+                                          : null,
+                                  margin:
+                                      getMargin(left: 24, top: 16, right: 24),
+                                  padding: TextFormFieldPadding.PaddingT16,
+                                  onChanged: (password) => signInController
+                                      .onPasswordChange(password),
+                                  suffixIcon: IconButton(
+                                      icon: Icon(
+                                        passwordVisibility ==
+                                                PasswordVisibility.hidden
+                                            ? Icons.visibility_off
+                                            : Icons.visibility,
+                                      ),
+                                      onPressed: () {
+                                        final newValue = passwordVisibility ==
+                                                PasswordVisibility.hidden
+                                            ? PasswordVisibility.visible
+                                            : PasswordVisibility.hidden;
+                                        ref
+                                            .read(
+                                                passwordVisibilityProviderSignIn
+                                                    .notifier)
+                                            .state = newValue;
+                                      }),
+                                  suffixConstraints: BoxConstraints(
+                                      maxHeight: getVerticalSize(56)),
+                                  isObscureText: passwordVisibility ==
+                                      PasswordVisibility.hidden,
+                                ),
                                 Padding(
-                                    padding: getPadding(
-                                        left: 24, top: 15, right: 24),
+                                    padding: getPadding(left: 24, right: 24),
                                     child: Row(
                                         mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
+                                            MainAxisAlignment.end,
                                         children: [
-                                          CustomCheckbox(
-                                              text: "Remember me",
-                                              iconSize: getHorizontalSize(16),
-                                              value: checkbox,
-                                              margin: getMargin(bottom: 1),
-                                              fontStyle: CheckboxFontStyle
-                                                  .HelveticaNowTextMedium14,
-                                              onChange: (value) {
-                                                checkbox = value;
-                                              }),
-                                          Padding(
-                                            padding: getPadding(top: 1),
-                                            child: TextButton(
-                                              onPressed: () {
-                                                Navigator.pushNamed(context,
-                                                    '/forgot_password_screen');
-                                              },
-                                              child: Text('Forget Password?',
-                                                  style: AppStyle
-                                                      .txtHelveticaNowTextBold14
-                                                      .copyWith(
-                                                          letterSpacing:
-                                                              getHorizontalSize(
-                                                                  0.3))),
-                                            ),
-                                            // Text(
-                                            //   "Forgot Password?",
-                                            //   overflow: TextOverflow.ellipsis,
-                                            //   textAlign: TextAlign.left,
-                                            //   style: AppStyle
-                                            //       .txtHelveticaNowTextBold14
-                                            //       .copyWith(
-                                            //     letterSpacing:
-                                            //         getHorizontalSize(0.3),
-                                            //   ),
-                                            // ),
+                                          // CustomCheckbox(
+                                          //     text: "Remember me",
+                                          //     iconSize: getHorizontalSize(16),
+                                          //     // value: checkbox,
+                                          //     margin: getMargin(bottom: 1),
+                                          //     fontStyle: CheckboxFontStyle
+                                          //         .HelveticaNowTextMedium14,
+                                          //     onChange: (value) {
+                                          //       // checkbox = value;
+                                          //     }),
+                                          TextButton(
+                                            onPressed: () {
+                                              Navigator.pushNamed(context,
+                                                  '/forgot_password_screen');
+                                            },
+                                            child: Text('Forget Password?',
+                                                style: AppStyle
+                                                    .txtHelveticaNowTextBold14
+                                                    .copyWith(
+                                                        letterSpacing:
+                                                            getHorizontalSize(
+                                                                0.3))),
                                           ),
                                         ])),
-                                CustomButton(
-                                    height: getVerticalSize(56),
-                                    text: "Sign In",
-                                    margin: getMargin(
-                                        left: 24, top: 20, right: 24)),
+                                CustomButtonForm(
+                                  onTap: isValidated
+                                      ? () => signInController
+                                          .signInWithEmailAndPassword()
+                                      : null,
+                                  height: getVerticalSize(56),
+                                  text: "Sign In",
+                                  margin:
+                                      getMargin(left: 24, top: 12, right: 24),
+                                  enabled: isValidated,
+                                ),
                                 Padding(
                                     padding: getPadding(top: 27),
                                     child: Row(
@@ -212,10 +255,29 @@ class LoginPageScreen extends ConsumerWidget {
                                               onTap: ref
                                                   .read(authStateProvider
                                                       .notifier)
-                                                  .loginWithFacebook,
+                                                  .loginWithGoogle,
                                               height: getVerticalSize(55),
                                               width: getHorizontalSize(155),
+                                              text: "Google",
+                                              variant:
+                                                  ButtonVariant.OutlineIndigo50,
+                                              padding: ButtonPadding.PaddingT14,
+                                              fontStyle: ButtonFontStyle
+                                                  .HelveticaNowTextBold16Gray900,
+                                              prefixWidget: Container(
+                                                  margin: getMargin(right: 15),
+                                                  child: CustomImageView(
+                                                      svgPath: ImageConstant
+                                                          .imgGoogle))),
+                                          CustomButton(
+                                              onTap: ref
+                                                  .read(authStateProvider
+                                                      .notifier)
+                                                  .loginWithFacebook,
+                                              height: getVerticalSize(56),
+                                              width: getHorizontalSize(155),
                                               text: "Facebook",
+                                              margin: getMargin(left: 16),
                                               variant:
                                                   ButtonVariant.OutlineIndigo50,
                                               padding: ButtonPadding.PaddingT14,
@@ -226,26 +288,7 @@ class LoginPageScreen extends ConsumerWidget {
                                                   child: CustomImageView(
                                                     imagePath: ImageConstant
                                                         .imgFacebook,
-                                                  ))),
-                                          CustomButton(
-                                              onTap: ref
-                                                  .read(authStateProvider
-                                                      .notifier)
-                                                  .loginWithGoogle,
-                                              height: getVerticalSize(56),
-                                              width: getHorizontalSize(155),
-                                              text: "Google",
-                                              margin: getMargin(left: 16),
-                                              variant:
-                                                  ButtonVariant.OutlineIndigo50,
-                                              padding: ButtonPadding.PaddingT14,
-                                              fontStyle: ButtonFontStyle
-                                                  .HelveticaNowTextBold16Gray900,
-                                              prefixWidget: Container(
-                                                  margin: getMargin(right: 15),
-                                                  child: CustomImageView(
-                                                      svgPath: ImageConstant
-                                                          .imgGoogle)))
+                                                  )))
                                         ])),
                                 Padding(
                                     padding: getPadding(top: 10),

@@ -1,25 +1,53 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:noughtplan/core/app_export.dart';
+import 'package:noughtplan/core/auth/providers/auth_state_provider.dart';
+import 'package:noughtplan/core/auth/providers/is_logged_in_provider.dart';
+import 'package:noughtplan/core/auth/providers/password_visibility_provider.dart';
+import 'package:noughtplan/core/auth/signup/controller/signup_controller.dart';
+import 'package:noughtplan/core/forms/form_validators.dart';
+import 'package:noughtplan/presentation/generator_salary_screen/generator_salary_screen.dart';
 import 'package:noughtplan/widgets/custom_button.dart';
+import 'package:noughtplan/widgets/custom_button_form.dart'
+    hide ButtonVariant, ButtonPadding, ButtonFontStyle;
+import 'package:noughtplan/widgets/custom_checkbox.dart';
 import 'package:noughtplan/widgets/custom_text_form_field.dart';
-// ignore_for_file: must_be_immutable
 
 // ignore_for_file: must_be_immutable
 
 // ignore_for_file: must_be_immutable
 
 // ignore_for_file: must_be_immutable
-class SignUpEmailScreen extends StatelessWidget {
-  TextEditingController inputFullnameController = TextEditingController();
 
-  TextEditingController inputEmailController = TextEditingController();
+// ignore_for_file: must_be_immutable
+class SignUpEmailScreen extends ConsumerWidget {
+  final inputFullnameController = TextEditingController();
 
-  TextEditingController inputPasswordController = TextEditingController();
+  final inputEmailController = TextEditingController();
+
+  final inputPasswordController = TextEditingController();
+
+  final fullNameFocusNode = FocusNode();
+
+  final emailFocusNode = FocusNode();
+
+  final passwordFocusNode = FocusNode();
 
   GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final signUpState = ref.watch(signUpProvider);
+    final isLoggedIn = ref.watch(isLoggedInProvider);
+    final showErrorName = signUpState.name.error;
+    final showErrorEmail = signUpState.email.error;
+    final showErrorPassword = signUpState.password.error;
+    final signUpController = ref.read(signUpProvider.notifier);
+    final passwordVisibility = ref.watch(passwordVisibilityProvider);
+    final bool isValidated = signUpState.status.isValidated;
+    if (isLoggedIn) {
+      return GeneratorSalaryScreen();
+    }
     return SafeArea(
         child: Scaffold(
             backgroundColor: ColorConstant.whiteA700,
@@ -57,47 +85,94 @@ class SignUpEmailScreen extends StatelessWidget {
                                   style: AppStyle.txtManropeRegular14.copyWith(
                                       letterSpacing: getHorizontalSize(0.3)))),
                           CustomTextFormField(
-                              focusNode: FocusNode(),
-                              controller: inputFullnameController,
-                              hintText: "Full name",
-                              margin: getMargin(top: 24)),
+                            focusNode: fullNameFocusNode,
+                            controller: inputFullnameController,
+                            hintText: "Full Name",
+                            errorText: signUpState.name.error != null &&
+                                    fullNameFocusNode.hasFocus
+                                ? Text(
+                                    Name.showNameErrorMessage(showErrorName)
+                                        .toString(),
+                                  )
+                                : null,
+                            margin: getMargin(top: 24),
+                            onChanged: (name) =>
+                                signUpController.onNameChange(name),
+                          ),
                           CustomTextFormField(
-                              focusNode: FocusNode(),
-                              controller: inputEmailController,
-                              hintText: "Email",
-                              margin: getMargin(top: 16),
-                              textInputType: TextInputType.emailAddress),
+                            focusNode: emailFocusNode,
+                            controller: inputEmailController,
+                            hintText: "Email",
+                            errorText: signUpState.email.error != null &&
+                                    emailFocusNode.hasFocus
+                                ? Text(
+                                    Email.showEmailErrorMessage(showErrorEmail)
+                                        .toString(),
+                                  )
+                                : null,
+                            margin: getMargin(top: 20),
+                            textInputType: TextInputType.emailAddress,
+                            onChanged: (email) =>
+                                signUpController.onEmailChange(email),
+                          ),
                           CustomTextFormField(
-                              focusNode: FocusNode(),
-                              controller: inputPasswordController,
-                              hintText: "Password",
-                              margin: getMargin(top: 16),
-                              padding: TextFormFieldPadding.PaddingT16,
-                              textInputAction: TextInputAction.done,
-                              textInputType: TextInputType.visiblePassword,
-                              suffix: Container(
-                                  margin: getMargin(
-                                      left: 30, top: 16, right: 16, bottom: 16),
-                                  child: CustomImageView(
-                                      svgPath:
-                                          ImageConstant.imgEyeBlueGray300)),
-                              suffixConstraints: BoxConstraints(
-                                  maxHeight: getVerticalSize(56)),
-                              isObscureText: true),
-                          CustomButton(
-                              height: getVerticalSize(56),
-                              text: "Sign Up",
-                              margin: getMargin(top: 24)),
+                            focusNode: passwordFocusNode,
+                            controller: inputPasswordController,
+                            hintText: "Password",
+                            errorText: signUpState.password.error != null &&
+                                    passwordFocusNode.hasFocus
+                                ? Text(
+                                    Password.showPasswordErrorMessage(
+                                            showErrorPassword)
+                                        .toString(),
+                                  )
+                                : null,
+                            margin: getMargin(top: 20),
+                            padding: TextFormFieldPadding.PaddingT16,
+                            onChanged: (password) =>
+                                signUpController.onPasswordChange(password),
+                            // textInputAction: TextInputAction.done,
+                            // textInputType: TextInputType.visiblePassword,
+                            suffixIcon: IconButton(
+                                icon: Icon(
+                                  passwordVisibility ==
+                                          PasswordVisibility.hidden
+                                      ? Icons.visibility_off
+                                      : Icons.visibility,
+                                ),
+                                onPressed: () {
+                                  final newValue = passwordVisibility ==
+                                          PasswordVisibility.hidden
+                                      ? PasswordVisibility.visible
+                                      : PasswordVisibility.hidden;
+                                  ref
+                                      .read(passwordVisibilityProvider.notifier)
+                                      .state = newValue;
+                                }),
+                            suffixConstraints:
+                                BoxConstraints(maxHeight: getVerticalSize(56)),
+                            isObscureText:
+                                passwordVisibility == PasswordVisibility.hidden,
+                          ),
                           Padding(
-                              padding: getPadding(top: 16, right: 18),
+                              padding: getPadding(top: 20, right: 18),
                               child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
                                   children: [
-                                    CustomImageView(
-                                        svgPath: ImageConstant.imgVideocamera,
-                                        height: getSize(24),
-                                        width: getSize(24),
-                                        margin: getMargin(bottom: 10)),
+                                    CustomCheckbox(
+                                      iconSize: getSize(24),
+                                      value:
+                                          signUpState.termsAndCondition.value,
+                                      // fontStyle: CheckboxFontStyle
+                                      //     .HelveticaNowTextMedium14,
+                                      onChange: (value) => signUpController
+                                          .onTermsAndConditionChange(value),
+                                    ),
+                                    // CustomImageView(
+                                    //     svgPath: ImageConstant.imgVideocamera,
+                                    //     height: getSize(24),
+                                    //     width: getSize(24),
+                                    //     margin: getMargin(bottom: 0)),
                                     Expanded(
                                         child: Container(
                                             width: getHorizontalSize(276),
@@ -161,6 +236,17 @@ class SignUpEmailScreen extends StatelessWidget {
                                                 ]),
                                                 textAlign: TextAlign.left)))
                                   ])),
+                          CustomButtonForm(
+                            onTap: isValidated
+                                ? () => signUpController
+                                    .signUpWithEmailAndPassword()
+                                : null,
+                            height: getVerticalSize(56),
+                            text: "Sign Up",
+                            margin: getMargin(top: 24, bottom: 5),
+                            enabled: isValidated,
+                          ),
+
                           Align(
                               alignment: Alignment.center,
                               child: Padding(
@@ -180,7 +266,7 @@ class SignUpEmailScreen extends StatelessWidget {
                                                     color: ColorConstant
                                                         .indigo50))),
                                         Padding(
-                                            padding: getPadding(left: 12),
+                                            padding: getPadding(left: 6),
                                             child: Text("Or sign up with  ",
                                                 overflow: TextOverflow.ellipsis,
                                                 textAlign: TextAlign.left,
@@ -206,8 +292,11 @@ class SignUpEmailScreen extends StatelessWidget {
                                   children: [
                                     Expanded(
                                       child: CustomButton(
+                                        onTap: ref
+                                            .read(authStateProvider.notifier)
+                                            .loginWithGoogle,
                                         height: getVerticalSize(56),
-                                        text: "Facebook",
+                                        text: "Google",
                                         margin: getMargin(right: 8),
                                         variant: ButtonVariant.OutlineIndigo50,
                                         padding: ButtonPadding.PaddingT14,
@@ -216,16 +305,19 @@ class SignUpEmailScreen extends StatelessWidget {
                                         prefixWidget: Container(
                                           margin: getMargin(right: 15),
                                           child: CustomImageView(
-                                            imagePath:
-                                                ImageConstant.imgFacebook,
+                                            svgPath: ImageConstant.imgGoogle,
                                           ),
                                         ),
                                       ),
                                     ),
                                     Expanded(
                                         child: CustomButton(
+                                            onTap: ref
+                                                .read(
+                                                    authStateProvider.notifier)
+                                                .loginWithFacebook,
                                             height: getVerticalSize(56),
-                                            text: "Google",
+                                            text: "Facebook",
                                             margin: getMargin(left: 8),
                                             variant:
                                                 ButtonVariant.OutlineIndigo50,
@@ -235,8 +327,8 @@ class SignUpEmailScreen extends StatelessWidget {
                                             prefixWidget: Container(
                                                 margin: getMargin(right: 15),
                                                 child: CustomImageView(
-                                                    svgPath: ImageConstant
-                                                        .imgGoogle))))
+                                                    imagePath: ImageConstant
+                                                        .imgFacebook))))
                                   ])),
                           // Align(
                           //     alignment: Alignment.center,

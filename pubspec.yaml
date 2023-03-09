@@ -24,6 +24,8 @@ dependencies:
   google_sign_in: ^6.0.1
   cloud_firestore: ^4.4.3
   provider: ^6.0.5
+  formz: ^0.4.1
+  equatable: ^2.0.5
 dev_dependencies: 
   flutter_test: 
     sdk: flutter

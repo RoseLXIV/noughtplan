@@ -6,5 +6,6 @@ class Constants {
       'account-exists-with-different-credential';
   static const googleCom = 'google.com';
   static const emailScope = 'email';
+  static const signinAborted = 'kSignInCanceledError';
   const Constants._();
 }

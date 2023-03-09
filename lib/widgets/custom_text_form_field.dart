@@ -23,7 +23,12 @@ class CustomTextFormField extends StatelessWidget {
     this.suffixConstraints,
     this.validator,
     this.decoration,
+    this.errorText,
+    this.onChanged,
+    this.suffixIcon,
   });
+
+  IconButton? suffixIcon;
 
   TextFormFieldShape? shape;
 
@@ -65,6 +70,10 @@ class CustomTextFormField extends StatelessWidget {
 
   FormFieldValidator<String>? validator;
 
+  ValueChanged<String>? onChanged;
+
+  Text? errorText;
+
   @override
   Widget build(BuildContext context) {
     return alignment != null
@@ -88,7 +97,8 @@ class CustomTextFormField extends StatelessWidget {
         keyboardType: textInputType,
         maxLines: maxLines ?? 1,
         decoration: _buildDecoration(),
-        validator: validator,
+        // validator: validator,
+        onChanged: onChanged,
       ),
     );
   }
@@ -96,6 +106,7 @@ class CustomTextFormField extends StatelessWidget {
   _buildDecoration() {
     return InputDecoration(
       hintText: hintText ?? "",
+      errorText: errorText?.data,
       hintStyle: _setFontStyle(),
       border: _setBorderStyle(),
       enabledBorder: _setBorderStyle(),
@@ -103,7 +114,7 @@ class CustomTextFormField extends StatelessWidget {
       disabledBorder: _setBorderStyle(),
       prefixIcon: prefix,
       prefixIconConstraints: prefixConstraints,
-      suffixIcon: suffix,
+      suffixIcon: suffixIcon,
       suffixIconConstraints: suffixConstraints,
       fillColor: _setFillColor(),
       filled: _setFilled(),

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:noughtplan/core/app_export.dart';
-import 'package:noughtplan/core/auth/backend/authenticator.dart';
+
 import 'package:noughtplan/core/auth/providers/auth_state_provider.dart';
 import 'package:noughtplan/widgets/custom_button.dart';
 

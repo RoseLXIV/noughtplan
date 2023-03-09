@@ -5,6 +5,25 @@ import 'package:noughtplan/core/app_export.dart';
 import 'package:noughtplan/core/auth/models/auth_result.dart';
 import 'package:noughtplan/core/posts/typedefs/user_id.dart';
 
+class SignUpWithEmailAndPasswordFailureAuth implements Exception {
+  final String code;
+  const SignUpWithEmailAndPasswordFailureAuth(this.code);
+}
+
+class SignInWithEmailAndPasswordFailureAuth implements Exception {
+  final String code;
+  const SignInWithEmailAndPasswordFailureAuth(this.code);
+}
+
+class ForgotPasswordFailureAuth implements Exception {
+  final String code;
+  const ForgotPasswordFailureAuth(this.code);
+}
+
+class SignInWithGoogleFailureAuth implements Exception {}
+
+class SignOutFailureAuth implements Exception {}
+
 class Authenticator {
   const Authenticator();
 
@@ -13,6 +32,8 @@ class Authenticator {
   String get displayName =>
       FirebaseAuth.instance.currentUser?.displayName ?? '';
   String? get email => FirebaseAuth.instance.currentUser?.email;
+  bool get isEmailVerified =>
+      FirebaseAuth.instance.currentUser?.emailVerified ?? false;
 
   Future<void> logOut() async {
     await FirebaseAuth.instance.signOut();
@@ -66,6 +87,36 @@ class Authenticator {
       return AuthResult.success;
     } catch (e) {
       return AuthResult.failure;
+    }
+  }
+
+  Future<AuthResult> signUpWithEmailAndPassword(
+      {required String email,
+      required String password,
+      required String name}) async {
+    try {
+      await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      return AuthResult.success;
+    } on FirebaseAuthException catch (e) {
+      throw SignUpWithEmailAndPasswordFailureAuth(e.code);
+    }
+  }
+
+  Future<AuthResult> signInWithEmailAndPassword({
+    required String email,
+    required String password,
+  }) async {
+    try {
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      return AuthResult.success;
+    } on FirebaseAuthException catch (e) {
+      throw SignInWithEmailAndPasswordFailureAuth(e.code);
     }
   }
 }
