@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:noughtplan/core/app_export.dart';
@@ -75,7 +76,7 @@ class Authenticator {
     );
     final googleUser = await googleSignIn.signIn();
     if (googleUser == null) {
-      return AuthResult.aborted;
+      throw SignInWithGoogleFailureAuth();
     }
     final googleAuth = await googleUser.authentication;
     final authCredentials = GoogleAuthProvider.credential(
@@ -100,8 +101,8 @@ class Authenticator {
         password: password,
       );
       return AuthResult.success;
-    } on FirebaseAuthException catch (e) {
-      throw SignUpWithEmailAndPasswordFailureAuth(e.code);
+    } catch (e) {
+      return AuthResult.failure;
     }
   }
 
@@ -116,7 +117,14 @@ class Authenticator {
       );
       return AuthResult.success;
     } on FirebaseAuthException catch (e) {
-      throw SignInWithEmailAndPasswordFailureAuth(e.code);
+      print('FirebaseAuthExpection: ${e.code}');
+      return AuthResult.failure;
+    } on PlatformException catch (e) {
+      print('PlatformException: ${e.code}');
+      return AuthResult.failure;
+    } catch (e) {
+      print('Catch: ${e}');
+      return AuthResult.failure;
     }
   }
 }

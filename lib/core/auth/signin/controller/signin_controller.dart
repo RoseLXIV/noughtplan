@@ -1,6 +1,11 @@
 import 'package:equatable/equatable.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:noughtplan/core/auth/backend/authenticator.dart';
+import 'package:noughtplan/core/auth/models/auth_result.dart';
+import 'package:noughtplan/core/auth/models/auth_state.dart';
+import 'package:noughtplan/core/auth/notifiers/auth_state_notifier.dart';
+import 'package:noughtplan/core/auth/providers/auth_state_provider.dart';
 import 'package:noughtplan/core/forms/form_validators.dart';
 import 'package:noughtplan/core/auth/authentication_repository.dart';
 import 'package:noughtplan/core/auth/providers/auth_repo_provider.dart';
@@ -9,12 +14,19 @@ part 'signin_state.dart';
 
 final signInProvider =
     StateNotifierProvider.autoDispose<SignInController, SignInState>(
-  (ref) => SignInController(ref.watch(authRepoProvider)),
+  (ref) => SignInController(
+    ref.watch(authRepoProvider),
+    ref.read(authStateProvider.notifier),
+  ),
 );
 
 class SignInController extends StateNotifier<SignInState> {
   final AuthenticationRepository _authenticationRepository;
-  SignInController(this._authenticationRepository) : super(const SignInState());
+  final AuthStateNotifier _authStateNotifier;
+  SignInController(
+    this._authenticationRepository,
+    this._authStateNotifier,
+  ) : super(const SignInState());
 
   void onEmailChange(String value) {
     final email = Email.dirty(value);
@@ -33,19 +45,27 @@ class SignInController extends StateNotifier<SignInState> {
     );
   }
 
-  void signInWithEmailAndPassword() async {
-    if (!state.status.isValidated) return;
-    state = state.copyWith(status: FormzStatus.submissionInProgress);
+  Future<AuthResult> signInWithEmailAndPassword() async {
+    if (!state.status.isValidated)
+      state = state.copyWith(status: FormzStatus.submissionInProgress);
     try {
-      await _authenticationRepository.signInWithEmailAndPassword(
+      await _authStateNotifier.signInWithEmailAndPassword(
         email: state.email.value,
         password: state.password.value,
       );
-
-      state = state.copyWith(status: FormzStatus.submissionSuccess);
-    } on SignInWithEmailAndPasswordFailure catch (e) {
+      return AuthResult.success;
+      // state = state.copyWith(status: FormzStatus.submissionSuccess);
+    } on SignInWithEmailAndPasswordFailureAuth catch (e) {
       state = state.copyWith(
-          status: FormzStatus.submissionFailure, errorMessage: e.code);
+          status: FormzStatus.submissionFailure, errorMessage: 'Error: $e');
+      return AuthResult.failure;
+    } catch (e) {
+      state = state.copyWith(
+          status: FormzStatus.submissionFailure, errorMessage: 'Error: $e');
+      return AuthResult.failure;
     }
+    // finally {
+    //   state = state.copyWith(status: FormzStatus.pure);
+    // }
   }
 }

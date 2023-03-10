@@ -2,6 +2,11 @@ import 'package:flutter/foundation.dart' show immutable;
 import 'package:noughtplan/core/auth/models/auth_result.dart';
 import 'package:noughtplan/core/posts/typedefs/user_id.dart';
 
+enum AuthenticationStatus {
+  authenticated,
+  unauthenticated,
+}
+
 @immutable
 class AuthState {
   final AuthResult? result;

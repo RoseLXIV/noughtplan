@@ -1,3 +1,7 @@
+import 'package:noughtplan/core/auth/models/auth_result.dart';
+import 'package:noughtplan/core/auth/models/auth_state.dart';
+import 'package:noughtplan/core/auth/notifiers/auth_state_notifier.dart';
+import 'package:noughtplan/core/auth/providers/auth_state_provider.dart';
 import 'package:noughtplan/core/forms/form_validators.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:equatable/equatable.dart';
@@ -8,13 +12,20 @@ part 'signup_state.dart';
 
 final signUpProvider =
     StateNotifierProvider.autoDispose<SignUpController, SignUpState>(
-  (ref) => SignUpController(ref.watch(authRepoProvider)),
+  (ref) => SignUpController(
+    ref.watch(authRepoProvider),
+    ref.read(authStateProvider.notifier),
+  ),
 );
 
 // ref.watch(authRepoProvider)
 class SignUpController extends StateNotifier<SignUpState> {
   final AuthenticationRepository _authenticationRepository;
-  SignUpController(this._authenticationRepository) : super(const SignUpState());
+  final AuthStateNotifier _authStateNotifier;
+  SignUpController(
+    this._authenticationRepository,
+    this._authStateNotifier,
+  ) : super(const SignUpState());
 
   void onNameChange(String value) {
     final name = Name.dirty(value);
@@ -81,13 +92,14 @@ class SignUpController extends StateNotifier<SignUpState> {
   Future<void> signUpWithEmailAndPassword() async {
     if (!state.status.isValidated) return;
     state = state.copyWith(status: FormzStatus.submissionInProgress);
+
     try {
-      await _authenticationRepository.signUpWithEmailAndPassword(
-        name: state.name.value,
+      await _authStateNotifier.signUpWithEmailAndPassword(
         email: state.email.value,
         password: state.password.value,
+        name: state.name.value,
       );
-
+      // AuthResult.success;
       state = state.copyWith(status: FormzStatus.submissionSuccess);
     } on SignUpWithEmailAndPasswordFailure catch (e) {
       state = state.copyWith(

@@ -57,10 +57,46 @@ class AuthStateNotifier extends StateNotifier<AuthState> {
     );
     final userId = _authenticator.userId;
     if (result == AuthResult.success && userId != null) {
-      await saveUserInfo(userId: userId);
+      await saveUserInfoSignUp(userId: userId, email: email, name: name);
+      state = AuthState(
+        result: AuthResult.success,
+        userId: userId,
+        isLoading: false,
+      );
+    } else {
+      state = AuthState(result: result, userId: null, isLoading: false);
     }
-    state = AuthState(result: result, userId: userId, isLoading: false);
   }
+
+  Future<void> signInWithEmailAndPassword({
+    required String email,
+    required String password,
+  }) async {
+    state = state.copiedWithIsLoading(true);
+    final result = await _authenticator.signInWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
+    final userId = _authenticator.userId;
+    if (result == AuthResult.success) {
+      // await saveUserInfoSignIn(userId: userId);
+      state = AuthState(
+        result: AuthResult.success,
+        userId: userId,
+        isLoading: false,
+      );
+      print('AuthStateNotifier: ${state.result}');
+    }
+    state = AuthState(result: result, userId: null, isLoading: false);
+    print('AuthStateNotifier: ${state.result}');
+  }
+
+  Future<void> saveUserInfoSignUp(
+          {required UserId userId,
+          required String email,
+          required String name}) =>
+      _userInfoStorage.saveUserInfo(
+          id: userId, name: name, email: _authenticator.email);
 
   Future<void> saveUserInfo({required UserId userId}) =>
       _userInfoStorage.saveUserInfo(

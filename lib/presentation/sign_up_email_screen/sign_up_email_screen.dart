@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:noughtplan/core/app_export.dart';
+import 'package:noughtplan/core/auth/controller/authentication_controller.dart';
 import 'package:noughtplan/core/auth/providers/auth_state_provider.dart';
 import 'package:noughtplan/core/auth/providers/is_logged_in_provider.dart';
 import 'package:noughtplan/core/auth/providers/password_visibility_provider.dart';
@@ -45,7 +46,11 @@ class SignUpEmailScreen extends ConsumerWidget {
     final signUpController = ref.read(signUpProvider.notifier);
     final passwordVisibility = ref.watch(passwordVisibilityProvider);
     final bool isValidated = signUpState.status.isValidated;
+    final authenticationState = ref.watch(authProvider);
     if (isLoggedIn) {
+      return GeneratorSalaryScreen();
+    } else if (authenticationState.status ==
+        AuthenticationStatus.authenticated) {
       return GeneratorSalaryScreen();
     }
     return SafeArea(
