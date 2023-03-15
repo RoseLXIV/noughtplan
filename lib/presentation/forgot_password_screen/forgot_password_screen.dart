@@ -1,17 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:noughtplan/core/app_export.dart';
+import 'package:noughtplan/core/auth/models/auth_result.dart';
+import 'package:noughtplan/core/auth/providers/auth_state_provider.dart';
 import 'package:noughtplan/widgets/custom_button.dart';
+import 'package:noughtplan/widgets/custom_button_form.dart';
 import 'package:noughtplan/widgets/custom_text_form_field.dart';
+import 'package:noughtplan/core/auth/forgot_password/controller/forgot_password_controller.dart';
+import 'package:noughtplan/core/forms/form_validators.dart';
 // ignore_for_file: must_be_immutable
 
 // ignore_for_file: must_be_immutable
-class ForgotPasswordScreen extends StatelessWidget {
-  TextEditingController inputPasswordController = TextEditingController();
+class ForgotPasswordScreen extends ConsumerWidget {
+  TextEditingController inputEmailController = TextEditingController();
+
+  final emailFocusNode = FocusNode();
 
   GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final forgotPasswordState = ref.watch(forgotPasswordProvider);
+    final forgotPasswordController = ref.read(forgotPasswordProvider.notifier);
+    final showErrorEmail = forgotPasswordState.email.error;
+    final status = forgotPasswordState.status;
+    final bool isValidated = forgotPasswordState.status.isValidated;
     return SafeArea(
         child: Scaffold(
             backgroundColor: ColorConstant.whiteA700,
@@ -21,7 +34,7 @@ class ForgotPasswordScreen extends StatelessWidget {
                 child: Container(
                     width: double.maxFinite,
                     padding:
-                        getPadding(left: 24, top: 16, right: 24, bottom: 16),
+                        getPadding(left: 24, top: 24, right: 24, bottom: 16),
                     child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisAlignment: MainAxisAlignment.start,
@@ -40,83 +53,112 @@ class ForgotPasswordScreen extends StatelessWidget {
                                   textAlign: TextAlign.left,
                                   style: AppStyle.txtHelveticaNowTextBold24)),
                           Container(
-                              width: getHorizontalSize(261),
-                              margin: getMargin(top: 10, right: 65),
+                              width: getHorizontalSize(361),
+                              margin: getMargin(top: 10, right: 20),
                               child: Text(
-                                  "Your new password must different from previous password.",
+                                  "Please enter your email address and we'll send you a link to reset your password. If you don't receive an email within a few minutes, please check your spam folder.",
                                   maxLines: null,
                                   textAlign: TextAlign.left,
                                   style: AppStyle.txtManropeRegular14Bluegray500
                                       .copyWith(
                                           letterSpacing:
                                               getHorizontalSize(0.3)))),
-                          Container(
-                              margin: getMargin(top: 23),
-                              padding: getPadding(all: 16),
-                              decoration: AppDecoration.outlinePink400.copyWith(
-                                  borderRadius:
-                                      BorderRadiusStyle.roundedBorder12),
-                              child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    CustomImageView(
-                                        svgPath: ImageConstant.imgSignal,
-                                        height: getVerticalSize(20),
-                                        width: getHorizontalSize(54),
-                                        margin: getMargin(top: 2, bottom: 2)),
-                                    CustomImageView(
-                                        svgPath:
-                                            ImageConstant.imgEyeBlueGray300,
-                                        height: getSize(24),
-                                        width: getSize(24))
-                                  ])),
-                          Padding(
-                              padding: getPadding(top: 14, right: 10),
-                              child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    CustomImageView(
-                                        svgPath: ImageConstant.imgAlertcircle,
-                                        height: getSize(16),
-                                        width: getSize(16),
-                                        margin: getMargin(top: 1, bottom: 18)),
-                                    Expanded(
-                                        child: Container(
-                                            width: getHorizontalSize(292),
-                                            margin: getMargin(left: 8),
-                                            child: Text(
-                                                "Your password is not strong enough. Your password is at least 8 characters.",
-                                                maxLines: null,
-                                                textAlign: TextAlign.left,
-                                                style: AppStyle
-                                                    .txtManropeRegular12Pink400
-                                                    .copyWith(
-                                                        letterSpacing:
-                                                            getHorizontalSize(
-                                                                0.2)))))
-                                  ])),
                           CustomTextFormField(
-                              focusNode: FocusNode(),
-                              controller: inputPasswordController,
-                              hintText: "Password",
-                              margin: getMargin(top: 17),
-                              padding: TextFormFieldPadding.PaddingT16,
-                              textInputAction: TextInputAction.done,
-                              textInputType: TextInputType.visiblePassword,
-                              suffix: Container(
-                                  margin: getMargin(
-                                      left: 30, top: 16, right: 16, bottom: 16),
-                                  child: CustomImageView(
-                                      svgPath:
-                                          ImageConstant.imgEyeBlueGray300)),
-                              suffixConstraints: BoxConstraints(
-                                  maxHeight: getVerticalSize(56)),
-                              isObscureText: true),
-                          CustomButton(
+                            focusNode: emailFocusNode,
+                            controller: inputEmailController,
+                            hintText: "Email",
+                            margin: getMargin(top: 17),
+                            padding: TextFormFieldPadding.PaddingT16,
+                            textInputAction: TextInputAction.done,
+                            textInputType: TextInputType.visiblePassword,
+                            errorText: forgotPasswordState.email.error !=
+                                        null &&
+                                    emailFocusNode.hasFocus
+                                ? Text(
+                                    Email.showEmailErrorMessage(showErrorEmail)
+                                        .toString(),
+                                  )
+                                : null,
+                            onChanged: (email) =>
+                                forgotPasswordController.onEmailChange(email),
+                          ),
+                          CustomButtonForm(
+                              onTap: status.isSubmissionInProgress ||
+                                      status.isSubmissionSuccess
+                                  ? null
+                                  : () async {
+                                      final result = await ref
+                                          .read(forgotPasswordProvider.notifier)
+                                          .forgotPassword();
+
+                                      FocusScope.of(context).unfocus();
+
+                                      final authState =
+                                          ref.watch(authStateProvider);
+                                      if (result ==
+                                          ForgotPasswordResult.inProgress) {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              'Submitting...',
+                                              textAlign: TextAlign.center,
+                                              style: AppStyle
+                                                  .txtHelveticaNowTextBold16WhiteA700
+                                                  .copyWith(
+                                                letterSpacing:
+                                                    getHorizontalSize(0.3),
+                                              ),
+                                            ),
+                                            backgroundColor:
+                                                ColorConstant.blueA700,
+                                          ),
+                                        );
+                                      } else if (result ==
+                                          ForgotPasswordResult.failure) {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              'Submission failed, please try again later',
+                                              textAlign: TextAlign.center,
+                                              style: AppStyle
+                                                  .txtHelveticaNowTextBold16WhiteA700
+                                                  .copyWith(
+                                                letterSpacing:
+                                                    getHorizontalSize(0.3),
+                                              ),
+                                            ),
+                                            backgroundColor:
+                                                ColorConstant.redA700,
+                                          ),
+                                        );
+                                      } else if (result ==
+                                          ForgotPasswordResult.success) {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              'Submission sent successfully!',
+                                              textAlign: TextAlign.center,
+                                              style: AppStyle
+                                                  .txtHelveticaNowTextBold16WhiteA700
+                                                  .copyWith(
+                                                letterSpacing:
+                                                    getHorizontalSize(0.3),
+                                              ),
+                                            ),
+                                            backgroundColor:
+                                                ColorConstant.greenA700,
+                                          ),
+                                        );
+                                      }
+                                      print('Form Status: ${status}');
+                                    },
+                              enabled: isValidated,
                               height: getVerticalSize(56),
                               text: "Reset Password",
-                              margin: getMargin(top: 33, bottom: 5))
+                              margin: getMargin(top: 33, bottom: 5)),
                         ])))));
   }
 

@@ -9,6 +9,7 @@ import 'package:noughtplan/routes/app_routes.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:noughtplan/views/components/constants/loading/loading_screen.dart';
 import 'firebase_options.dart';
+import 'presentation/home_page_screen/home_page_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -45,7 +46,7 @@ class MyApp extends StatelessWidget {
           final isLoggedIn = ref.watch(isLoggedInProvider);
           if (isLoggedIn) {
             isLoggedIn.log();
-            return GeneratorSalaryScreen();
+            return HomePageScreen();
           } else {
             isLoggedIn.log();
             return GetStartedScreen();

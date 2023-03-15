@@ -25,6 +25,7 @@ import 'package:noughtplan/presentation/privacy_and_policy_screen/privacy_and_po
 import 'package:noughtplan/presentation/term_and_condition_screen/term_and_condition_screen.dart';
 import 'package:noughtplan/presentation/my_account_screen/my_account_screen.dart';
 import 'package:noughtplan/presentation/app_navigation_screen/app_navigation_screen.dart';
+import 'package:noughtplan/presentation/home_page_screen/home_page_screen.dart';
 
 class AppRoutes {
   static const String splashScreen = '/splash_screen';
@@ -90,6 +91,8 @@ class AppRoutes {
 
   static const String appNavigationScreen = '/app_navigation_screen';
 
+  static const String homePageScreen = '/home_page_screen';
+
   static Map<String, WidgetBuilder> routes = {
     splashScreen: (context) => SplashScreen(),
     getStartedScreen: (context) => GetStartedScreen(),
@@ -117,6 +120,7 @@ class AppRoutes {
     privacyAndPolicyScreen: (context) => PrivacyAndPolicyScreen(),
     termAndConditionScreen: (context) => TermAndConditionScreen(),
     myAccountScreen: (context) => MyAccountScreen(),
-    appNavigationScreen: (context) => AppNavigationScreen()
+    appNavigationScreen: (context) => AppNavigationScreen(),
+    homePageScreen: (context) => HomePageScreen()
   };
 }

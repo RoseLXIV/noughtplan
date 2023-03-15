@@ -1,5 +1,6 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:noughtplan/core/auth/backend/authenticator.dart';
+import 'package:noughtplan/core/auth/forgot_password/controller/forgot_password_controller.dart';
 import 'package:noughtplan/core/auth/models/auth_result.dart';
 import 'package:noughtplan/core/auth/models/auth_state.dart';
 import 'package:noughtplan/core/posts/typedefs/user_id.dart';
@@ -89,6 +90,23 @@ class AuthStateNotifier extends StateNotifier<AuthState> {
     }
     state = AuthState(result: result, userId: null, isLoading: false);
     print('AuthStateNotifier: ${state.result}');
+  }
+
+  Future<void> forgotPassword({
+    required String email,
+  }) async {
+    state = state.copiedWithIsLoading(true);
+    final result = await _authenticator.forgotPassword(email: email);
+    if (result == ForgotPasswordResult.success) {
+      state = AuthState(
+        result: AuthResult.aborted,
+        userId: null,
+        isLoading: false,
+      );
+    } else {
+      state =
+          AuthState(result: AuthResult.aborted, userId: null, isLoading: false);
+    }
   }
 
   Future<void> saveUserInfoSignUp(

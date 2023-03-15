@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:noughtplan/core/app_export.dart';
 import 'package:noughtplan/core/auth/controller/authentication_controller.dart';
+import 'package:noughtplan/core/auth/models/auth_result.dart';
 import 'package:noughtplan/core/auth/providers/auth_state_provider.dart';
 import 'package:noughtplan/core/auth/providers/is_logged_in_provider.dart';
 import 'package:noughtplan/core/auth/providers/password_visibility_provider.dart';
@@ -297,9 +298,54 @@ class SignUpEmailScreen extends ConsumerWidget {
                                   children: [
                                     Expanded(
                                       child: CustomButton(
-                                        onTap: ref
-                                            .read(authStateProvider.notifier)
-                                            .loginWithGoogle,
+                                        onTap: () async {
+                                          await ref
+                                              .read(authStateProvider.notifier)
+                                              .loginWithGoogle();
+                                          final authState =
+                                              ref.watch(authStateProvider);
+                                          if (authState.result ==
+                                              AuthResult.failure) {
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                              SnackBar(
+                                                content: Text(
+                                                  'Invalid Email or Password!',
+                                                  textAlign: TextAlign.center,
+                                                  style: AppStyle
+                                                      .txtHelveticaNowTextBold16WhiteA700
+                                                      .copyWith(
+                                                    letterSpacing:
+                                                        getHorizontalSize(0.3),
+                                                  ),
+                                                ),
+                                                backgroundColor:
+                                                    ColorConstant.redA700,
+                                              ),
+                                            );
+                                          } else if (authState.result ==
+                                              AuthResult.success) {
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                              SnackBar(
+                                                content: Text(
+                                                  'Sign In Successful!',
+                                                  textAlign: TextAlign.center,
+                                                  style: AppStyle
+                                                      .txtHelveticaNowTextBold16WhiteA700
+                                                      .copyWith(
+                                                    letterSpacing:
+                                                        getHorizontalSize(0.3),
+                                                  ),
+                                                ),
+                                                backgroundColor:
+                                                    ColorConstant.greenA70001,
+                                              ),
+                                            );
+                                          }
+                                          print(
+                                              'Auth State: ${authState.result}');
+                                        },
                                         height: getVerticalSize(56),
                                         text: "Google",
                                         margin: getMargin(right: 8),
@@ -317,10 +363,60 @@ class SignUpEmailScreen extends ConsumerWidget {
                                     ),
                                     Expanded(
                                         child: CustomButton(
-                                            onTap: ref
-                                                .read(
-                                                    authStateProvider.notifier)
-                                                .loginWithFacebook,
+                                            onTap: () async {
+                                              await ref
+                                                  .read(authStateProvider
+                                                      .notifier)
+                                                  .loginWithFacebook();
+                                              final authState =
+                                                  ref.watch(authStateProvider);
+                                              if (authState.result ==
+                                                  AuthResult.aborted) {
+                                                ScaffoldMessenger.of(context)
+                                                    .showSnackBar(
+                                                  SnackBar(
+                                                    content: Text(
+                                                      'Sign In Aborted!',
+                                                      textAlign:
+                                                          TextAlign.center,
+                                                      style: AppStyle
+                                                          .txtHelveticaNowTextBold16WhiteA700
+                                                          .copyWith(
+                                                        letterSpacing:
+                                                            getHorizontalSize(
+                                                                0.3),
+                                                      ),
+                                                    ),
+                                                    backgroundColor:
+                                                        ColorConstant.amberA200,
+                                                  ),
+                                                );
+                                              } else if (authState.result ==
+                                                  AuthResult.success) {
+                                                ScaffoldMessenger.of(context)
+                                                    .showSnackBar(
+                                                  SnackBar(
+                                                    content: Text(
+                                                      'Sign In Successful!',
+                                                      textAlign:
+                                                          TextAlign.center,
+                                                      style: AppStyle
+                                                          .txtHelveticaNowTextBold16WhiteA700
+                                                          .copyWith(
+                                                        letterSpacing:
+                                                            getHorizontalSize(
+                                                                0.3),
+                                                      ),
+                                                    ),
+                                                    backgroundColor:
+                                                        ColorConstant
+                                                            .greenA70001,
+                                                  ),
+                                                );
+                                              }
+                                              print(
+                                                  'Auth State: ${authState.result}');
+                                            },
                                             height: getVerticalSize(56),
                                             text: "Facebook",
                                             margin: getMargin(left: 8),

@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:noughtplan/core/app_export.dart';
-import 'package:noughtplan/core/auth/controller/authentication_controller.dart';
 import 'package:noughtplan/core/auth/models/auth_result.dart';
 import 'package:noughtplan/core/auth/providers/auth_state_provider.dart';
 import 'package:noughtplan/core/auth/providers/is_logged_in_provider.dart';
 import 'package:noughtplan/core/auth/providers/password_visibility_provider_signin.dart';
 import 'package:noughtplan/presentation/generator_salary_screen/generator_salary_screen.dart';
-import 'package:noughtplan/views/components/constants/loading/loading_screen.dart';
 import 'package:noughtplan/widgets/custom_button.dart';
 import 'package:noughtplan/widgets/custom_button_form.dart'
     hide ButtonVariant, ButtonPadding, ButtonFontStyle;
@@ -214,29 +212,46 @@ class LoginPageScreen extends ConsumerWidget {
                                                 .signInWithEmailAndPassword();
                                             final authState =
                                                 ref.watch(authStateProvider);
-
-                                            // if (authState.isLoading) {
-                                            //   LoadingScreen.instance()
-                                            //       .show(context: context);
-                                            // } else {
-                                            //   LoadingScreen.instance().hide();
-                                            // }
-                                            // await Future.delayed(Duration.zero);
+                                            FocusScope.of(context).unfocus();
                                             if (authState.result ==
                                                 AuthResult.failure) {
                                               ScaffoldMessenger.of(context)
                                                   .showSnackBar(
                                                 SnackBar(
-                                                    content: Text(
-                                                        'Sign in failed!')),
+                                                  content: Text(
+                                                    'Invalid Email or Password!',
+                                                    textAlign: TextAlign.center,
+                                                    style: AppStyle
+                                                        .txtHelveticaNowTextBold16WhiteA700
+                                                        .copyWith(
+                                                      letterSpacing:
+                                                          getHorizontalSize(
+                                                              0.3),
+                                                    ),
+                                                  ),
+                                                  backgroundColor:
+                                                      ColorConstant.redA700,
+                                                ),
                                               );
                                             } else if (authState.result ==
                                                 AuthResult.success) {
                                               ScaffoldMessenger.of(context)
                                                   .showSnackBar(
                                                 SnackBar(
-                                                    content: Text(
-                                                        'Sign in successful!')),
+                                                  content: Text(
+                                                    'Sign In Successful!',
+                                                    textAlign: TextAlign.center,
+                                                    style: AppStyle
+                                                        .txtHelveticaNowTextBold16WhiteA700
+                                                        .copyWith(
+                                                      letterSpacing:
+                                                          getHorizontalSize(
+                                                              0.3),
+                                                    ),
+                                                  ),
+                                                  backgroundColor:
+                                                      ColorConstant.greenA70001,
+                                                ),
                                               );
                                             }
                                             print(
@@ -296,10 +311,63 @@ class LoginPageScreen extends ConsumerWidget {
                                               MainAxisAlignment.end,
                                           children: [
                                             CustomButton(
-                                                onTap: ref
-                                                    .read(authStateProvider
-                                                        .notifier)
-                                                    .loginWithGoogle,
+                                                onTap: () async {
+                                                  await ref
+                                                      .read(authStateProvider
+                                                          .notifier)
+                                                      .loginWithGoogle();
+                                                  final authState = ref
+                                                      .watch(authStateProvider);
+                                                  if (authState.result ==
+                                                      AuthResult.failure) {
+                                                    ScaffoldMessenger.of(
+                                                            context)
+                                                        .showSnackBar(
+                                                      SnackBar(
+                                                        content: Text(
+                                                          'Invalid Email or Password!',
+                                                          textAlign:
+                                                              TextAlign.center,
+                                                          style: AppStyle
+                                                              .txtHelveticaNowTextBold16WhiteA700
+                                                              .copyWith(
+                                                            letterSpacing:
+                                                                getHorizontalSize(
+                                                                    0.3),
+                                                          ),
+                                                        ),
+                                                        backgroundColor:
+                                                            ColorConstant
+                                                                .redA700,
+                                                      ),
+                                                    );
+                                                  } else if (authState.result ==
+                                                      AuthResult.success) {
+                                                    ScaffoldMessenger.of(
+                                                            context)
+                                                        .showSnackBar(
+                                                      SnackBar(
+                                                        content: Text(
+                                                          'Sign In Successful!',
+                                                          textAlign:
+                                                              TextAlign.center,
+                                                          style: AppStyle
+                                                              .txtHelveticaNowTextBold16WhiteA700
+                                                              .copyWith(
+                                                            letterSpacing:
+                                                                getHorizontalSize(
+                                                                    0.3),
+                                                          ),
+                                                        ),
+                                                        backgroundColor:
+                                                            ColorConstant
+                                                                .greenA70001,
+                                                      ),
+                                                    );
+                                                  }
+                                                  print(
+                                                      'Auth State: ${authState.result}');
+                                                },
                                                 height: getVerticalSize(55),
                                                 width: getHorizontalSize(155),
                                                 text: "Google",
@@ -316,10 +384,63 @@ class LoginPageScreen extends ConsumerWidget {
                                                         svgPath: ImageConstant
                                                             .imgGoogle))),
                                             CustomButton(
-                                                onTap: ref
-                                                    .read(authStateProvider
-                                                        .notifier)
-                                                    .loginWithFacebook,
+                                                onTap: () async {
+                                                  await ref
+                                                      .read(authStateProvider
+                                                          .notifier)
+                                                      .loginWithFacebook();
+                                                  final authState = ref
+                                                      .watch(authStateProvider);
+                                                  if (authState.result ==
+                                                      AuthResult.aborted) {
+                                                    ScaffoldMessenger.of(
+                                                            context)
+                                                        .showSnackBar(
+                                                      SnackBar(
+                                                        content: Text(
+                                                          'Sign In Aborted!',
+                                                          textAlign:
+                                                              TextAlign.center,
+                                                          style: AppStyle
+                                                              .txtHelveticaNowTextBold16WhiteA700
+                                                              .copyWith(
+                                                            letterSpacing:
+                                                                getHorizontalSize(
+                                                                    0.3),
+                                                          ),
+                                                        ),
+                                                        backgroundColor:
+                                                            ColorConstant
+                                                                .amberA200,
+                                                      ),
+                                                    );
+                                                  } else if (authState.result ==
+                                                      AuthResult.success) {
+                                                    ScaffoldMessenger.of(
+                                                            context)
+                                                        .showSnackBar(
+                                                      SnackBar(
+                                                        content: Text(
+                                                          'Sign In Successful!',
+                                                          textAlign:
+                                                              TextAlign.center,
+                                                          style: AppStyle
+                                                              .txtHelveticaNowTextBold16WhiteA700
+                                                              .copyWith(
+                                                            letterSpacing:
+                                                                getHorizontalSize(
+                                                                    0.3),
+                                                          ),
+                                                        ),
+                                                        backgroundColor:
+                                                            ColorConstant
+                                                                .greenA70001,
+                                                      ),
+                                                    );
+                                                  }
+                                                  print(
+                                                      'Auth State: ${authState.result}');
+                                                },
                                                 height: getVerticalSize(56),
                                                 width: getHorizontalSize(155),
                                                 text: "Facebook",

@@ -20,5 +20,9 @@ class FirebaseFieldName {
   static const String spending_type = 'spending_type';
   static const String saving_type = 'saving_type';
   static const String debt_type = 'debt_type';
+  static const String budget_name = 'budget_name';
+  static const String budget_amount = 'budget_amount';
+  static const String budget_date = 'budget_date';
+  static const String budget_type = 'budget_type';
   const FirebaseFieldName._();
 }

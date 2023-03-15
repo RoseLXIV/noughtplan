@@ -13,6 +13,8 @@ class ImageConstant {
 
   static String imgUsa = 'assets/images/us.png';
 
+  static String imgSettings = 'assets/images/img_settings.svg';
+
   static String imgQrcode = 'assets/images/img_qrcode.svg';
 
   static String imgAvatar = 'assets/images/img_avatar.png';

@@ -76,7 +76,7 @@ class Authenticator {
     );
     final googleUser = await googleSignIn.signIn();
     if (googleUser == null) {
-      throw SignInWithGoogleFailureAuth();
+      return AuthResult.aborted;
     }
     final googleAuth = await googleUser.authentication;
     final authCredentials = GoogleAuthProvider.credential(
@@ -86,6 +86,9 @@ class Authenticator {
     try {
       await FirebaseAuth.instance.signInWithCredential(authCredentials);
       return AuthResult.success;
+    } on PlatformException catch (e) {
+      print('PlatformException: ${e.code}');
+      return AuthResult.aborted;
     } catch (e) {
       return AuthResult.failure;
     }
@@ -125,6 +128,18 @@ class Authenticator {
     } catch (e) {
       print('Catch: ${e}');
       return AuthResult.failure;
+    }
+  }
+
+  Future<ForgotPasswordResult> forgotPassword({required String email}) async {
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(
+        email: email,
+      );
+      return ForgotPasswordResult.success;
+    } on FirebaseAuthException catch (e) {
+      print('FirebaseAuthExpection: ${e.code}');
+      return ForgotPasswordResult.failure;
     }
   }
 }

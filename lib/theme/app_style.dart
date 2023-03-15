@@ -532,4 +532,55 @@ class AppStyle {
     fontFamily: 'Manrope',
     fontWeight: FontWeight.w600,
   );
+
+  static TextStyle txtHelveticaNowTextBold14WhiteA7001 = TextStyle(
+    color: ColorConstant.whiteA700,
+    fontSize: getFontSize(
+      14,
+    ),
+    fontFamily: 'Helvetica Now Text ',
+    fontWeight: FontWeight.w700,
+  );
+
+  static TextStyle txtHelveticaNowTextBold14WhiteA700 = TextStyle(
+    color: ColorConstant.whiteA700,
+    fontSize: getFontSize(
+      14,
+    ),
+    fontFamily: 'Helvetica Now Text ',
+    fontWeight: FontWeight.w700,
+  );
+  static TextStyle txtHelveticaNowTextBold12WhiteA7001 = TextStyle(
+    color: ColorConstant.whiteA700,
+    fontSize: getFontSize(
+      12,
+    ),
+    fontFamily: 'Helvetica Now Text ',
+    fontWeight: FontWeight.w700,
+  );
+
+  static TextStyle txtHelveticaNowTextBold12WhiteA700 = TextStyle(
+    color: ColorConstant.whiteA700,
+    fontSize: getFontSize(
+      12,
+    ),
+    fontFamily: 'Helvetica Now Text ',
+    fontWeight: FontWeight.w700,
+  );
+  static TextStyle txtManropeSemiBold10IndigoA100 = TextStyle(
+    color: ColorConstant.indigoA100,
+    fontSize: getFontSize(
+      10,
+    ),
+    fontFamily: 'Manrope',
+    fontWeight: FontWeight.w600,
+  );
+  static TextStyle txtManropeSemiBold10IndigoA1001 = TextStyle(
+    color: ColorConstant.indigoA100,
+    fontSize: getFontSize(
+      10,
+    ),
+    fontFamily: 'Manrope',
+    fontWeight: FontWeight.w600,
+  );
 }

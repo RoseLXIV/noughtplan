@@ -24,6 +24,14 @@ class Currency {
   });
 }
 
+class BudgetTypes {
+  final String types;
+
+  const BudgetTypes({
+    required this.types,
+  });
+}
+
 class DataModel extends ChangeNotifier {
   List<Currency> _currencyList = [
     Currency(name: "USD", flag: ImageConstant.imgUsa),
@@ -47,13 +55,40 @@ class DataModel extends ChangeNotifier {
   }
 }
 
+class DataModelTypes extends ChangeNotifier {
+  List<BudgetTypes> _budgetList = [
+    BudgetTypes(types: "Zero-Based Budgeting"),
+    BudgetTypes(types: "Pay Yourself First"),
+    BudgetTypes(types: "Envelope Budgeting"),
+  ];
+
+  List<BudgetTypes> get budgetList => _budgetList;
+
+  set budgetList(List<BudgetTypes> budgettypes) {
+    _budgetList = budgettypes;
+    notifyListeners();
+  }
+
+  BudgetTypes? _selectedType;
+
+  BudgetTypes? get selectedType => _selectedType;
+
+  set selectedType(BudgetTypes? budgetTypes) {
+    _selectedType = budgetTypes;
+    notifyListeners();
+  }
+}
+
 final dataProvider = ChangeNotifierProvider((ref) => DataModel());
+final dataProviderBudgets = ChangeNotifierProvider((ref) => DataModelTypes());
 
 class GeneratorSalaryScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final data = ref.watch(dataProvider);
+    final dataBudgets = ref.watch(dataProviderBudgets);
     final currencyList = data.currencyList;
+    final budgetList = dataBudgets.budgetList;
 
     return SafeArea(
         child: Scaffold(
@@ -80,10 +115,8 @@ class GeneratorSalaryScreen extends ConsumerWidget {
                                     height: getVerticalSize(100),
                                     leadingWidth: 25,
                                     leading: AppbarImage(
-                                      onTap: () async {
-                                        await ref
-                                            .read(authStateProvider.notifier)
-                                            .logOut();
+                                      onTap: () {
+                                        Navigator.pop(context);
                                       },
                                       height: getSize(24),
                                       width: getSize(24),
@@ -91,7 +124,8 @@ class GeneratorSalaryScreen extends ConsumerWidget {
                                       margin: getMargin(bottom: 1),
                                     ),
                                     centerTitle: true,
-                                    title: AppbarTitle(text: "Salary"),
+                                    title: AppbarTitle(
+                                        text: "Salary and Budget Type"),
                                     actions: [
                                       GestureDetector(
                                         onTap: () {
@@ -184,6 +218,52 @@ class GeneratorSalaryScreen extends ConsumerWidget {
                                     ],
                                   ),
                                 ),
+                                Container(
+                                  // padding: const EdgeInsets.all(8.0),
+                                  // height: getVerticalSize(42),
+                                  margin: getMargin(top: 0),
+                                  alignment: Alignment.center,
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceEvenly,
+                                    children: [
+                                      Text("Budget Type",
+                                          textAlign: TextAlign.left,
+                                          style: AppStyle
+                                              .txtHelveticaNowTextBold16
+                                              .copyWith(
+                                                  letterSpacing:
+                                                      getHorizontalSize(0.5))),
+                                      DropdownButton<BudgetTypes>(
+                                        alignment: Alignment.center,
+                                        value: dataBudgets._selectedType,
+                                        onChanged: (BudgetTypes? budgettypes) {
+                                          ref
+                                              .watch(dataProviderBudgets)
+                                              .selectedType = budgettypes;
+                                        },
+                                        items: budgetList
+                                            .map<DropdownMenuItem<BudgetTypes>>(
+                                              (budgetTypes) =>
+                                                  DropdownMenuItem<BudgetTypes>(
+                                                value: budgetTypes,
+                                                child: Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.center,
+                                                  children: [
+                                                    SizedBox(width: 5),
+                                                    Text(budgetTypes.types,
+                                                        style: AppStyle
+                                                            .txtHelveticaNowTextBold16),
+                                                  ],
+                                                ),
+                                              ),
+                                            )
+                                            .toList(),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                                 Padding(
                                     padding: getPadding(top: 20),
                                     child: Text("Enter Your Salary Details",
@@ -229,7 +309,7 @@ class GeneratorSalaryScreen extends ConsumerWidget {
                       child: Padding(
                           padding: getPadding(top: 120, right: 30, left: 30),
                           child: TextField(
-                              maxLength: 11,
+                              maxLength: 12,
                               keyboardType: TextInputType.numberWithOptions(
                                   decimal: true),
                               inputFormatters: [
