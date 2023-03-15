@@ -1,0 +1,4 @@
+enum BudgetStatus {
+  success,
+  failure,
+}

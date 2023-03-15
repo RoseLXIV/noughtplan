@@ -8,17 +8,20 @@ import 'package:noughtplan/core/auth/providers/auth_state_provider.dart';
 
 import 'package:flutter/material.dart';
 import 'package:noughtplan/core/app_export.dart';
+import 'package:noughtplan/core/budget/generate_salary/controller/generate_salary_controller.dart';
+import 'package:noughtplan/core/forms/form_validators.dart';
 import 'package:noughtplan/widgets/app_bar/appbar_image.dart';
 import 'package:noughtplan/widgets/app_bar/appbar_title.dart';
 import 'package:noughtplan/widgets/app_bar/custom_app_bar.dart';
 import 'package:noughtplan/widgets/custom_button.dart';
+import 'package:noughtplan/widgets/custom_button_form.dart';
 
 @immutable
-class Currency {
+class CurrencyTypes {
   final String name;
   final String flag;
 
-  const Currency({
+  const CurrencyTypes({
     required this.name,
     required this.flag,
   });
@@ -33,23 +36,23 @@ class BudgetTypes {
 }
 
 class DataModel extends ChangeNotifier {
-  List<Currency> _currencyList = [
-    Currency(name: "USD", flag: ImageConstant.imgUsa),
-    Currency(name: "JMD", flag: ImageConstant.imgJamaica),
+  List<CurrencyTypes> _currencyList = [
+    CurrencyTypes(name: "USD", flag: ImageConstant.imgUsa),
+    CurrencyTypes(name: "JMD", flag: ImageConstant.imgJamaica),
   ];
 
-  List<Currency> get currencyList => _currencyList;
+  List<CurrencyTypes> get currencyList => _currencyList;
 
-  set currencyList(List<Currency> currency) {
+  set currencyList(List<CurrencyTypes> currency) {
     _currencyList = currency;
     notifyListeners();
   }
 
-  Currency? _selectedCurrency;
+  CurrencyTypes? _selectedCurrency;
 
-  Currency? get selectedCurrency => _selectedCurrency;
+  CurrencyTypes? get selectedCurrency => _selectedCurrency;
 
-  set selectedCurrency(Currency? currency) {
+  set selectedCurrency(CurrencyTypes? currency) {
     _selectedCurrency = currency;
     notifyListeners();
   }
@@ -83,12 +86,21 @@ final dataProvider = ChangeNotifierProvider((ref) => DataModel());
 final dataProviderBudgets = ChangeNotifierProvider((ref) => DataModelTypes());
 
 class GeneratorSalaryScreen extends ConsumerWidget {
+  final salaryFocusNode = FocusNode();
+  final currencyFocusNode = FocusNode();
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final data = ref.watch(dataProvider);
     final dataBudgets = ref.watch(dataProviderBudgets);
     final currencyList = data.currencyList;
     final budgetList = dataBudgets.budgetList;
+    final generateSalaryState = ref.watch(generateSalaryProvider);
+    final showErrorSalary = generateSalaryState.salary.error;
+    final showErrorCurrency = generateSalaryState.currency.error;
+    final showErrorBudgetType = generateSalaryState.budgetType.error;
+    final generateSalaryController = ref.watch(generateSalaryProvider.notifier);
+    final bool isValidated = generateSalaryState.status.isValidated;
 
     return SafeArea(
         child: Scaffold(
@@ -173,7 +185,7 @@ class GeneratorSalaryScreen extends ConsumerWidget {
                                 Container(
                                   // padding: const EdgeInsets.all(8.0),
                                   // height: getVerticalSize(42),
-                                  margin: getMargin(top: 120),
+                                  margin: getMargin(top: 132),
                                   alignment: Alignment.center,
                                   child: Row(
                                     mainAxisAlignment:
@@ -186,34 +198,63 @@ class GeneratorSalaryScreen extends ConsumerWidget {
                                               .copyWith(
                                                   letterSpacing:
                                                       getHorizontalSize(0.5))),
-                                      DropdownButton<Currency>(
-                                        alignment: Alignment.center,
-                                        value: data._selectedCurrency,
-                                        onChanged: (Currency? currency) {
-                                          ref
-                                              .watch(dataProvider)
-                                              .selectedCurrency = currency;
-                                        },
-                                        items: currencyList
-                                            .map<DropdownMenuItem<Currency>>(
-                                              (currency) =>
-                                                  DropdownMenuItem<Currency>(
-                                                value: currency,
-                                                child: Row(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment.center,
-                                                  children: [
-                                                    Image.asset(currency.flag,
-                                                        height: 20, width: 30),
-                                                    SizedBox(width: 5),
-                                                    Text(currency.name,
-                                                        style: AppStyle
-                                                            .txtHelveticaNowTextBold16),
-                                                  ],
-                                                ),
-                                              ),
-                                            )
-                                            .toList(),
+                                      Column(
+                                        children: [
+                                          DropdownButton<CurrencyTypes>(
+                                            alignment: Alignment.center,
+                                            value: data._selectedCurrency,
+                                            onChanged:
+                                                (CurrencyTypes? currency) {
+                                              ref
+                                                  .watch(dataProvider)
+                                                  .selectedCurrency = currency;
+                                              generateSalaryController
+                                                  .onCurrencyChange(
+                                                      currency?.name ?? '');
+                                              print(
+                                                  'Selected currency: ${currency?.name}');
+                                            },
+                                            items: currencyList
+                                                .map<
+                                                    DropdownMenuItem<
+                                                        CurrencyTypes>>(
+                                                  (currency) =>
+                                                      DropdownMenuItem<
+                                                          CurrencyTypes>(
+                                                    value: currency,
+                                                    child: Row(
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .center,
+                                                      children: [
+                                                        Image.asset(
+                                                            currency.flag,
+                                                            height: 20,
+                                                            width: 30),
+                                                        SizedBox(width: 5),
+                                                        Text(currency.name,
+                                                            style: AppStyle
+                                                                .txtHelveticaNowTextBold16),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                )
+                                                .toList(),
+                                          ),
+                                          if (generateSalaryState
+                                                  .currency.error !=
+                                              null)
+                                            Text(
+                                              Currency.showCurrencyErrorMessage(
+                                                      showErrorCurrency)
+                                                  .toString(),
+                                              style: AppStyle
+                                                  .txtManropeRegular12
+                                                  .copyWith(
+                                                      color: ColorConstant
+                                                          .lightBlueA200),
+                                            ),
+                                        ],
                                       ),
                                     ],
                                   ),
@@ -234,32 +275,60 @@ class GeneratorSalaryScreen extends ConsumerWidget {
                                               .copyWith(
                                                   letterSpacing:
                                                       getHorizontalSize(0.5))),
-                                      DropdownButton<BudgetTypes>(
-                                        alignment: Alignment.center,
-                                        value: dataBudgets._selectedType,
-                                        onChanged: (BudgetTypes? budgettypes) {
-                                          ref
-                                              .watch(dataProviderBudgets)
-                                              .selectedType = budgettypes;
-                                        },
-                                        items: budgetList
-                                            .map<DropdownMenuItem<BudgetTypes>>(
-                                              (budgetTypes) =>
-                                                  DropdownMenuItem<BudgetTypes>(
-                                                value: budgetTypes,
-                                                child: Row(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment.center,
-                                                  children: [
-                                                    SizedBox(width: 5),
-                                                    Text(budgetTypes.types,
-                                                        style: AppStyle
-                                                            .txtHelveticaNowTextBold16),
-                                                  ],
-                                                ),
-                                              ),
-                                            )
-                                            .toList(),
+                                      Column(
+                                        children: [
+                                          DropdownButton<BudgetTypes>(
+                                            alignment: Alignment.center,
+                                            value: dataBudgets._selectedType,
+                                            onChanged:
+                                                (BudgetTypes? budgettypes) {
+                                              ref
+                                                  .watch(dataProviderBudgets)
+                                                  .selectedType = budgettypes;
+                                              generateSalaryController
+                                                  .onBudgetTypeChange(
+                                                      budgettypes?.types ?? '');
+                                              print(
+                                                  'Selected Budget Type: ${budgettypes?.types}');
+                                            },
+                                            items: budgetList
+                                                .map<
+                                                    DropdownMenuItem<
+                                                        BudgetTypes>>(
+                                                  (budgetTypes) =>
+                                                      DropdownMenuItem<
+                                                          BudgetTypes>(
+                                                    value: budgetTypes,
+                                                    child: Row(
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .center,
+                                                      children: [
+                                                        SizedBox(width: 5),
+                                                        Text(budgetTypes.types,
+                                                            style: AppStyle
+                                                                .txtHelveticaNowTextBold16),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                )
+                                                .toList(),
+                                          ),
+                                          if (generateSalaryState
+                                                  .budgetType.error !=
+                                              null)
+                                            Text(
+                                              BudgetType
+                                                      .showBudgetTypeErrorMessage(
+                                                          showErrorBudgetType)
+                                                  .toString(),
+                                              style: AppStyle
+                                                  .txtManropeRegular12
+                                                  .copyWith(
+                                                      color: ColorConstant
+                                                          .lightBlueA200),
+                                            ),
+                                        ],
                                       ),
                                     ],
                                   ),
@@ -297,36 +366,101 @@ class GeneratorSalaryScreen extends ConsumerWidget {
                                       bottom: MediaQuery.of(context)
                                           .viewInsets
                                           .bottom),
-                                  child: CustomButton(
+                                  child: CustomButtonForm(
                                     alignment: Alignment.bottomCenter,
                                     height: getVerticalSize(56),
                                     text: "Next",
+                                    onTap: isValidated
+                                        ? () async {
+                                            final result =
+                                                await generateSalaryController
+                                                    .saveBudgetInfo();
+                                            if (result == true) {
+                                              Navigator.pushNamed(context,
+                                                  '/category_necessary_screen');
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(
+                                                SnackBar(
+                                                  content: Text(
+                                                    'Information saved successfully!',
+                                                    textAlign: TextAlign.center,
+                                                    style: AppStyle
+                                                        .txtHelveticaNowTextBold16WhiteA700
+                                                        .copyWith(
+                                                      letterSpacing:
+                                                          getHorizontalSize(
+                                                              0.3),
+                                                    ),
+                                                  ),
+                                                  backgroundColor:
+                                                      ColorConstant.blueA700,
+                                                ),
+                                              );
+                                            } else {
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(
+                                                SnackBar(
+                                                  content: Text(
+                                                    'Please fill in all the fields!',
+                                                    textAlign: TextAlign.center,
+                                                    style: AppStyle
+                                                        .txtHelveticaNowTextBold16WhiteA700
+                                                        .copyWith(
+                                                      letterSpacing:
+                                                          getHorizontalSize(
+                                                              0.3),
+                                                    ),
+                                                  ),
+                                                  backgroundColor:
+                                                      ColorConstant.redA700,
+                                                ),
+                                              );
+                                            }
+                                            print(result);
+                                          }
+                                        : null,
+                                    enabled: isValidated,
                                   ),
                                 ),
                               ]))),
                   Align(
-                      alignment: Alignment.topCenter,
-                      child: Padding(
-                          padding: getPadding(top: 120, right: 30, left: 30),
-                          child: TextField(
-                              maxLength: 12,
-                              keyboardType: TextInputType.numberWithOptions(
-                                  decimal: true),
-                              inputFormatters: [
-                                ThousandsFormatter(),
-                              ],
-                              decoration: InputDecoration(
-                                prefixText: '\$ ',
-                                prefixStyle: AppStyle.txtHelveticaNowTextBold40,
-                                hintText: '0.00',
-                                border: OutlineInputBorder(
-                                  borderSide: BorderSide.none,
-                                  borderRadius: BorderRadius.circular(8.0),
-                                ),
-                                filled: true,
-                              ),
-                              textAlign: TextAlign.center,
-                              style: AppStyle.txtHelveticaNowTextBold40)))
+                    alignment: Alignment.topCenter,
+                    child: Padding(
+                      padding: getPadding(top: 120, right: 30, left: 30),
+                      child: TextField(
+                          focusNode: salaryFocusNode,
+                          maxLength: 12,
+                          keyboardType:
+                              TextInputType.numberWithOptions(decimal: true),
+                          inputFormatters: [
+                            ThousandsFormatter(),
+                          ],
+                          onChanged: (salary) {
+                            generateSalaryController.onSalaryChange(salary);
+                            print(salary);
+                          },
+                          decoration: InputDecoration(
+                            prefixText: '\$ ',
+                            errorText: generateSalaryState.salary.error !=
+                                        null &&
+                                    salaryFocusNode.hasFocus
+                                ? Salary.showSalaryErrorMessage(showErrorSalary)
+                                    .toString()
+                                : null,
+                            errorStyle: AppStyle.txtManropeRegular12
+                                .copyWith(color: ColorConstant.redA700),
+                            prefixStyle: AppStyle.txtHelveticaNowTextBold40,
+                            hintText: '0.00',
+                            border: OutlineInputBorder(
+                              borderSide: BorderSide.none,
+                              borderRadius: BorderRadius.circular(8.0),
+                            ),
+                            filled: true,
+                          ),
+                          textAlign: TextAlign.center,
+                          style: AppStyle.txtHelveticaNowTextBold40),
+                    ),
+                  ),
                 ]))));
   }
 

@@ -24,5 +24,6 @@ class FirebaseFieldName {
   static const String budget_amount = 'budget_amount';
   static const String budget_date = 'budget_date';
   static const String budget_type = 'budget_type';
+  static const String budget_id = 'budget_id';
   const FirebaseFieldName._();
 }
