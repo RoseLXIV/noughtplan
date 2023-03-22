@@ -2,21 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:noughtplan/core/app_export.dart';
 
 class CustomSearchView extends StatelessWidget {
-  CustomSearchView(
-      {this.shape,
-      this.padding,
-      this.variant,
-      this.fontStyle,
-      this.alignment,
-      this.width,
-      this.margin,
-      this.controller,
-      this.focusNode,
-      this.hintText,
-      this.prefix,
-      this.prefixConstraints,
-      this.suffix,
-      this.suffixConstraints});
+  CustomSearchView({
+    this.shape,
+    this.padding,
+    this.variant,
+    this.fontStyle,
+    this.alignment,
+    this.width,
+    this.margin,
+    this.controller,
+    this.focusNode,
+    this.hintText,
+    this.prefix,
+    this.prefixConstraints,
+    this.suffix,
+    this.suffixConstraints,
+    this.onChanged,
+  });
 
   SearchViewShape? shape;
 
@@ -46,6 +48,8 @@ class CustomSearchView extends StatelessWidget {
 
   BoxConstraints? suffixConstraints;
 
+  ValueChanged<String>? onChanged;
+
   @override
   Widget build(BuildContext context) {
     return alignment != null
@@ -62,6 +66,7 @@ class CustomSearchView extends StatelessWidget {
       margin: margin,
       child: TextFormField(
         controller: controller,
+        onChanged: onChanged,
         focusNode: focusNode,
         style: _setFontStyle(),
         decoration: _buildDecoration(),

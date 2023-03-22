@@ -13,6 +13,7 @@ class BudgetType extends FormzInput<String, BudgetTypeValidationError> {
       'Zero-Based Budgeting',
       'Pay Yourself First',
       'Envelope Budgeting',
+      'Activity-Based Budgeting',
     ];
 
     return supportedBudgetTypes.contains(value)

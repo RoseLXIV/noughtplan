@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:noughtplan/core/auth/providers/is_logged_in_provider.dart';
 import 'package:noughtplan/core/providers/is_loading_provider.dart';
+import 'package:noughtplan/presentation/category_necessary_screen/category_necessary_screen.dart';
+import 'package:noughtplan/presentation/generator_salary_screen/generator_salary_screen.dart';
 import 'package:noughtplan/presentation/get_started_screen/get_started_screen.dart';
 import 'package:noughtplan/routes/app_routes.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -32,10 +34,24 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       home: Consumer(
         builder: (context, ref, child) {
+          final authIsLoading = ref.watch(isLoadingProvider);
+          final budgetIsLoading = ref.watch(budgetIsLoadingProvider);
+          final isLoading = authIsLoading || budgetIsLoading;
           ref.listen<bool>(
             isLoadingProvider,
-            (_, isLoading) {
-              if (isLoading) {
+            (_, authIsLoading) {
+              if (authIsLoading || budgetIsLoading) {
+                LoadingScreen.instance().show(context: context);
+              } else {
+                LoadingScreen.instance().hide();
+              }
+            },
+          );
+
+          ref.listen<bool>(
+            budgetIsLoadingProvider,
+            (_, budgetIsLoading) {
+              if (authIsLoading || budgetIsLoading) {
                 LoadingScreen.instance().show(context: context);
               } else {
                 LoadingScreen.instance().hide();
@@ -46,6 +62,7 @@ class MyApp extends StatelessWidget {
           if (isLoggedIn) {
             isLoggedIn.log();
             return HomePageScreen();
+            // HomePageScreen();
           } else {
             isLoggedIn.log();
             return GetStartedScreen();

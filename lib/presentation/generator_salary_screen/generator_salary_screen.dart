@@ -63,6 +63,7 @@ class DataModelTypes extends ChangeNotifier {
     BudgetTypes(types: "Zero-Based Budgeting"),
     BudgetTypes(types: "Pay Yourself First"),
     BudgetTypes(types: "Envelope Budgeting"),
+    BudgetTypes(types: "Activity-Based Budgeting"),
   ];
 
   List<BudgetTypes> get budgetList => _budgetList;
@@ -393,7 +394,7 @@ class GeneratorSalaryScreen extends ConsumerWidget {
                                                     ),
                                                   ),
                                                   backgroundColor:
-                                                      ColorConstant.blueA700,
+                                                      ColorConstant.blue900,
                                                 ),
                                               );
                                             } else {
