@@ -84,7 +84,9 @@ final Map<int, String> debtLoansCategories = {
   7: 'Medical Debt',
   8: 'Home Equity Loan',
   9: 'Consolidation Loan',
-  10: 'Other Loans',
+  10: 'Other Loans #1',
+  11: 'Other Loans #2',
+  12: 'General Debt',
 };
 
 final Map<int, String> savingsCategories = {
@@ -434,7 +436,8 @@ class CategoryNecessaryScreen extends HookConsumerWidget {
                                   margin: getMargin(bottom: 1),
                                 ),
                                 centerTitle: true,
-                                title: AppbarTitle(text: "Categories"),
+                                title:
+                                    AppbarTitle(text: "Necessary Categories"),
                                 actions: [
                                   GestureDetector(
                                     onTap: () {
@@ -443,7 +446,7 @@ class CategoryNecessaryScreen extends HookConsumerWidget {
                                         builder: (BuildContext context) {
                                           return AlertDialog(
                                             title: Text(
-                                              'Welcome to The Nought Plan',
+                                              'Please read the instructions below',
                                               textAlign: TextAlign.center,
                                               style: AppStyle
                                                   .txtHelveticaNowTextBold16,
@@ -778,7 +781,8 @@ class CategoryNecessaryScreen extends HookConsumerWidget {
                           debtExpense: extractedDebtLoanCategories,
                         );
 
-                        if (budgetState.state.status == BudgetStatus.success) {
+                        if (budgetState.state.status == BudgetStatus.success &&
+                            allCategoriesWithAmount.isNotEmpty) {
                           // Show SnackBar with success message
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
@@ -811,6 +815,21 @@ class CategoryNecessaryScreen extends HookConsumerWidget {
                                 ),
                               ),
                               backgroundColor: ColorConstant.redA700,
+                            ),
+                          );
+                        } else if (allCategoriesWithAmount.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Please select at least one category.',
+                                textAlign: TextAlign.center,
+                                style: AppStyle
+                                    .txtHelveticaNowTextBold16WhiteA700
+                                    .copyWith(
+                                  letterSpacing: getHorizontalSize(0.3),
+                                ),
+                              ),
+                              backgroundColor: ColorConstant.amber600,
                             ),
                           );
                         }
@@ -855,37 +874,31 @@ void _showModalBottomSheet(
             minChildSize: 0.4, // Set the minimum height of the modal
             maxChildSize: 0.6, // Set the maximum height of the modal
             builder: (BuildContext context, ScrollController scrollController) {
-              return Scaffold(
-                body: Builder(
-                  builder: (BuildContext innerContext) {
-                    return Container(
-                      padding: EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.only(
-                          topLeft: Radius.circular(32),
-                          topRight: Radius.circular(32),
-                        ),
-                      ),
-                      child: GridView.builder(
-                        padding: EdgeInsets.zero,
-                        itemCount: buttonTexts.length,
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3,
-                          mainAxisSpacing: 8,
-                          crossAxisSpacing: 8,
-                          childAspectRatio: 2,
-                        ),
-                        itemBuilder: (BuildContext context, int index) {
-                          final entry = buttonTexts.entries.elementAt(index);
-                          return CategoryButton(
-                            index: entry.key,
-                            text: entry.value,
-                          );
-                        },
-                      ),
-                    );
-                  },
+              return ClipRRect(
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(32),
+                  topRight: Radius.circular(32),
+                ),
+                child: Container(
+                  color: Colors.white,
+                  padding: EdgeInsets.all(16),
+                  child: GridView.builder(
+                    padding: EdgeInsets.zero,
+                    itemCount: buttonTexts.length,
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      mainAxisSpacing: 8,
+                      crossAxisSpacing: 8,
+                      childAspectRatio: 2,
+                    ),
+                    itemBuilder: (BuildContext context, int index) {
+                      final entry = buttonTexts.entries.elementAt(index);
+                      return CategoryButton(
+                        index: entry.key,
+                        text: entry.value,
+                      );
+                    },
+                  ),
                 ),
               );
             },
