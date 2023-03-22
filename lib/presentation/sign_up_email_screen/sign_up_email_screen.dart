@@ -244,8 +244,53 @@ class SignUpEmailScreen extends ConsumerWidget {
                                   ])),
                           CustomButtonForm(
                             onTap: isValidated
-                                ? () => signUpController
-                                    .signUpWithEmailAndPassword()
+                                ? () async {
+                                    await signUpController
+                                        .signUpWithEmailAndPassword();
+                                    final authState =
+                                        ref.watch(authStateProvider);
+                                    FocusScope.of(context).unfocus();
+                                    if (authState.result ==
+                                        AuthResult.failure) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            'Sign Up Failed',
+                                            textAlign: TextAlign.center,
+                                            style: AppStyle
+                                                .txtHelveticaNowTextBold16WhiteA700
+                                                .copyWith(
+                                              letterSpacing:
+                                                  getHorizontalSize(0.3),
+                                            ),
+                                          ),
+                                          backgroundColor:
+                                              ColorConstant.redA700,
+                                        ),
+                                      );
+                                    } else if (authState.result ==
+                                        AuthResult.success) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            'Sign Up Successful!',
+                                            textAlign: TextAlign.center,
+                                            style: AppStyle
+                                                .txtHelveticaNowTextBold16WhiteA700
+                                                .copyWith(
+                                              letterSpacing:
+                                                  getHorizontalSize(0.3),
+                                            ),
+                                          ),
+                                          backgroundColor:
+                                              ColorConstant.greenA70001,
+                                        ),
+                                      );
+                                    }
+                                    print('Auth State: ${authState.result}');
+                                  }
                                 : null,
                             height: getVerticalSize(56),
                             text: "Sign Up",

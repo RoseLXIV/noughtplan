@@ -104,6 +104,13 @@ class Authenticator {
         password: password,
       );
       return AuthResult.success;
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'email-already-in-use') {
+        print('The email address is already in use by another account.');
+      } else {
+        print('An error occurred: ${e.message}');
+      }
+      return AuthResult.failure;
     } catch (e) {
       return AuthResult.failure;
     }
