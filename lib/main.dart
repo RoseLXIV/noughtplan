@@ -63,7 +63,7 @@ class MyApp extends StatelessWidget {
           final isLoggedIn = ref.watch(isLoggedInProvider);
           if (isLoggedIn) {
             isLoggedIn.log();
-            return AllocateFundsScreen();
+            return HomePageScreen();
             // HomePageScreen();
           } else {
             isLoggedIn.log();

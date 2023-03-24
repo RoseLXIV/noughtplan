@@ -21,7 +21,9 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
         _budgetDebtInfoStorage = const BudgetDebtInfoStorage(),
         _budgetDiscretionaryInfoStorage =
             const BudgetDiscretionaryInfoStorage(),
-        super(const BudgetState.unknown());
+        super(const BudgetState.unknown()) {
+    // fetchSalary();
+  }
 
   Future<void> saveBudgetInfo({
     required double salary,
@@ -64,6 +66,39 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
       );
     }
   }
+
+  // Future<void> fetchSalary() async {
+  //   state = state.copiedWithIsLoading(true);
+
+  //   final userId = _authenticator.userId;
+  //   print(userId);
+
+  //   if (userId == null) {
+  //     state = BudgetState(
+  //       status: BudgetStatus.failure,
+  //       isLoading: false,
+  //       userId: null,
+  //     );
+  //     return;
+  //   }
+
+  //   try {
+  //     final salary = await _budgetInfoStorage.fetchSalary(userId);
+  //     print('Salary: $salary');
+  //     state = state.copyWithSalary(salary);
+  //     state = BudgetState(
+  //       status: BudgetStatus.success,
+  //       isLoading: false,
+  //       userId: userId,
+  //     ).copiedWithIsLoading(false);
+  //   } catch (e) {
+  //     state = BudgetState(
+  //       status: BudgetStatus.failure,
+  //       isLoading: false,
+  //       userId: userId,
+  //     );
+  //   }
+  // }
 
   Future<void> saveBudgetNecessaryInfo({
     required Map<String, double> necessaryExpense,

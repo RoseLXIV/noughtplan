@@ -218,6 +218,33 @@ class AppStyle {
     fontWeight: FontWeight.w700,
   );
 
+  static TextStyle txtManropeBold18 = TextStyle(
+    color: ColorConstant.gray900,
+    fontSize: getFontSize(
+      18,
+    ),
+    fontFamily: 'Manrope',
+    fontWeight: FontWeight.w700,
+  );
+
+  static TextStyle txtHelveticaNowTextBold18BlueGrey = TextStyle(
+    color: ColorConstant.blueGray500,
+    fontSize: getFontSize(
+      18,
+    ),
+    fontFamily: 'Helvetica Now Text',
+    fontWeight: FontWeight.w700,
+  );
+
+  static TextStyle txtManropeBold18BlueGrey = TextStyle(
+    color: ColorConstant.blueGray500,
+    fontSize: getFontSize(
+      18,
+    ),
+    fontFamily: 'Manrope',
+    fontWeight: FontWeight.w700,
+  );
+
   static TextStyle txtHelveticaNowTextBold16 = TextStyle(
     color: ColorConstant.gray900,
     fontSize: getFontSize(

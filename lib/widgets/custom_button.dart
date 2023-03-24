@@ -160,6 +160,8 @@ class CustomButton extends StatelessWidget {
         return ColorConstant.whiteA700;
       case ButtonVariant.OutlineBlueA700:
         return ColorConstant.indigo5001;
+      case ButtonVariant.FillGreenOutlined:
+        return ColorConstant.whiteA700;
       case ButtonVariant.FillGray100:
         return ColorConstant.gray100;
       case ButtonVariant.FillGray900:
@@ -187,6 +189,13 @@ class CustomButton extends StatelessWidget {
           color: ColorConstant.blueA700,
           width: getHorizontalSize(
             1.00,
+          ),
+        );
+      case ButtonVariant.FillGreenOutlined:
+        return BorderSide(
+          color: ColorConstant.blue90001,
+          width: getHorizontalSize(
+            2.00,
           ),
         );
       case ButtonVariant.OutlineIndigoA100:
@@ -425,6 +434,7 @@ enum ButtonVariant {
   FillGray100,
   FillGray900,
   FillIndigoA10001,
+  FillGreenOutlined,
 }
 
 enum ButtonFontStyle {

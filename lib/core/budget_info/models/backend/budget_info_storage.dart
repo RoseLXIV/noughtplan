@@ -54,4 +54,23 @@ class BudgetInfoStorage {
       return false;
     }
   }
+
+  // Future<double> fetchSalary(UserId id) async {
+  //   try {
+  //     final budgetInfo = await FirebaseFirestore.instance
+  //         .collection(FirebaseCollectionName.budgets)
+  //         .where(FirebaseFieldName.id, isEqualTo: id.toString())
+  //         .limit(1)
+  //         .get();
+
+  //     if (budgetInfo.docs.isNotEmpty) {
+  //       final salary = budgetInfo.docs.first.get(FirebaseFieldName.salary);
+  //       return salary.toDouble();
+  //     } else {
+  //       throw Exception('Salary not found for user $id');
+  //     }
+  //   } catch (e) {
+  //     throw Exception('Error fetching salary: $e');
+  //   }
+  // }
 }

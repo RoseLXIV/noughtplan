@@ -743,7 +743,9 @@ class CategoryNecessaryScreen extends HookConsumerWidget {
                           "Home Equity Loan": 0,
                           "Consolidation Loan": 0,
                           "Credit Card Debt": 0,
-                          "Other Loans": 0,
+                          "General Debt": 0,
+                          "Other Loans #1": 0,
+                          "Other Loans #2": 0,
                         };
                         Map<String, double> allCategoriesWithAmount = {
                           for (String parentCategory in selectedCategories.keys)
@@ -799,7 +801,13 @@ class CategoryNecessaryScreen extends HookConsumerWidget {
                             ),
                           );
                           Navigator.pushNamed(
-                              context, '/category_discretionary_screen');
+                              context, '/category_discretionary_screen',
+                              arguments: {
+                                'necessaryCategoriesWithAmount':
+                                    necessaryCategoriesWithAmount,
+                                'extractedDebtLoanCategories':
+                                    extractedDebtLoanCategories,
+                              });
                         } else if (budgetState.state.status ==
                             BudgetStatus.failure) {
                           // Show SnackBar with failure message

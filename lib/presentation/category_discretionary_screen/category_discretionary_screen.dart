@@ -418,9 +418,7 @@ class CategoryDiscretionaryScreen extends HookConsumerWidget {
                                 leadingWidth: 25,
                                 leading: AppbarImage(
                                   onTap: () {
-                                    // Navigator.pop(context);
-                                    Navigator.pushNamed(
-                                        context, '/category_necessary_screen');
+                                    Navigator.pop(context);
                                   },
                                   height: getSize(24),
                                   width: getSize(24),
@@ -733,6 +731,19 @@ class CategoryDiscretionaryScreen extends HookConsumerWidget {
                       height: getVerticalSize(56),
                       text: "Next",
                       onTap: () async {
+                        final Map<String, dynamic> args =
+                            ModalRoute.of(context)!.settings.arguments
+                                as Map<String, dynamic>;
+
+                        final Map<String, double>
+                            necessaryCategoriesWithAmount =
+                            args['necessaryCategoriesWithAmount']
+                                as Map<String, double>;
+
+                        final Map<String, double> extractedDebtLoanCategories =
+                            args['extractedDebtLoanCategories']
+                                as Map<String, double>;
+
                         Map<String, double> allCategoriesWithAmount = {
                           for (String parentCategory in selectedCategories.keys)
                             for (String categoryName
@@ -766,7 +777,17 @@ class CategoryDiscretionaryScreen extends HookConsumerWidget {
                             ),
                           );
                           Navigator.pushNamed(
-                              context, '/allocate_funds_screen');
+                            context,
+                            '/allocate_funds_screen',
+                            arguments: {
+                              'necessaryCategoriesWithAmount':
+                                  necessaryCategoriesWithAmount,
+                              'extractedDebtLoanCategories':
+                                  extractedDebtLoanCategories,
+                              'discretionaryCategoriesWithAmount':
+                                  allCategoriesWithAmount,
+                            },
+                          );
                         } else if (budgetState.state.status ==
                             BudgetStatus.failure) {
                           // Show SnackBar with failure message
