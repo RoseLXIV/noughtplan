@@ -6,10 +6,9 @@ import 'package:noughtplan/core/app_export.dart';
 import 'package:noughtplan/core/budget/allocate_funds/controller/remaining_funds_controller.dart';
 import 'package:noughtplan/core/budget/generate_salary/controller/generate_salary_controller.dart';
 import 'package:noughtplan/widgets/custom_button.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
-class EnteredAmountsNotifier extends StateNotifier<Map<String, double>> {
-  EnteredAmountsNotifier() : super({});
+class EnteredAmountsNotifierDebt extends StateNotifier<Map<String, double>> {
+  EnteredAmountsNotifierDebt() : super({});
 
   double getAmount(String category) {
     return state[category] ?? 0.0;
@@ -18,17 +17,18 @@ class EnteredAmountsNotifier extends StateNotifier<Map<String, double>> {
   void updateAmount(String category, double amount) {
     if (amount == 0) {
       state = {...state}..remove(category);
-      print('EnteredAmountsNotifier - Removed amount for $category');
+      print('EnteredAmountsNotifierDebt - Removed amount for $category');
     } else {
       state = {...state, category: amount};
-      print('EnteredAmountsNotifier - Updated amount for $category to $amount');
+      print(
+          'EnteredAmountsNotifierDebt - Updated amount for $category to $amount');
     }
   }
 
   void resetAmounts() {
     for (var key in state.keys) {
       state[key] = 0.0;
-      print('EnteredAmountsNotifier - Reset amount for $key to 0.0');
+      print('EnteredAmountsNotifierDebt - Reset amount for $key to 0.0');
     }
     state =
         Map<String, double>.from(state); // This line triggers a state update.
@@ -36,13 +36,13 @@ class EnteredAmountsNotifier extends StateNotifier<Map<String, double>> {
   }
 }
 
-final enteredAmountsProvider =
-    StateNotifierProvider<EnteredAmountsNotifier, Map<String, double>>(
-        (ref) => EnteredAmountsNotifier());
+final enteredAmountsDebtProvider =
+    StateNotifierProvider<EnteredAmountsNotifierDebt, Map<String, double>>(
+        (ref) => EnteredAmountsNotifierDebt());
 
 // add this line
-class CustomTextEditingController extends TextEditingController {
-  CustomTextEditingController({String initialText = ''})
+class CustomTextEditingControllerDebt extends TextEditingController {
+  CustomTextEditingControllerDebt({String initialText = ''})
       : super(text: initialText == '0.00' ? '' : _formatNumber(initialText));
 
   static String _formatNumber(String number) {
@@ -56,22 +56,22 @@ class CustomTextEditingController extends TextEditingController {
 }
 
 // add this line
-final textEditingControllerProvider = StateProvider.family
-    .autoDispose<CustomTextEditingController, String>((ref, category) {
+final textEditingDebtControllerProvider = StateProvider.family
+    .autoDispose<CustomTextEditingControllerDebt, String>((ref, category) {
   double initialAmount =
-      ref.read(enteredAmountsProvider.notifier).getAmount(category);
+      ref.read(enteredAmountsDebtProvider.notifier).getAmount(category);
   print('Initial amount for $category: $initialAmount'); // Add this line
-  return CustomTextEditingController(
+  return CustomTextEditingControllerDebt(
       initialText: initialAmount == 0 ? '' : initialAmount.toStringAsFixed(2));
 });
 
-final oldAmountsProvider = StateNotifierProvider.autoDispose<
-    OldAmountsController, Map<String, double>>((ref) {
-  return OldAmountsController();
+final oldAmountsProviderDebt = StateNotifierProvider.autoDispose<
+    OldAmountsControllerDebt, Map<String, double>>((ref) {
+  return OldAmountsControllerDebt();
 });
 
-class OldAmountsController extends StateNotifier<Map<String, double>> {
-  OldAmountsController() : super({});
+class OldAmountsControllerDebt extends StateNotifier<Map<String, double>> {
+  OldAmountsControllerDebt() : super({});
 
   void setOldAmount(String category, double amount) {
     state = {...state, category: amount};
@@ -82,32 +82,29 @@ class OldAmountsController extends StateNotifier<Map<String, double>> {
   }
 }
 
-final focusNodeProvider =
+final focusNodeProviderDebt =
     StateProvider.family.autoDispose<FocusNode, String>((ref, category) {
   return FocusNode();
 });
 
 // ignore: must_be_immutable
-class ListNecessaryItemWidget extends ConsumerWidget {
+class ListDebtItemWidget extends ConsumerWidget {
   final String category;
   final double amount;
 
-  ListNecessaryItemWidget({required this.category, required this.amount});
+  ListDebtItemWidget({required this.category, required this.amount});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final enteredAmounts = ref.watch(enteredAmountsProvider);
+    final enteredAmounts = ref.watch(enteredAmountsDebtProvider);
     final hasAmountEntered =
         enteredAmounts[category] != null && enteredAmounts[category]! > 0;
 
-    // add this line
-    final CustomTextEditingController _controller =
-        ref.watch(textEditingControllerProvider(category).notifier).state;
+    final CustomTextEditingControllerDebt _controller =
+        ref.watch(textEditingDebtControllerProvider(category).notifier).state;
 
     final FocusNode focusNode =
-        ref.watch(focusNodeProvider(category).notifier).state;
-
-    // add this line
+        ref.watch(focusNodeProviderDebt(category).notifier).state;
     final remainingFundsStateProvider = StateProvider<double>((ref) => 0.0);
     return Container(
       padding: getPadding(
@@ -135,7 +132,7 @@ class ListNecessaryItemWidget extends ConsumerWidget {
             fontStyle: ButtonFontStyle.ManropeSemiBold12Gray900,
             onTap: () {
               final FocusNode focusNode =
-                  ref.read(focusNodeProvider(category).notifier).state;
+                  ref.read(focusNodeProviderDebt(category).notifier).state;
               FocusScope.of(context).requestFocus(focusNode);
             },
           ),
@@ -191,17 +188,15 @@ class ListNecessaryItemWidget extends ConsumerWidget {
                           keyboardType:
                               TextInputType.numberWithOptions(decimal: true),
                           inputFormatters: [
-                            ThousandsFormatter(),
+                            ThousandsFormatterDebt(),
                           ],
                           style: AppStyle.txtManropeBold18,
                           onChanged: (text) {
-                            if (_controller.text == '0.00')
-                              _controller.text = '';
                             String cleanedText =
                                 text.replaceAll(RegExp(','), '');
                             double amount = double.tryParse(cleanedText) ?? 0.0;
                             final previousAmount = ref
-                                .read(enteredAmountsProvider.notifier)
+                                .read(enteredAmountsDebtProvider.notifier)
                                 .getAmount(category);
 
                             print("RemainingFundsController - OnChanged:");
@@ -228,7 +223,7 @@ class ListNecessaryItemWidget extends ConsumerWidget {
                                       letterSpacing: getHorizontalSize(0.3),
                                     ),
                                   ),
-                                  backgroundColor: ColorConstant.redA700,
+                                  backgroundColor: ColorConstant.amber600,
                                   duration: Duration(seconds: 3),
                                 ),
                               );
@@ -238,21 +233,23 @@ class ListNecessaryItemWidget extends ConsumerWidget {
                               _controller.clear();
                               _controller.value =
                                   _controller.value.copyWith(text: '');
-
                               ref
                                   .read(remainingFundsProvider.notifier)
                                   .updateFunds(amount, previousAmount);
+
                               ref
-                                  .read(enteredAmountsProvider.notifier)
+                                  .read(enteredAmountsDebtProvider.notifier)
                                   .updateAmount(category, amount);
+                              print(
+                                  "RemainingFundsController - Amount: $amount");
                             } else {
                               ref
                                   .read(remainingFundsProvider.notifier)
                                   .updateFunds(amount, previousAmount);
                               ref
-                                  .read(enteredAmountsProvider.notifier)
+                                  .read(enteredAmountsDebtProvider.notifier)
                                   .updateAmount(category, amount);
-                              // add this line
+
                               ref
                                       .read(remainingFundsStateProvider.notifier)
                                       .state =
@@ -260,7 +257,7 @@ class ListNecessaryItemWidget extends ConsumerWidget {
 
                               // Update the old amount after updating the remaining funds and entered amounts
                               ref
-                                  .read(oldAmountsProvider.notifier)
+                                  .read(oldAmountsProviderDebt.notifier)
                                   .setOldAmount(category, amount);
                             }
                           },
@@ -278,10 +275,10 @@ class ListNecessaryItemWidget extends ConsumerWidget {
   }
 }
 
-class ThousandsFormatter extends TextInputFormatter {
+class ThousandsFormatterDebt extends TextInputFormatter {
   final int maxLength;
 
-  ThousandsFormatter({this.maxLength = 12});
+  ThousandsFormatterDebt({this.maxLength = 12});
 
   @override
   TextEditingValue formatEditUpdate(

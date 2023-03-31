@@ -4,45 +4,93 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:noughtplan/core/app_export.dart';
 import 'package:noughtplan/core/budget/allocate_funds/controller/remaining_funds_controller.dart';
-import 'package:noughtplan/core/budget/generate_salary/controller/generate_salary_controller.dart';
+// import 'package:noughtplan/core/budget/generate_salary/controller/generate_salary_controller.dart';
 import 'package:noughtplan/widgets/custom_button.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
-class EnteredAmountsNotifier extends StateNotifier<Map<String, double>> {
-  EnteredAmountsNotifier() : super({});
+class EnteredAmountsNotifierDiscretionary
+    extends StateNotifier<Map<String, double>> {
+  EnteredAmountsNotifierDiscretionary() : super({});
 
   double getAmount(String category) {
     return state[category] ?? 0.0;
   }
 
+  double getTotalEnteredAmounts() {
+    return state.values.fold(0.0, (a, b) => a + b);
+  }
+
   void updateAmount(String category, double amount) {
     if (amount == 0) {
       state = {...state}..remove(category);
-      print('EnteredAmountsNotifier - Removed amount for $category');
+      print(
+          'EnteredAmountsNotifierDiscretionary - Removed amount for $category');
     } else {
       state = {...state, category: amount};
-      print('EnteredAmountsNotifier - Updated amount for $category to $amount');
+      print(
+          'EnteredAmountsNotifierDiscretionary - Updated amount for $category to $amount');
     }
   }
 
   void resetAmounts() {
     for (var key in state.keys) {
       state[key] = 0.0;
-      print('EnteredAmountsNotifier - Reset amount for $key to 0.0');
+      print(
+          'EnteredAmountsNotifierDiscretionary - Reset amount for $key to 0.0');
     }
     state =
         Map<String, double>.from(state); // This line triggers a state update.
-    print('EnteredAmountsNotifier - Reset all amounts: $state');
+    print('EnteredAmountsNotifierDiscretionary - Reset all amounts: $state');
+  }
+
+  void resetUneditedAmounts(WidgetRef ref) {
+    Map<String, double> newState = {};
+    for (var key in state.keys) {
+      bool isEdited =
+          ref.read(editedCategoriesDiscretionaryProvider)[key] ?? false;
+      if (!isEdited) {
+        newState[key] = 0.0;
+        print(
+            'EnteredAmountsNotifierDiscretionary - Reset amount for $key to 0.0');
+      } else {
+        newState[key] = state[key] ?? 0.0;
+      }
+    }
+    state = newState;
+    print(
+        'EnteredAmountsNotifierDiscretionary - Reset unedited amounts: $state');
+  }
+
+  void updateUneditedAmounts(Map<String, double> newAmounts) {
+    Map<String, double> newState = {...state};
+
+    for (var key in newAmounts.keys) {
+      newState[key] = newAmounts[key] ?? 0.0;
+    }
+
+    state = newState;
+    print(
+        'EnteredAmountsNotifierDiscretionary - Updated unedited amounts: $state');
+  }
+
+  double getEditedAmounts(WidgetRef ref) {
+    double total = 0.0;
+
+    state.entries.forEach((entry) {
+      if (ref.read(editedCategoriesDiscretionaryProvider)[entry.key] ?? false) {
+        total += entry.value;
+      }
+    });
+
+    return total;
   }
 }
 
-final enteredAmountsProvider =
-    StateNotifierProvider<EnteredAmountsNotifier, Map<String, double>>(
-        (ref) => EnteredAmountsNotifier());
+final enteredAmountsDiscretionaryProvider = StateNotifierProvider<
+    EnteredAmountsNotifierDiscretionary,
+    Map<String, double>>((ref) => EnteredAmountsNotifierDiscretionary());
 
-// add this line
-class CustomTextEditingController extends TextEditingController {
-  CustomTextEditingController({String initialText = ''})
+class CustomTextEditingControllerDiscretionary extends TextEditingController {
+  CustomTextEditingControllerDiscretionary({String initialText = ''})
       : super(text: initialText == '0.00' ? '' : _formatNumber(initialText));
 
   static String _formatNumber(String number) {
@@ -56,22 +104,24 @@ class CustomTextEditingController extends TextEditingController {
 }
 
 // add this line
-final textEditingControllerProvider = StateProvider.family
-    .autoDispose<CustomTextEditingController, String>((ref, category) {
-  double initialAmount =
-      ref.read(enteredAmountsProvider.notifier).getAmount(category);
-  print('Initial amount for $category: $initialAmount'); // Add this line
-  return CustomTextEditingController(
+final textEditingDiscretionaryControllerProvider = StateProvider.family
+    .autoDispose<CustomTextEditingControllerDiscretionary, String>(
+        (ref, category) {
+  double initialAmount = ref
+      .read(enteredAmountsDiscretionaryProvider.notifier)
+      .getAmount(category);
+  return CustomTextEditingControllerDiscretionary(
       initialText: initialAmount == 0 ? '' : initialAmount.toStringAsFixed(2));
 });
 
 final oldAmountsProvider = StateNotifierProvider.autoDispose<
-    OldAmountsController, Map<String, double>>((ref) {
-  return OldAmountsController();
+    OldAmountsControllerDiscretionary, Map<String, double>>((ref) {
+  return OldAmountsControllerDiscretionary();
 });
 
-class OldAmountsController extends StateNotifier<Map<String, double>> {
-  OldAmountsController() : super({});
+class OldAmountsControllerDiscretionary
+    extends StateNotifier<Map<String, double>> {
+  OldAmountsControllerDiscretionary() : super({});
 
   void setOldAmount(String category, double amount) {
     state = {...state, category: amount};
@@ -87,27 +137,105 @@ final focusNodeProvider =
   return FocusNode();
 });
 
+class EditedCategoriesDiscretionaryController
+    extends StateNotifier<Map<String, bool>> {
+  EditedCategoriesDiscretionaryController() : super({});
+
+  void setEdited(String category, bool edited) {
+    state = {
+      ...state,
+      category: edited,
+    };
+  }
+}
+
+final editedCategoriesDiscretionaryProvider = StateNotifierProvider<
+    EditedCategoriesDiscretionaryController, Map<String, bool>>((ref) {
+  return EditedCategoriesDiscretionaryController();
+});
+
+class AutoAssignedCategoriesDiscretionary
+    extends StateNotifier<Map<String, bool>> {
+  AutoAssignedCategoriesDiscretionary()
+      : super({}); // Initialize the state as an empty map
+
+  void setAutoAssigned(String category, bool isAutoAssigned) {
+    state = {...state, category: isAutoAssigned};
+  }
+
+  void reset() {
+    Map<String, bool> newState = {...state};
+    newState.keys.forEach((key) {
+      newState[key] = false;
+    });
+    state = newState;
+  }
+}
+
+final autoAssignedCategoriesDiscretionaryProvider = StateNotifierProvider<
+    AutoAssignedCategoriesDiscretionary,
+    Map<String, bool>>((ref) => AutoAssignedCategoriesDiscretionary());
+
+class CategoryInfo {
+  double amount;
+  bool isEdited;
+  bool isAutoAssigned;
+
+  CategoryInfo(
+      {required this.amount,
+      this.isEdited = false,
+      this.isAutoAssigned = false});
+}
+
+final categoryInfoDiscretionaryProvider =
+    StateNotifierProvider.family<CategoryInfoController, CategoryInfo, String>(
+        (ref, category) {
+  return CategoryInfoController(category: category);
+});
+
+class CategoryInfoController extends StateNotifier<CategoryInfo> {
+  CategoryInfoController({required String category})
+      : super(
+            CategoryInfo(amount: 0.0, isEdited: false, isAutoAssigned: false));
+
+  void updateAmount(double amount,
+      {bool edited = false, bool autoAssigned = false}) {
+    state = CategoryInfo(
+        amount: amount, isEdited: edited, isAutoAssigned: autoAssigned);
+  }
+
+  void resetAmount() {
+    state = CategoryInfo(
+        amount: 0.0,
+        isEdited: state.isEdited,
+        isAutoAssigned: state.isAutoAssigned);
+  }
+}
+
 // ignore: must_be_immutable
-class ListNecessaryItemWidget extends ConsumerWidget {
+class ListDiscretionaryItemWidget extends ConsumerWidget {
   final String category;
   final double amount;
 
-  ListNecessaryItemWidget({required this.category, required this.amount});
+  final autoAssignedValuesProvider =
+      StateProvider.family<Map<String, double>, String>((ref, _) {
+    return {};
+  });
+
+  ListDiscretionaryItemWidget({required this.category, required this.amount});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final enteredAmounts = ref.watch(enteredAmountsProvider);
+    final enteredAmounts = ref.watch(enteredAmountsDiscretionaryProvider);
     final hasAmountEntered =
         enteredAmounts[category] != null && enteredAmounts[category]! > 0;
 
-    // add this line
-    final CustomTextEditingController _controller =
-        ref.watch(textEditingControllerProvider(category).notifier).state;
+    final CustomTextEditingControllerDiscretionary _controller = ref
+        .watch(textEditingDiscretionaryControllerProvider(category).notifier)
+        .state;
 
     final FocusNode focusNode =
         ref.watch(focusNodeProvider(category).notifier).state;
-
-    // add this line
     final remainingFundsStateProvider = StateProvider<double>((ref) => 0.0);
     return Container(
       padding: getPadding(
@@ -191,17 +319,16 @@ class ListNecessaryItemWidget extends ConsumerWidget {
                           keyboardType:
                               TextInputType.numberWithOptions(decimal: true),
                           inputFormatters: [
-                            ThousandsFormatter(),
+                            ThousandsFormatterDiscretionary(),
                           ],
                           style: AppStyle.txtManropeBold18,
                           onChanged: (text) {
-                            if (_controller.text == '0.00')
-                              _controller.text = '';
                             String cleanedText =
                                 text.replaceAll(RegExp(','), '');
                             double amount = double.tryParse(cleanedText) ?? 0.0;
                             final previousAmount = ref
-                                .read(enteredAmountsProvider.notifier)
+                                .read(enteredAmountsDiscretionaryProvider
+                                    .notifier)
                                 .getAmount(category);
 
                             print("RemainingFundsController - OnChanged:");
@@ -212,6 +339,15 @@ class ListNecessaryItemWidget extends ConsumerWidget {
                             // Get the updated remaining funds
                             double remainingFunds =
                                 ref.read(remainingFundsProvider.notifier).state;
+                            print(
+                                "Remaining funds before update: $remainingFunds");
+                            // ref
+                            //     .read(remainingFundsProvider.notifier)
+                            //     .updateFunds(amount, previousAmount);
+                            remainingFunds =
+                                ref.read(remainingFundsProvider.notifier).state;
+                            print(
+                                "Remaining funds after update: $remainingFunds");
 
                             if (amount != 0 &&
                                 remainingFunds - amount + previousAmount < 0) {
@@ -238,21 +374,22 @@ class ListNecessaryItemWidget extends ConsumerWidget {
                               _controller.clear();
                               _controller.value =
                                   _controller.value.copyWith(text: '');
-
                               ref
                                   .read(remainingFundsProvider.notifier)
                                   .updateFunds(amount, previousAmount);
                               ref
-                                  .read(enteredAmountsProvider.notifier)
+                                  .read(enteredAmountsDiscretionaryProvider
+                                      .notifier)
                                   .updateAmount(category, amount);
                             } else {
                               ref
                                   .read(remainingFundsProvider.notifier)
                                   .updateFunds(amount, previousAmount);
                               ref
-                                  .read(enteredAmountsProvider.notifier)
+                                  .read(enteredAmountsDiscretionaryProvider
+                                      .notifier)
                                   .updateAmount(category, amount);
-                              // add this line
+
                               ref
                                       .read(remainingFundsStateProvider.notifier)
                                       .state =
@@ -262,6 +399,15 @@ class ListNecessaryItemWidget extends ConsumerWidget {
                               ref
                                   .read(oldAmountsProvider.notifier)
                                   .setOldAmount(category, amount);
+                              ref
+                                  .read(editedCategoriesDiscretionaryProvider
+                                      .notifier)
+                                  .setEdited(category, true);
+                              ref
+                                  .read(
+                                      autoAssignedCategoriesDiscretionaryProvider
+                                          .notifier)
+                                  .setAutoAssigned(category, false);
                             }
                           },
                         ),
@@ -278,10 +424,10 @@ class ListNecessaryItemWidget extends ConsumerWidget {
   }
 }
 
-class ThousandsFormatter extends TextInputFormatter {
+class ThousandsFormatterDiscretionary extends TextInputFormatter {
   final int maxLength;
 
-  ThousandsFormatter({this.maxLength = 12});
+  ThousandsFormatterDiscretionary({this.maxLength = 12});
 
   @override
   TextEditingValue formatEditUpdate(
@@ -317,11 +463,22 @@ class ThousandsFormatter extends TextInputFormatter {
       // recombine the integer and decimal parts
       String result = parts.join('.');
 
+      // calculate the new selection range
+      int offset =
+          newValue.selection.start + result.length - oldValue.text.length;
+
+      // Clamp the offset to avoid index out of bounds error
+      offset = _clampOffset(offset, 0, result.length);
+
       // return the updated TextEditingValue
       return newValue.copyWith(
         text: result,
-        selection: TextSelection.collapsed(offset: result.length),
+        selection: TextSelection.collapsed(offset: offset),
       );
     }
+  }
+
+  int _clampOffset(int offset, int min, int max) {
+    return offset.clamp(min, max);
   }
 }

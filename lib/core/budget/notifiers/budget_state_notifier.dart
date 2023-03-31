@@ -208,4 +208,110 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
       );
     }
   }
+
+  Future<void> updateAmounts(
+      {required Map<String, double> necessaryAmounts}) async {
+    state = state.copiedWithIsLoading(true);
+
+    final userId = _authenticator.userId;
+    print(userId);
+
+    if (userId == null) {
+      state = BudgetState(
+        status: BudgetStatus.failure,
+        isLoading: false,
+        userId: null,
+      );
+      return;
+    }
+
+    final result = await _budgetInfoStorage.updateAmounts(
+      id: userId,
+      necessaryAmounts: necessaryAmounts,
+    );
+    if (result) {
+      state = BudgetState(
+        status: BudgetStatus.success,
+        isLoading: false,
+        userId: userId,
+      );
+    } else {
+      state = BudgetState(
+        status: BudgetStatus.failure,
+        isLoading: false,
+        userId: userId,
+      );
+    }
+  }
+
+  Future<void> updateDiscretionaryAmounts(
+      {required Map<String, double> discretionaryAmounts}) async {
+    state = state.copiedWithIsLoading(true);
+
+    final userId = _authenticator.userId;
+    print(userId);
+
+    if (userId == null) {
+      state = BudgetState(
+        status: BudgetStatus.failure,
+        isLoading: false,
+        userId: null,
+      );
+      return;
+    }
+
+    final result =
+        await _budgetDiscretionaryInfoStorage.updateDiscretionaryAmounts(
+      id: userId,
+      discretionaryAmounts: discretionaryAmounts,
+    );
+    if (result) {
+      state = BudgetState(
+        status: BudgetStatus.success,
+        isLoading: false,
+        userId: userId,
+      );
+    } else {
+      state = BudgetState(
+        status: BudgetStatus.failure,
+        isLoading: false,
+        userId: userId,
+      );
+    }
+  }
+
+  Future<void> updateDebtAmounts(
+      {required Map<String, double> debtAmounts}) async {
+    state = state.copiedWithIsLoading(true);
+
+    final userId = _authenticator.userId;
+    print(userId);
+
+    if (userId == null) {
+      state = BudgetState(
+        status: BudgetStatus.failure,
+        isLoading: false,
+        userId: null,
+      );
+      return;
+    }
+
+    final result = await _budgetDebtInfoStorage.updateDebtAmounts(
+      id: userId,
+      debtAmounts: debtAmounts,
+    );
+    if (result) {
+      state = BudgetState(
+        status: BudgetStatus.success,
+        isLoading: false,
+        userId: userId,
+      );
+    } else {
+      state = BudgetState(
+        status: BudgetStatus.failure,
+        isLoading: false,
+        userId: userId,
+      );
+    }
+  }
 }

@@ -43,4 +43,28 @@ class BudgetDiscretionaryInfoStorage {
       return false;
     }
   }
+
+  Future<bool> updateDiscretionaryAmounts({
+    required UserId id,
+    required Map<String, double> discretionaryAmounts,
+  }) async {
+    try {
+      final budgetInfo = await FirebaseFirestore.instance
+          .collection(FirebaseCollectionName.budgets)
+          .where(FirebaseFieldName.id, isEqualTo: id.toString())
+          .limit(1)
+          .get();
+
+      if (budgetInfo.docs.isNotEmpty) {
+        await budgetInfo.docs.first.reference.update({
+          FirebaseFieldName.discretionaryExpense: discretionaryAmounts,
+        });
+        return true;
+      }
+
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
 }
