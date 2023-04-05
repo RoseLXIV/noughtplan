@@ -10,7 +10,7 @@ class ListItemWidget extends StatelessWidget {
     return IntrinsicWidth(
       child: Container(
         margin: getMargin(
-          right: 16,
+          right: 0,
         ),
         padding: getPadding(
           all: 16,

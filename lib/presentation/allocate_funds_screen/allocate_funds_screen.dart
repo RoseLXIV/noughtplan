@@ -1,14 +1,20 @@
 import 'dart:math';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:noughtplan/core/budget/allocate_funds/controller/allocate_funds_controller.dart';
 import 'package:noughtplan/core/budget/allocate_funds/controller/remaining_funds_controller.dart';
 import 'package:noughtplan/core/budget/generate_salary/controller/generate_salary_controller.dart';
 import 'package:noughtplan/core/budget/models/budget_status.dart';
 import 'package:noughtplan/core/budget/providers/budget_state_provider.dart';
+import 'package:noughtplan/core/forms/form_validators.dart';
+import 'package:noughtplan/core/posts/typedefs/budget_id.dart';
 import 'package:noughtplan/presentation/allocate_funds_screen/widgets/discretionary_categories_with_amount_notifier.dart';
 import 'package:noughtplan/presentation/allocate_funds_screen/widgets/listdebt_item_widget.dart';
 import 'package:noughtplan/presentation/allocate_funds_screen/widgets/listdiscretionary_item_widget.dart';
+import 'package:noughtplan/widgets/custom_button_allocate.dart';
+import 'package:uuid/uuid.dart';
 
 import '../allocate_funds_screen/widgets/listnecessary_item_widget.dart';
 import '../allocate_funds_screen/widgets/liststreamingservices_item_widget.dart';
@@ -19,8 +25,20 @@ import 'package:noughtplan/widgets/app_bar/appbar_title.dart';
 import 'package:noughtplan/widgets/app_bar/custom_app_bar.dart';
 import 'package:noughtplan/widgets/custom_button.dart';
 import 'package:intl/intl.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 final executedOnceProvider = StateProvider<bool>((ref) => false);
+
+// String generateNewBudgetId() {
+//   var uuid = Uuid();
+//   String newBudgetId = uuid.v4();
+//   return newBudgetId;
+// }
+
+final isAllAmountsEnteredProvider = StateProvider<bool>((ref) {
+  return false;
+});
 
 class AllocateFundsScreen extends ConsumerWidget {
   @override
@@ -92,43 +110,36 @@ class AllocateFundsScreen extends ConsumerWidget {
       return allCategories.toList();
     }
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Check if the callback has been executed once
-      if (!ref.read(executedOnceProvider.notifier).state) {
-        // Get the total amount of entered numbers for all categories
-        List<String> allCategories = getAllCategories(
-            necessaryCategoriesWithAmount,
-            extractedDebtLoanCategories,
-            discretionaryCategoriesWithAmount);
-        Map<String, double> individualAmounts =
-            getIndividualAmounts(ref, allCategories);
-        Map<String, double> individualAmountsDiscretionary =
-            getIndividualAmountsDiscretionary(ref, allCategories);
-        Map<String, double> individualAmountsDebt =
-            getIndividualAmountsDebt(ref, allCategories);
+    // Get the total amount of entered numbers for all categories
+    List<String> allCategories = getAllCategories(necessaryCategoriesWithAmount,
+        extractedDebtLoanCategories, discretionaryCategoriesWithAmount);
+    Map<String, double> individualAmounts =
+        getIndividualAmounts(ref, allCategories);
+    Map<String, double> individualAmountsDiscretionary =
+        getIndividualAmountsDiscretionary(ref, allCategories);
+    Map<String, double> individualAmountsDebt =
+        getIndividualAmountsDebt(ref, allCategories);
 
-        double totalEnteredAmountNecessary =
-            individualAmounts.values.fold(0, (a, b) => a + b);
-        double totalEnteredAmountDiscretionary =
-            individualAmountsDiscretionary.values.fold(0, (a, b) => a + b);
-        double totalEnteredAmountDebt =
-            individualAmountsDebt.values.fold(0, (a, b) => a + b);
+    double totalEnteredAmountNecessary =
+        individualAmounts.values.fold(0, (a, b) => a + b);
+    double totalEnteredAmountDiscretionary =
+        individualAmountsDiscretionary.values.fold(0, (a, b) => a + b);
+    double totalEnteredAmountDebt =
+        individualAmountsDebt.values.fold(0, (a, b) => a + b);
 
-        double allTotalEnteredAmount = totalEnteredAmountNecessary +
-            totalEnteredAmountDiscretionary +
-            totalEnteredAmountDebt;
+    double allTotalEnteredAmount = totalEnteredAmountNecessary +
+        totalEnteredAmountDiscretionary +
+        totalEnteredAmountDebt;
 
-        // Update the remainingFunds state
-        double initialRemainingFunds = ref.watch(remainingFundsProvider);
-        ref
-            .read(remainingFundsProvider.notifier)
-            .setInitialValue(initialRemainingFunds - allTotalEnteredAmount);
+    // Update the remainingFunds state
+    double initialRemainingFunds =
+        ref.watch(remainingFundsProvider.notifier).initialValue;
 
-        // Set the executedOnce flag to true
-        ref.read(executedOnceProvider.notifier).state = true;
-      }
-      // ref.read(executedOnceProvider.notifier).state = false;
-    });
+    ref
+        .read(remainingFundsProvider.notifier)
+        .updateInitialValue(initialRemainingFunds - allTotalEnteredAmount);
+
+    // Set the executedOnce flag to true
 
     final remainingFunds = ref.watch(remainingFundsProvider);
     final enteredAmounts = ref.watch(enteredAmountsDiscretionaryProvider);
@@ -248,6 +259,10 @@ class AllocateFundsScreen extends ConsumerWidget {
       });
       return randomAmounts;
     }
+
+    // final allocateFundsState = ref.watch(allocateFundsProvider);
+    // final bool isValidated = allocateFundsState.status.isValidated;
+    // final allocateFundsController = ref.watch(allocateFundsProvider.notifier);
 
     return SafeArea(
       child: WillPopScope(
@@ -469,6 +484,10 @@ class AllocateFundsScreen extends ConsumerWidget {
                                               .read(enteredAmountsDebtProvider
                                                   .notifier)
                                               .resetAmounts();
+                                          ref
+                                              .read(allocateFundsProvider
+                                                  .notifier)
+                                              .resetValidationDebt();
                                         },
                                         fontStyle: ButtonFontStyle
                                             .HelveticaNowTextBold12BlueA700),
@@ -567,6 +586,11 @@ class AllocateFundsScreen extends ConsumerWidget {
                                               .read(enteredAmountsProvider
                                                   .notifier)
                                               .resetAmounts();
+
+                                          ref
+                                              .read(allocateFundsProvider
+                                                  .notifier)
+                                              .resetValidationNecessary();
                                         },
                                         fontStyle: ButtonFontStyle
                                             .HelveticaNowTextBold12BlueA700),
@@ -743,6 +767,11 @@ class AllocateFundsScreen extends ConsumerWidget {
                                                           enteredAmountsDiscretionaryProvider
                                                               .notifier)
                                                       .resetAmounts();
+                                                  ref
+                                                      .read(
+                                                          allocateFundsProvider
+                                                              .notifier)
+                                                      .resetValidationDiscretionary();
                                                 },
                                                 fontStyle: ButtonFontStyle
                                                     .HelveticaNowTextBold12BlueA700),
@@ -796,105 +825,424 @@ class AllocateFundsScreen extends ConsumerWidget {
                       children: [
                         CustomButton(
                           onTap: () async {
-                            final budgetState =
-                                ref.watch(budgetStateProvider.notifier);
-                            print(
-                                'Remaining Funds on Next Button: ${remainingFunds}');
-                            List<String> allCategories = Set<String>.from(
-                                    necessaryCategoriesWithAmount.keys)
-                                .toList();
+                            TextEditingController budgetNameController =
+                                TextEditingController();
+                            showDialog(
+                                context: context,
+                                builder: (BuildContext context) {
+                                  return StatefulBuilder(builder:
+                                      (BuildContext context,
+                                          StateSetter setState) {
+                                    return AlertDialog(
+                                      title: Text('Confirm Budget',
+                                          style: AppStyle
+                                              .txtHelveticaNowTextBold18
+                                              .copyWith(
+                                                  letterSpacing:
+                                                      getHorizontalSize(0.2))),
+                                      content: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            'Please confirm that your budget information is accurate and complete.\nYou will not be able to make changes to your budget once you confirm.',
+                                            style: AppStyle.txtManropeRegular14
+                                                .copyWith(
+                                              letterSpacing:
+                                                  getHorizontalSize(0.2),
+                                            ),
+                                          ),
+                                          SizedBox(height: 20),
+                                          TextField(
+                                            textAlign: TextAlign.center,
+                                            controller: budgetNameController,
+                                            decoration: InputDecoration(
+                                              border: OutlineInputBorder(),
+                                              labelText:
+                                                  'Enter Your Budget Name...',
+                                              labelStyle: AppStyle
+                                                  .txtHelveticaNowTextBold16Blue
+                                                  .copyWith(
+                                                letterSpacing:
+                                                    getHorizontalSize(0.2),
+                                              ),
+                                              hintText: 'Enter budget name...',
+                                              hintStyle: AppStyle
+                                                  .txtManropeRegular12Bluegray300
+                                                  .copyWith(
+                                                letterSpacing:
+                                                    getHorizontalSize(0.2),
+                                              ),
+                                            ),
+                                            onChanged: (value) {
+                                              setState(
+                                                  () {}); // Update the state to enable/disable the "Confirm" button
+                                            },
+                                          ),
+                                        ],
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () {
+                                            Navigator.of(context).pop();
+                                          },
+                                          child: Text('Cancel',
+                                              style: AppStyle
+                                                  .txtHelveticaNowTextBold14
+                                                  .copyWith(
+                                                      letterSpacing:
+                                                          getHorizontalSize(
+                                                              0.2),
+                                                      color: ColorConstant
+                                                          .blueA700)),
+                                        ),
+                                        TextButton(
+                                          onPressed: budgetNameController
+                                                  .text.isNotEmpty
+                                              ? () async {
+                                                  // Move the original onTap code inside this onPressed callback
+                                                  // ...
+                                                  FocusScope.of(context)
+                                                      .unfocus();
 
-                            List<String> allCategoriesDiscretionary =
-                                Set<String>.from(
-                                        discretionaryCategoriesWithAmount.keys)
-                                    .toList();
+                                                  final budgetState = ref.watch(
+                                                      budgetStateProvider
+                                                          .notifier);
+                                                  print(
+                                                      'Remaining Funds on Next Button: ${remainingFunds}');
+                                                  List<
+                                                      String> allCategories = Set<
+                                                              String>.from(
+                                                          necessaryCategoriesWithAmount
+                                                              .keys)
+                                                      .toList();
 
-                            List<String> allCategoriesDebt = Set<String>.from(
-                                    extractedDebtLoanCategories.keys)
-                                .toList();
+                                                  List<String>
+                                                      allCategoriesDiscretionary =
+                                                      Set<String>.from(
+                                                              discretionaryCategoriesWithAmount
+                                                                  .keys)
+                                                          .toList();
 
-                            Map<String, double> individualAmountsNecessary =
-                                getIndividualAmounts(ref, allCategories);
+                                                  List<String>
+                                                      allCategoriesDebt =
+                                                      Set<String>.from(
+                                                              extractedDebtLoanCategories
+                                                                  .keys)
+                                                          .toList();
 
-                            Map<String, double> individualAmountsDiscretionary =
-                                getIndividualAmountsDiscretionary(
-                                    ref, allCategoriesDiscretionary);
+                                                  final Map<String, double>
+                                                      savingsCategories = {
+                                                    "Emergency Fund": 0,
+                                                    "Retirement Savings": 0,
+                                                    "Investments": 0,
+                                                    "Education Savings": 0,
+                                                    "Vacation Fund": 0,
+                                                    "Down Payment": 0,
+                                                    "Home Improvement Fund": 0,
+                                                    "Home Equity Loan": 0,
+                                                    "Debt Payoff": 0,
+                                                    "Wedding Fund": 0,
+                                                    "Vehicle Savings": 0,
+                                                    "General Savings": 0,
+                                                  };
 
-                            Map<String, double> individualAmountsDebt =
-                                getIndividualAmountsDebt(
-                                    ref, allCategoriesDebt);
+                                                  Map<String, double>
+                                                      individualAmountsNecessary =
+                                                      getIndividualAmounts(
+                                                          ref, allCategories);
 
-                            print(
-                                'getIndividualAmounts: $individualAmountsNecessary');
-                            print(
-                                'Discretionary Categories With Amount: $individualAmountsDiscretionary');
-                            print(
-                                'Extracted Debt Loan Categories: $individualAmountsDebt');
+                                                  double totalSavings = 0;
 
-                            await budgetState.updateAmounts(
-                              necessaryAmounts: individualAmountsNecessary,
-                            );
+                                                  individualAmountsNecessary
+                                                      .forEach((key, value) {
+                                                    if (savingsCategories
+                                                        .containsKey(key)) {
+                                                      totalSavings += value;
+                                                    }
+                                                  });
 
-                            await budgetState.updateDiscretionaryAmounts(
-                              discretionaryAmounts:
-                                  individualAmountsDiscretionary,
-                            );
+                                                  double
+                                                      totalSavingsAndSurplus =
+                                                      totalSavings +
+                                                          remainingFunds;
 
-                            await budgetState.updateDebtAmounts(
-                              debtAmounts: individualAmountsDebt,
-                            );
+                                                  print(
+                                                      'Total Savings: $totalSavingsAndSurplus');
 
-                            if (budgetState.state.status ==
-                                BudgetStatus.success) {
-                              // Show SnackBar with success message
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    'Your budget has been created!',
-                                    textAlign: TextAlign.center,
-                                    style: AppStyle
-                                        .txtHelveticaNowTextBold16WhiteA700
-                                        .copyWith(
-                                      letterSpacing: getHorizontalSize(0.3),
-                                    ),
-                                  ),
-                                  backgroundColor: ColorConstant.greenA700,
-                                ),
-                              );
-                              Navigator.pushNamed(
-                                context,
-                                '/budget_details_screen',
-                                // arguments: {
-                                //   'necessaryCategoriesWithAmount':
-                                //       necessaryCategoriesWithAmount,
-                                //   'extractedDebtLoanCategories':
-                                //       extractedDebtLoanCategories,
-                                //   'discretionaryCategoriesWithAmount':
-                                //       allCategoriesWithAmount,
-                                // },
-                              );
-                            } else if (budgetState.state.status ==
-                                BudgetStatus.failure) {
-                              // Show SnackBar with failure message
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    'Something went wrong! Please try again later.',
-                                    textAlign: TextAlign.center,
-                                    style: AppStyle
-                                        .txtHelveticaNowTextBold16WhiteA700
-                                        .copyWith(
-                                      letterSpacing: getHorizontalSize(0.3),
-                                    ),
-                                  ),
-                                  backgroundColor: ColorConstant.redA700,
-                                ),
-                              );
-                            }
+                                                  Map<String, double>
+                                                      individualAmountsDiscretionary =
+                                                      getIndividualAmountsDiscretionary(
+                                                          ref,
+                                                          allCategoriesDiscretionary);
+
+                                                  Map<String, double>
+                                                      individualAmountsDebt =
+                                                      getIndividualAmountsDebt(
+                                                          ref,
+                                                          allCategoriesDebt);
+
+                                                  final generateSalaryController =
+                                                      ref.watch(
+                                                          generateSalaryProvider
+                                                              .notifier);
+                                                  final String? budgetId =
+                                                      generateSalaryController
+                                                          .state.budgetId;
+
+                                                  double exchangeRate = 1.0;
+                                                  String currency =
+                                                      await budgetState
+                                                          .getCurrency(
+                                                              budgetId:
+                                                                  budgetId);
+
+                                                  print('Budget ID: $budgetId');
+                                                  print(
+                                                      'Currency for the current Budget: $currency');
+
+                                                  if (currency == 'JMD') {
+                                                    exchangeRate =
+                                                        await fetchExchangeRate(
+                                                            'JMD', 'USD');
+                                                  }
+
+                                                  double
+                                                      totalEnteredAmountNecessary =
+                                                      individualAmountsNecessary
+                                                          .values
+                                                          .fold(0,
+                                                              (a, b) => a + b);
+                                                  double
+                                                      totalEnteredAmountDiscretionary =
+                                                      individualAmountsDiscretionary
+                                                          .values
+                                                          .fold(0,
+                                                              (a, b) => a + b);
+                                                  double
+                                                      totalEnteredAmountDebt =
+                                                      individualAmountsDebt
+                                                          .values
+                                                          .fold(0,
+                                                              (a, b) => a + b);
+
+                                                  double
+                                                      totalEnteredAmountNecessaryUSD =
+                                                      totalEnteredAmountNecessary *
+                                                          exchangeRate;
+
+                                                  final remainingFundsController =
+                                                      ref.read(
+                                                          remainingFundsProvider
+                                                              .notifier);
+                                                  double salary =
+                                                      remainingFundsController
+                                                          .initialValue;
+
+                                                  print('Salary: $salary');
+
+                                                  print(
+                                                      'Total Necessary Expense USD: $totalEnteredAmountNecessaryUSD');
+
+                                                  double
+                                                      totalEnteredAmountDiscretionaryUSD =
+                                                      totalEnteredAmountDiscretionary *
+                                                          exchangeRate;
+
+                                                  print(
+                                                      'Total Discretionary Expense USD: $totalEnteredAmountDiscretionaryUSD');
+
+                                                  String? spendingType =
+                                                      await budgetState
+                                                          .updateSpendingType(
+                                                    budgetId: budgetId,
+                                                    totalNecessaryExpense:
+                                                        totalEnteredAmountNecessaryUSD,
+                                                    totalDiscretionaryExpense:
+                                                        totalEnteredAmountDiscretionaryUSD,
+                                                  );
+
+                                                  if (spendingType != null) {
+                                                    print(
+                                                        'Spending type updated to $spendingType');
+
+                                                    String? savingType =
+                                                        await budgetState
+                                                            .updateSavingType(
+                                                      budgetId: budgetId,
+                                                      spendingType:
+                                                          spendingType,
+                                                      totalSavings:
+                                                          totalSavingsAndSurplus,
+                                                      salary: salary,
+                                                    );
+
+                                                    if (savingType != null) {
+                                                      print(
+                                                          'Saving type updated to $savingType');
+
+                                                      double totalDebt =
+                                                          individualAmountsDebt
+                                                              .values
+                                                              .fold(
+                                                                  0,
+                                                                  (a, b) =>
+                                                                      a + b);
+                                                      String? debtType =
+                                                          await budgetState
+                                                              .updateDebtType(
+                                                        budgetId: budgetId,
+                                                        debt: totalDebt,
+                                                        income: salary,
+                                                      );
+
+                                                      if (debtType != null) {
+                                                        print(
+                                                            'Debt type updated to $debtType');
+                                                      } else {
+                                                        print(
+                                                            'Failed to update debt type');
+                                                      }
+                                                    } else {
+                                                      print(
+                                                          'Failed to update saving type');
+                                                    }
+                                                  } else {
+                                                    print(
+                                                        'Failed to update spending type');
+                                                  }
+
+                                                  print(
+                                                      'getIndividualAmounts: $individualAmountsNecessary');
+                                                  print(
+                                                      'Discretionary Categories With Amount: $individualAmountsDiscretionary');
+                                                  print(
+                                                      'Extracted Debt Loan Categories: $individualAmountsDebt');
+                                                  print(
+                                                      'Spending Type: $spendingType');
+
+                                                  await budgetState
+                                                      .updateAmounts(
+                                                    budgetId: budgetId,
+                                                    necessaryAmounts:
+                                                        individualAmountsNecessary,
+                                                  );
+
+                                                  await budgetState
+                                                      .updateDiscretionaryAmounts(
+                                                    budgetId: budgetId,
+                                                    discretionaryAmounts:
+                                                        individualAmountsDiscretionary,
+                                                  );
+
+                                                  await budgetState
+                                                      .updateDebtAmounts(
+                                                    budgetId: budgetId,
+                                                    debtAmounts:
+                                                        individualAmountsDebt,
+                                                  );
+
+                                                  await budgetState
+                                                      .updateSurplus(
+                                                    budgetId: budgetId,
+                                                    remainingFunds:
+                                                        remainingFunds,
+                                                  );
+
+                                                  await budgetState
+                                                      .updateBudgetNameAndDate(
+                                                    budgetId: budgetId,
+                                                    budgetName:
+                                                        budgetNameController
+                                                            .text,
+                                                  );
+
+                                                  await budgetState
+                                                      .deleteZeroValueCategories(
+                                                    budgetId: budgetId,
+                                                  );
+
+                                                  if (budgetState
+                                                          .state.status ==
+                                                      BudgetStatus.success) {
+                                                    // BudgetId newBudgetId = generateNewBudgetId();
+
+                                                    // await budgetState.saveBudgetId(
+                                                    //     budgetId: newBudgetId);
+
+                                                    // Show SnackBar with success message
+                                                    ScaffoldMessenger.of(
+                                                            context)
+                                                        .showSnackBar(
+                                                      SnackBar(
+                                                        content: Text(
+                                                          'Your budget has been created!',
+                                                          textAlign:
+                                                              TextAlign.center,
+                                                          style: AppStyle
+                                                              .txtHelveticaNowTextBold16WhiteA700
+                                                              .copyWith(
+                                                            letterSpacing:
+                                                                getHorizontalSize(
+                                                                    0.3),
+                                                          ),
+                                                        ),
+                                                        backgroundColor:
+                                                            ColorConstant
+                                                                .greenA700,
+                                                      ),
+                                                    );
+                                                  } else {
+                                                    // Show SnackBar with failure message
+                                                    ScaffoldMessenger.of(
+                                                            context)
+                                                        .showSnackBar(
+                                                      SnackBar(
+                                                        content: Text(
+                                                          'Something went wrong! Please try again later.',
+                                                          textAlign:
+                                                              TextAlign.center,
+                                                          style: AppStyle
+                                                              .txtHelveticaNowTextBold16WhiteA700
+                                                              .copyWith(
+                                                            letterSpacing:
+                                                                getHorizontalSize(
+                                                                    0.3),
+                                                          ),
+                                                        ),
+                                                        backgroundColor:
+                                                            ColorConstant
+                                                                .redA700,
+                                                      ),
+                                                    );
+                                                  }
+
+                                                  // Close the dialog after performing the operations
+                                                  Navigator.pushNamed(
+                                                    context,
+                                                    '/home_page_screen',
+                                                  );
+                                                }
+                                              : null,
+                                          child: Text('Confirm',
+                                              style: AppStyle
+                                                  .txtHelveticaNowTextBold14
+                                                  .copyWith(
+                                                letterSpacing:
+                                                    getHorizontalSize(0.2),
+                                                color: budgetNameController
+                                                        .text.isNotEmpty
+                                                    ? ColorConstant.blueA700
+                                                    : Colors.grey,
+                                              )),
+                                        ),
+                                      ],
+                                    );
+                                  });
+                                });
                           },
                           height: getVerticalSize(56),
-                          text: "Next",
-                        )
+                          text: "Create Your Budget",
+                        ),
                       ],
                     ),
                   ),
@@ -909,5 +1257,27 @@ class AllocateFundsScreen extends ConsumerWidget {
 
   onTapArrowleft3(BuildContext context) {
     Navigator.pop(context);
+  }
+}
+
+Future<double> fetchExchangeRate(
+    String baseCurrency, String targetCurrency) async {
+  String apiKey =
+      '75b1040cb041406086e97f3476c890d7'; // Replace with your API key from exchangeratesapi.io
+  String apiUrl =
+      'https://open.er-api.com/v6/latest/$baseCurrency?apikey=$apiKey';
+
+  try {
+    final response = await http.get(Uri.parse(apiUrl));
+
+    if (response.statusCode == 200) {
+      var jsonResponse = jsonDecode(response.body);
+      double exchangeRate = jsonResponse['rates'][targetCurrency];
+      return exchangeRate;
+    } else {
+      throw Exception('Failed to load exchange rate');
+    }
+  } catch (e) {
+    throw Exception('Failed to fetch exchange rate: $e');
   }
 }

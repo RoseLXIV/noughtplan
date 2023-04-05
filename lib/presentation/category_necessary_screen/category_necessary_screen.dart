@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:noughtplan/core/auth/backend/authenticator.dart';
+import 'package:noughtplan/core/budget/generate_salary/controller/generate_salary_controller.dart';
 import 'package:noughtplan/core/budget/models/budget_status.dart';
 import 'package:noughtplan/core/budget/providers/budget_state_provider.dart';
 import 'package:noughtplan/core/budget_info/models/backend/budget_necessary_categories_storage.dart';
@@ -747,6 +748,24 @@ class CategoryNecessaryScreen extends HookConsumerWidget {
                           "Other Loans #1": 0,
                           "Other Loans #2": 0,
                         };
+
+                        final Map<String, double> savingCategories = {
+                          "Emergency Fund": 0,
+                          "Retirement Savings": 0,
+                          "Investments": 0,
+                          "Education Savings": 0,
+                          "Vacation Fund": 0,
+                          "Down Payment": 0,
+                          "Home Improvement Fund": 0,
+                          "Home Equity Loan": 0,
+                          "Debt Payoff": 0,
+                          "Wedding Fund": 0,
+                          "Vehicle Savings": 0,
+                          "General Savings": 0,
+                          "surplus": 0,
+                          "Savings": 0,
+                        };
+
                         Map<String, double> allCategoriesWithAmount = {
                           for (String parentCategory in selectedCategories.keys)
                             for (String categoryName
@@ -774,12 +793,18 @@ class CategoryNecessaryScreen extends HookConsumerWidget {
 
                         final budgetState =
                             ref.watch(budgetStateProvider.notifier);
+                        final generateSalaryController =
+                            ref.watch(generateSalaryProvider.notifier);
+                        final String? budgetId =
+                            generateSalaryController.state.budgetId;
 
                         await budgetState.saveBudgetNecessaryInfo(
+                          budgetId: budgetId,
                           necessaryExpense: necessaryCategoriesWithAmount,
                         );
 
                         await budgetState.saveBudgetDebtInfo(
+                          budgetId: budgetId,
                           debtExpense: extractedDebtLoanCategories,
                         );
 

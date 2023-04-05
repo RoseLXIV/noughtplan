@@ -4,7 +4,9 @@ import 'package:noughtplan/core/budget/models/budget_state.dart';
 import 'package:noughtplan/core/budget/models/budget_status.dart';
 import 'package:noughtplan/core/budget_info/models/backend/budget_debt_categories_storage.dart';
 import 'package:noughtplan/core/budget_info/models/backend/budget_discretionary_categories_storage.dart';
+import 'package:noughtplan/core/budget_info/models/backend/budget_id_storage.dart';
 import 'package:noughtplan/core/budget_info/models/backend/budget_necessary_categories_storage.dart';
+import 'package:noughtplan/core/posts/typedefs/budget_id.dart';
 import 'package:noughtplan/core/posts/typedefs/user_id.dart';
 import 'package:noughtplan/core/budget_info/models/backend/budget_info_storage.dart';
 
@@ -14,6 +16,7 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
   final BudgetNecessaryInfoStorage _budgetNecessaryInfoStorage;
   final BudgetDebtInfoStorage _budgetDebtInfoStorage;
   final BudgetDiscretionaryInfoStorage _budgetDiscretionaryInfoStorage;
+  final BudgetIdStorage _budgetIdStorage;
 
   BudgetStateNotifier(this._authenticator)
       : _budgetInfoStorage = const BudgetInfoStorage(),
@@ -21,11 +24,13 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
         _budgetDebtInfoStorage = const BudgetDebtInfoStorage(),
         _budgetDiscretionaryInfoStorage =
             const BudgetDiscretionaryInfoStorage(),
+        _budgetIdStorage = const BudgetIdStorage(),
         super(const BudgetState.unknown()) {
     // fetchSalary();
   }
 
   Future<void> saveBudgetInfo({
+    required BudgetId budgetId,
     required double salary,
     required String currency,
     required String budgetType,
@@ -48,6 +53,51 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
 
     final result = await _budgetInfoStorage.saveBudgetInfo(
       id: userId,
+      budgetId: budgetId,
+      salary: salary,
+      currency: currency,
+      budgetType: budgetType,
+    );
+    if (result) {
+      state = BudgetState(
+        status: BudgetStatus.success,
+        isLoading: false,
+        userId: userId,
+      );
+    } else {
+      state = BudgetState(
+        status: BudgetStatus.failure,
+        isLoading: false,
+        userId: userId,
+      );
+    }
+  }
+
+  Future<void> saveBudgetInfoSubscriber({
+    required BudgetId budgetId,
+    required double salary,
+    required String currency,
+    required String budgetType,
+  }) async {
+    state = state.copiedWithIsLoading(true);
+
+    // Get the user ID from the Authenticator
+    final userId = _authenticator.userId;
+    print(userId);
+
+    // Ensure userId is not null before proceeding
+    if (userId == null) {
+      state = BudgetState(
+        status: BudgetStatus.failure,
+        isLoading: false,
+        userId: null,
+      );
+      return;
+    }
+
+    final result = await _budgetInfoStorage.saveBudgetInfoSubscriber(
+      id: userId,
+      budgetId: budgetId,
       salary: salary,
       currency: currency,
       budgetType: budgetType,
@@ -101,6 +151,7 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
   // }
 
   Future<void> saveBudgetNecessaryInfo({
+    required budgetId,
     required Map<String, double> necessaryExpense,
   }) async {
     state = state.copiedWithIsLoading(true);
@@ -118,7 +169,7 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
     }
 
     final result = await _budgetNecessaryInfoStorage.saveBudgetNecessaryInfo(
-      id: userId,
+      budgetId: budgetId,
       necessaryExpense: necessaryExpense,
     );
     if (result) {
@@ -137,14 +188,15 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
   }
 
   Future<void> saveBudgetDebtInfo({
+    required String? budgetId,
     required Map<String, double> debtExpense,
   }) async {
     state = state.copiedWithIsLoading(true);
 
     final userId = _authenticator.userId;
-    print(userId);
+    print(budgetId);
 
-    if (userId == null) {
+    if (budgetId == null) {
       state = BudgetState(
         status: BudgetStatus.failure,
         isLoading: false,
@@ -154,7 +206,7 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
     }
 
     final result = await _budgetDebtInfoStorage.saveBudgetDebtInfo(
-      id: userId,
+      budgetId: budgetId,
       debtExpense: debtExpense,
     );
     if (result) {
@@ -173,14 +225,15 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
   }
 
   Future<void> saveBudgetDiscretionaryInfo({
+    required String? budgetId,
     required Map<String, double> discretionaryExpense,
   }) async {
     state = state.copiedWithIsLoading(true);
 
     final userId = _authenticator.userId;
-    print(userId);
+    print(budgetId);
 
-    if (userId == null) {
+    if (budgetId == null) {
       state = BudgetState(
         status: BudgetStatus.failure,
         isLoading: false,
@@ -191,7 +244,7 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
 
     final result =
         await _budgetDiscretionaryInfoStorage.saveBudgetDiscretionaryInfo(
-      id: userId,
+      budgetId: budgetId,
       discretionaryExpense: discretionaryExpense,
     );
     if (result) {
@@ -209,14 +262,16 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
     }
   }
 
-  Future<void> updateAmounts(
-      {required Map<String, double> necessaryAmounts}) async {
+  Future<void> updateAmounts({
+    required String? budgetId,
+    required Map<String, double> necessaryAmounts,
+  }) async {
     state = state.copiedWithIsLoading(true);
 
     final userId = _authenticator.userId;
-    print(userId);
+    // print(userId);
 
-    if (userId == null) {
+    if (budgetId == null) {
       state = BudgetState(
         status: BudgetStatus.failure,
         isLoading: false,
@@ -226,7 +281,7 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
     }
 
     final result = await _budgetInfoStorage.updateAmounts(
-      id: userId,
+      budgetId: budgetId,
       necessaryAmounts: necessaryAmounts,
     );
     if (result) {
@@ -244,14 +299,16 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
     }
   }
 
-  Future<void> updateDiscretionaryAmounts(
-      {required Map<String, double> discretionaryAmounts}) async {
+  Future<void> updateDiscretionaryAmounts({
+    required String? budgetId,
+    required Map<String, double> discretionaryAmounts,
+  }) async {
     state = state.copiedWithIsLoading(true);
 
     final userId = _authenticator.userId;
-    print(userId);
+    print(budgetId);
 
-    if (userId == null) {
+    if (budgetId == null) {
       state = BudgetState(
         status: BudgetStatus.failure,
         isLoading: false,
@@ -262,7 +319,7 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
 
     final result =
         await _budgetDiscretionaryInfoStorage.updateDiscretionaryAmounts(
-      id: userId,
+      budgetId: budgetId,
       discretionaryAmounts: discretionaryAmounts,
     );
     if (result) {
@@ -281,13 +338,14 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
   }
 
   Future<void> updateDebtAmounts(
-      {required Map<String, double> debtAmounts}) async {
+      {required String? budgetId,
+      required Map<String, double> debtAmounts}) async {
     state = state.copiedWithIsLoading(true);
 
     final userId = _authenticator.userId;
-    print(userId);
+    print(budgetId);
 
-    if (userId == null) {
+    if (budgetId == null) {
       state = BudgetState(
         status: BudgetStatus.failure,
         isLoading: false,
@@ -297,7 +355,7 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
     }
 
     final result = await _budgetDebtInfoStorage.updateDebtAmounts(
-      id: userId,
+      budgetId: budgetId,
       debtAmounts: debtAmounts,
     );
     if (result) {
@@ -312,6 +370,269 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
         isLoading: false,
         userId: userId,
       );
+    }
+  }
+
+  Future<void> saveBudgetId({
+    required BudgetId budgetId,
+  }) async {
+    state = state.copiedWithIsLoading(true);
+
+    // Get the user ID from the Authenticator
+    final userId = _authenticator.userId;
+    print(userId);
+
+    // Ensure userId is not null before proceeding
+    if (userId == null) {
+      state = BudgetState(
+        status: BudgetStatus.failure,
+        isLoading: false,
+        userId: null,
+      );
+      return;
+    }
+
+    final result = await _budgetIdStorage.saveBudgetId(
+      userId: userId,
+      id: budgetId,
+    );
+    if (result) {
+      state = BudgetState(
+        status: BudgetStatus.success,
+        isLoading: false,
+        userId: userId,
+      );
+    } else {
+      state = BudgetState(
+        status: BudgetStatus.failure,
+        isLoading: false,
+        userId: userId,
+      );
+    }
+  }
+
+  Future<void> updateSurplus({
+    required String? budgetId,
+    required double remainingFunds,
+  }) async {
+    final userId = _authenticator.userId;
+    if (budgetId == null) {
+      state = BudgetState(
+        status: BudgetStatus.failure,
+        isLoading: false,
+        userId: null,
+      );
+      return;
+    }
+
+    state = state.copiedWithIsLoading(true);
+
+    final result = await _budgetInfoStorage.updateSurplus(
+      budgetId: budgetId,
+      remainingFunds: remainingFunds,
+    );
+
+    if (result) {
+      state = BudgetState(
+        status: BudgetStatus.success,
+        isLoading: false,
+        userId: userId,
+      );
+    } else {
+      state = BudgetState(
+        status: BudgetStatus.failure,
+        isLoading: false,
+        userId: userId,
+      );
+    }
+  }
+
+  Future<void> deleteZeroValueCategories({required String? budgetId}) async {
+    final userId = _authenticator.userId;
+    if (budgetId == null) {
+      state = BudgetState(
+        status: BudgetStatus.failure,
+        isLoading: false,
+        userId: null,
+      );
+      return;
+    }
+
+    state = state.copiedWithIsLoading(true);
+
+    final result =
+        await _budgetInfoStorage.deleteZeroValueCategories(budgetId: budgetId);
+    await _budgetDiscretionaryInfoStorage
+        .deleteZeroValueDiscretionaryCategories(budgetId: budgetId);
+    await _budgetDebtInfoStorage.deleteZeroValueDebtCategories(
+        budgetId: budgetId);
+
+    if (result) {
+      state = BudgetState(
+        status: BudgetStatus.success,
+        isLoading: false,
+        userId: userId,
+      );
+    } else {
+      state = BudgetState(
+        status: BudgetStatus.failure,
+        isLoading: false,
+        userId: userId,
+      );
+    }
+  }
+
+  Future<String?> updateSpendingType({
+    required String? budgetId,
+    required double totalNecessaryExpense,
+    required double totalDiscretionaryExpense,
+  }) async {
+    final userId = _authenticator.userId;
+    if (budgetId == null) {
+      state = BudgetState(
+        status: BudgetStatus.failure,
+        isLoading: false,
+        userId: null,
+      );
+      return null;
+    }
+
+    state = state.copiedWithIsLoading(true);
+
+    final spendingType = await _budgetInfoStorage.updateSpendingType(
+      budgetId: budgetId,
+      totalNecessaryExpense: totalNecessaryExpense,
+      totalDiscretionaryExpense: totalDiscretionaryExpense,
+    );
+
+    if (spendingType != null) {
+      state = BudgetState(
+        status: BudgetStatus.success,
+        isLoading: false,
+        userId: userId,
+      );
+      return spendingType;
+    } else {
+      state = BudgetState(
+        status: BudgetStatus.failure,
+        isLoading: false,
+        userId: userId,
+      );
+      return null;
+    }
+  }
+
+  Future<String?> updateSavingType({
+    required String? budgetId,
+    required String spendingType,
+    required double totalSavings,
+    required double salary,
+  }) async {
+    final userId = _authenticator.userId;
+    if (budgetId == null) {
+      state = BudgetState(
+        status: BudgetStatus.failure,
+        isLoading: false,
+        userId: null,
+      );
+      return null;
+    }
+
+    state = state.copiedWithIsLoading(true);
+
+    final savingType = await _budgetInfoStorage.updateSavingType(
+      budgetId: budgetId,
+      spendingType: spendingType,
+      totalSavings: totalSavings,
+      salary: salary,
+    );
+
+    if (savingType != null) {
+      state = BudgetState(
+        status: BudgetStatus.success,
+        isLoading: false,
+        userId: userId,
+      );
+    } else {
+      state = BudgetState(
+        status: BudgetStatus.failure,
+        isLoading: false,
+        userId: userId,
+      );
+    }
+
+    return savingType;
+  }
+
+  Future<String?> updateDebtType({
+    required String? budgetId,
+    required double debt,
+    required double income,
+  }) async {
+    final userId = _authenticator.userId;
+    if (budgetId == null) {
+      state = BudgetState(
+        status: BudgetStatus.failure,
+        isLoading: false,
+        userId: null,
+      );
+      return null;
+    }
+
+    state = state.copiedWithIsLoading(true);
+
+    final debtType = await _budgetInfoStorage.updateDebtType(
+      budgetId: budgetId,
+      debt: debt,
+      income: income,
+    );
+
+    state = state.copiedWithIsLoading(false);
+
+    return debtType;
+  }
+
+  Future<void> updateBudgetNameAndDate({
+    required String? budgetId,
+    required String budgetName,
+  }) async {
+    if (budgetId == null) {
+      state = BudgetState(
+        status: BudgetStatus.failure,
+        isLoading: false,
+        userId: null,
+      );
+      return null;
+    }
+    state = state.copiedWithIsLoading(true);
+
+    final success = await _budgetInfoStorage.updateBudgetNameAndDate(
+      budgetId: budgetId,
+      budgetName: budgetName,
+    );
+
+    if (success) {
+      state = BudgetState(
+        status: BudgetStatus.success,
+        isLoading: false,
+        userId: _authenticator.userId,
+      );
+    } else {
+      state = BudgetState(
+        status: BudgetStatus.failure,
+        isLoading: false,
+        userId: _authenticator.userId,
+      );
+    }
+  }
+
+  Future<String> getCurrency({required String? budgetId}) async {
+    try {
+      final currency =
+          await _budgetInfoStorage.fetchCurrency(budgetId: budgetId ?? '');
+      return currency;
+    } catch (e) {
+      throw Exception('Failed to get currency: $e');
     }
   }
 }

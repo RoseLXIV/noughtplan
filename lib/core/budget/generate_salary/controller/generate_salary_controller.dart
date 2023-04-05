@@ -2,7 +2,9 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:noughtplan/core/budget/providers/budget_state_provider.dart';
 import 'package:noughtplan/core/forms/form_validators.dart';
-import 'package:noughtplan/core/budget/notifiers/budget_state_notifier.dart'; // Replace with the correct path
+import 'package:noughtplan/core/budget/notifiers/budget_state_notifier.dart';
+import 'package:noughtplan/core/posts/typedefs/budget_id.dart';
+import 'package:uuid/uuid.dart'; // Replace with the correct path
 
 part 'generate_salary_state.dart';
 
@@ -56,13 +58,21 @@ class GenerateSalaryController extends StateNotifier<GenerateSalaryState> {
     try {
       String salaryWithoutCommas = state.salary.value.replaceAll(',', '');
       double salary = double.parse(salaryWithoutCommas);
-      await _budgetStateNotifier.saveBudgetInfo(
+
+      var uuid = Uuid();
+      String budgetId = uuid.v4();
+
+      print('Generated budgetId: $budgetId');
+
+      await _budgetStateNotifier.saveBudgetInfoSubscriber(
+        budgetId: budgetId,
         salary: salary,
         currency: state.currency.value,
         budgetType: state.budgetType.value,
       );
       print('Successfully saved budget info');
-      state = state.copyWith(status: FormzStatus.submissionSuccess);
+      state = state.copyWith(
+          status: FormzStatus.submissionSuccess, budgetId: budgetId);
       return true;
     } catch (e) {
       state = state.copyWith(

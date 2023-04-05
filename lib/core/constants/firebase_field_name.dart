@@ -13,7 +13,6 @@ class FirebaseFieldName {
   static const String necessaryExpense = 'necessaryExpense';
   static const String discretionaryExpense = 'discretionaryExpense';
   static const String debtExpense = 'debtExpense';
-  static const String savings = 'savings';
   static const String totalNecessaryExpense = 'totalNecessaryExpense';
   static const String totalDiscretionaryExpense = 'totalDiscretionaryExpense';
   static const String totalDebtExpense = 'totalDebtExpense';

@@ -6,5 +6,8 @@ export 'src/terms.dart';
 export 'src/budget_type.dart';
 export 'src/salary.dart';
 export 'src/currency.dart';
+export 'src/amount.dart';
+export 'src/necessary_amount.dart';
+export 'src/discretionary_amount.dart';
 
 export 'package:formz/formz.dart';

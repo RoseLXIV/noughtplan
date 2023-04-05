@@ -68,6 +68,13 @@ class RemainingFundsController extends StateNotifier<double> {
   void setInitialValue(double value) {
     state = value;
   }
+
+  Future<void> updateInitialValue(double value) async {
+    await Future.delayed(Duration.zero);
+    state = value;
+  }
+
+  double get initialValue => _initialValue;
 }
 
 final remainingFundsProvider =

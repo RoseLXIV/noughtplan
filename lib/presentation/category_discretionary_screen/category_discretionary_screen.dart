@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:noughtplan/core/budget/generate_salary/controller/generate_salary_controller.dart';
 import 'package:noughtplan/core/budget/models/budget_status.dart';
 import 'package:noughtplan/core/budget/providers/budget_state_provider.dart';
 import 'package:noughtplan/presentation/category_discretionary_screen/widgets/category_button_discretionary.dart';
@@ -755,8 +756,13 @@ class CategoryDiscretionaryScreen extends HookConsumerWidget {
 
                         final budgetState =
                             ref.watch(budgetStateProvider.notifier);
+                        final generateSalaryController =
+                            ref.watch(generateSalaryProvider.notifier);
+                        final String? budgetId =
+                            generateSalaryController.state.budgetId;
 
                         await budgetState.saveBudgetDiscretionaryInfo(
+                          budgetId: budgetId,
                           discretionaryExpense: allCategoriesWithAmount,
                         );
 
