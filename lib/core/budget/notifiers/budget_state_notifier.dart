@@ -6,6 +6,7 @@ import 'package:noughtplan/core/budget_info/models/backend/budget_debt_categorie
 import 'package:noughtplan/core/budget_info/models/backend/budget_discretionary_categories_storage.dart';
 import 'package:noughtplan/core/budget_info/models/backend/budget_id_storage.dart';
 import 'package:noughtplan/core/budget_info/models/backend/budget_necessary_categories_storage.dart';
+import 'package:noughtplan/core/constants/budgets.dart';
 import 'package:noughtplan/core/posts/typedefs/budget_id.dart';
 import 'package:noughtplan/core/posts/typedefs/user_id.dart';
 import 'package:noughtplan/core/budget_info/models/backend/budget_info_storage.dart';
@@ -47,6 +48,7 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
         status: BudgetStatus.failure,
         isLoading: false,
         userId: null,
+        budgets: [],
       );
       return;
     }
@@ -63,12 +65,14 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
         status: BudgetStatus.success,
         isLoading: false,
         userId: userId,
+        budgets: [],
       );
     } else {
       state = BudgetState(
         status: BudgetStatus.failure,
         isLoading: false,
         userId: userId,
+        budgets: [],
       );
     }
   }
@@ -91,6 +95,7 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
         status: BudgetStatus.failure,
         isLoading: false,
         userId: null,
+        budgets: [],
       );
       return;
     }
@@ -107,12 +112,14 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
         status: BudgetStatus.success,
         isLoading: false,
         userId: userId,
+        budgets: [],
       );
     } else {
       state = BudgetState(
         status: BudgetStatus.failure,
         isLoading: false,
         userId: userId,
+        budgets: [],
       );
     }
   }
@@ -164,6 +171,7 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
         status: BudgetStatus.failure,
         isLoading: false,
         userId: null,
+        budgets: [],
       );
       return;
     }
@@ -177,12 +185,14 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
         status: BudgetStatus.success,
         isLoading: false,
         userId: userId,
+        budgets: [],
       );
     } else {
       state = BudgetState(
         status: BudgetStatus.failure,
         isLoading: false,
         userId: userId,
+        budgets: [],
       );
     }
   }
@@ -201,6 +211,7 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
         status: BudgetStatus.failure,
         isLoading: false,
         userId: null,
+        budgets: [],
       );
       return;
     }
@@ -214,12 +225,14 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
         status: BudgetStatus.success,
         isLoading: false,
         userId: userId,
+        budgets: [],
       );
     } else {
       state = BudgetState(
         status: BudgetStatus.failure,
         isLoading: false,
         userId: userId,
+        budgets: [],
       );
     }
   }
@@ -238,6 +251,7 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
         status: BudgetStatus.failure,
         isLoading: false,
         userId: null,
+        budgets: [],
       );
       return;
     }
@@ -252,12 +266,14 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
         status: BudgetStatus.success,
         isLoading: false,
         userId: userId,
+        budgets: [],
       );
     } else {
       state = BudgetState(
         status: BudgetStatus.failure,
         isLoading: false,
         userId: userId,
+        budgets: [],
       );
     }
   }
@@ -276,6 +292,7 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
         status: BudgetStatus.failure,
         isLoading: false,
         userId: null,
+        budgets: [],
       );
       return;
     }
@@ -289,12 +306,14 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
         status: BudgetStatus.success,
         isLoading: false,
         userId: userId,
+        budgets: [],
       );
     } else {
       state = BudgetState(
         status: BudgetStatus.failure,
         isLoading: false,
         userId: userId,
+        budgets: [],
       );
     }
   }
@@ -313,6 +332,7 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
         status: BudgetStatus.failure,
         isLoading: false,
         userId: null,
+        budgets: [],
       );
       return;
     }
@@ -327,12 +347,14 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
         status: BudgetStatus.success,
         isLoading: false,
         userId: userId,
+        budgets: [],
       );
     } else {
       state = BudgetState(
         status: BudgetStatus.failure,
         isLoading: false,
         userId: userId,
+        budgets: [],
       );
     }
   }
@@ -350,6 +372,7 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
         status: BudgetStatus.failure,
         isLoading: false,
         userId: null,
+        budgets: [],
       );
       return;
     }
@@ -363,12 +386,14 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
         status: BudgetStatus.success,
         isLoading: false,
         userId: userId,
+        budgets: [],
       );
     } else {
       state = BudgetState(
         status: BudgetStatus.failure,
         isLoading: false,
         userId: userId,
+        budgets: [],
       );
     }
   }
@@ -388,6 +413,7 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
         status: BudgetStatus.failure,
         isLoading: false,
         userId: null,
+        budgets: [],
       );
       return;
     }
@@ -401,12 +427,14 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
         status: BudgetStatus.success,
         isLoading: false,
         userId: userId,
+        budgets: [],
       );
     } else {
       state = BudgetState(
         status: BudgetStatus.failure,
         isLoading: false,
         userId: userId,
+        budgets: [],
       );
     }
   }
@@ -421,6 +449,7 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
         status: BudgetStatus.failure,
         isLoading: false,
         userId: null,
+        budgets: [],
       );
       return;
     }
@@ -437,12 +466,14 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
         status: BudgetStatus.success,
         isLoading: false,
         userId: userId,
+        budgets: [],
       );
     } else {
       state = BudgetState(
         status: BudgetStatus.failure,
         isLoading: false,
         userId: userId,
+        budgets: [],
       );
     }
   }
@@ -454,6 +485,7 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
         status: BudgetStatus.failure,
         isLoading: false,
         userId: null,
+        budgets: [],
       );
       return;
     }
@@ -472,12 +504,36 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
         status: BudgetStatus.success,
         isLoading: false,
         userId: userId,
+        budgets: [],
       );
     } else {
       state = BudgetState(
         status: BudgetStatus.failure,
         isLoading: false,
         userId: userId,
+        budgets: [],
+      );
+    }
+  }
+
+  Future<void> deleteBudget(String budgetId) async {
+    // Call the deleteBudget function from BudgetInfoStorage
+    final result = await _budgetInfoStorage.deleteBudget(budgetId);
+
+    // If the budget is successfully deleted, update the UI
+    if (result) {
+      state = BudgetState(
+        status: BudgetStatus.success,
+        isLoading: false,
+        userId: _authenticator.userId,
+        budgets: [], // Update this to remove the deleted budget from the list
+      );
+    } else {
+      state = BudgetState(
+        status: BudgetStatus.failure,
+        isLoading: false,
+        userId: _authenticator.userId,
+        budgets: [], // Update this to keep the current list of budgets
       );
     }
   }
@@ -493,6 +549,7 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
         status: BudgetStatus.failure,
         isLoading: false,
         userId: null,
+        budgets: [],
       );
       return null;
     }
@@ -510,6 +567,7 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
         status: BudgetStatus.success,
         isLoading: false,
         userId: userId,
+        budgets: [],
       );
       return spendingType;
     } else {
@@ -517,6 +575,7 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
         status: BudgetStatus.failure,
         isLoading: false,
         userId: userId,
+        budgets: [],
       );
       return null;
     }
@@ -534,6 +593,7 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
         status: BudgetStatus.failure,
         isLoading: false,
         userId: null,
+        budgets: [],
       );
       return null;
     }
@@ -552,12 +612,14 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
         status: BudgetStatus.success,
         isLoading: false,
         userId: userId,
+        budgets: [],
       );
     } else {
       state = BudgetState(
         status: BudgetStatus.failure,
         isLoading: false,
         userId: userId,
+        budgets: [],
       );
     }
 
@@ -575,6 +637,7 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
         status: BudgetStatus.failure,
         isLoading: false,
         userId: null,
+        budgets: [],
       );
       return null;
     }
@@ -601,6 +664,7 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
         status: BudgetStatus.failure,
         isLoading: false,
         userId: null,
+        budgets: [],
       );
       return null;
     }
@@ -616,12 +680,14 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
         status: BudgetStatus.success,
         isLoading: false,
         userId: _authenticator.userId,
+        budgets: [],
       );
     } else {
       state = BudgetState(
         status: BudgetStatus.failure,
         isLoading: false,
         userId: _authenticator.userId,
+        budgets: [],
       );
     }
   }
@@ -633,6 +699,47 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
       return currency;
     } catch (e) {
       throw Exception('Failed to get currency: $e');
+    }
+  }
+
+  Future<void> fetchUserBudgets() async {
+    try {
+      final userId = _authenticator.userId;
+      print(userId);
+
+      // Ensure userId is not null before proceeding
+      if (userId == null) {
+        state = BudgetState(
+          status: BudgetStatus.failure,
+          isLoading: false,
+          userId: null,
+          budgets: [],
+        );
+        print('userId is null');
+        return;
+      }
+      // Set the state to loading
+      state = state.copiedWithIsLoading(true);
+
+      // Fetch the user's budgets
+      final userBudgets =
+          await _budgetInfoStorage.getUserBudgets(userId: userId);
+
+      // print('userBudgets: $userBudgets');
+
+      // Update the state with the fetched budgets
+      state = state.copiedWithStatusAndBudgets(
+        status: BudgetStatus.success,
+        isLoading: false,
+        budgets: userBudgets,
+      );
+    } catch (e) {
+      // Handle the error case
+      state = state.copiedWithStatusAndBudgets(
+        status: BudgetStatus.failure,
+        isLoading: false,
+        budgets: [],
+      );
     }
   }
 }

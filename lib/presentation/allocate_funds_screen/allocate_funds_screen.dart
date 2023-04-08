@@ -1216,7 +1216,6 @@ class AllocateFundsScreen extends ConsumerWidget {
                                                     );
                                                   }
 
-                                                  // Close the dialog after performing the operations
                                                   Navigator.pushNamed(
                                                     context,
                                                     '/home_page_screen',

@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart' show immutable;
+import 'package:noughtplan/core/constants/budgets.dart';
 import 'package:noughtplan/core/constants/firebase_collection_name.dart';
 import 'package:noughtplan/core/constants/firebase_field_name.dart';
 import 'package:noughtplan/core/posts/typedefs/budget_id.dart';
@@ -165,6 +167,26 @@ class BudgetInfoStorage {
     }
   }
 
+  Future<bool> deleteBudget(String budgetId) async {
+    try {
+      // Find the budget document using the budgetId
+      final budgetInfo = await FirebaseFirestore.instance
+          .collection(FirebaseCollectionName.budgets)
+          .where(FirebaseFieldName.budget_id, isEqualTo: budgetId)
+          .limit(1)
+          .get();
+
+      // If the budget document is found, delete it
+      if (budgetInfo.docs.isNotEmpty) {
+        await budgetInfo.docs.first.reference.delete();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
   Future<String?> updateSpendingType({
     required BudgetId budgetId,
     required double totalNecessaryExpense,
@@ -313,6 +335,40 @@ class BudgetInfoStorage {
     } catch (e) {
       throw Exception('Failed to fetch currency: $e');
     }
+  }
+
+  Future<List<Budget?>> getUserBudgets({
+    required String userId,
+  }) async {
+    // Fetch budgets from Firestore
+    final budgetsRef = FirebaseFirestore.instance
+        .collection(FirebaseCollectionName.budgets)
+        .where(FirebaseFieldName.id, isEqualTo: userId);
+
+    final querySnapshot = await budgetsRef.get();
+
+    print("querySnapshot.docs: ${querySnapshot.docs}");
+
+    print("Number of documents retrieved: ${querySnapshot.docs.length}");
+
+    // Convert the querySnapshot to a List<Budget>
+    final budgets = querySnapshot.docs
+        .map((doc) {
+          try {
+            print("doc.data(): ${doc.data()}");
+            final budget = Budget.fromMap(doc.data());
+            print('budget: $budget');
+            return budget;
+          } catch (e) {
+            print('Error converting document: $e');
+            return null;
+          }
+        })
+        .where((budget) => budget != null)
+        .toList(); // Filter out null values
+
+    print("budgets: $budgets");
+    return budgets;
   }
 }
 

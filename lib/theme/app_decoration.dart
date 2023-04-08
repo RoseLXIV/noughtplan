@@ -116,6 +116,9 @@ class AppDecoration {
   static BoxDecoration get fillBlue900 => BoxDecoration(
         color: ColorConstant.blue900,
       );
+  static BoxDecoration get fillBlue90002 => BoxDecoration(
+        color: ColorConstant.blue90002,
+      );
   static BoxDecoration get outlineGray100 => BoxDecoration(
         color: ColorConstant.whiteA70001,
         border: Border.all(

@@ -146,6 +146,16 @@ class AppStyle {
     fontWeight: FontWeight.w500,
   );
 
+  static TextStyle txtHelveticaNowTextLight24 = TextStyle(
+    color: ColorConstant.gray900,
+    fontSize: getFontSize(
+      24,
+    ),
+    fontFamily: 'Manrope',
+    fontWeight: FontWeight.w300,
+    fontStyle: FontStyle.italic,
+  );
+
   static TextStyle txtManropeRegular12Bluegray300 = TextStyle(
     color: ColorConstant.blueGray300,
     fontSize: getFontSize(
@@ -335,6 +345,15 @@ class AppStyle {
     fontWeight: FontWeight.w700,
   );
 
+  static TextStyle txtHelveticaNowTextBold28WhiteA700 = TextStyle(
+    color: ColorConstant.whiteA700,
+    fontSize: getFontSize(
+      28,
+    ),
+    fontFamily: 'Helvetica Now Text',
+    fontWeight: FontWeight.w700,
+  );
+
   static TextStyle txtHelveticaNowTextBold20 = TextStyle(
     color: ColorConstant.whiteA700,
     fontSize: getFontSize(
@@ -416,6 +435,15 @@ class AppStyle {
     fontWeight: FontWeight.w600,
   );
 
+  static TextStyle txtManropeBold12 = TextStyle(
+    color: ColorConstant.blueGray300,
+    fontSize: getFontSize(
+      13,
+    ),
+    fontFamily: 'Manrope',
+    fontWeight: FontWeight.w900,
+  );
+
   static TextStyle txtManropeBold10 = TextStyle(
     color: ColorConstant.gray900,
     fontSize: getFontSize(
@@ -432,6 +460,15 @@ class AppStyle {
     ),
     fontFamily: 'Manrope',
     fontWeight: FontWeight.w600,
+  );
+
+  static TextStyle txtManropeBold32WhiteA700 = TextStyle(
+    color: ColorConstant.whiteA700,
+    fontSize: getFontSize(
+      28,
+    ),
+    fontFamily: 'Manrope',
+    fontWeight: FontWeight.w900,
   );
 
   static TextStyle txtManropeSemiBold12Gray900 = TextStyle(
@@ -606,6 +643,14 @@ class AppStyle {
     color: ColorConstant.indigoA100,
     fontSize: getFontSize(
       10,
+    ),
+    fontFamily: 'Manrope',
+    fontWeight: FontWeight.w600,
+  );
+  static TextStyle txtManropeSemiBold12IndigoA1001 = TextStyle(
+    color: ColorConstant.lightBlueA200,
+    fontSize: getFontSize(
+      12,
     ),
     fontFamily: 'Manrope',
     fontWeight: FontWeight.w600,

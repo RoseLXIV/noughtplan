@@ -29,6 +29,9 @@ dependencies:
   shared_preferences: ^2.0.20
   uuid: ^3.0.7
   http: ^0.13.5
+  flutter_slidable: ^2.0.0
+  fl_chart: ^0.61.0
+  flutter_neumorphic: ^3.2.0
 dev_dependencies: 
   flutter_test: 
     sdk: flutter

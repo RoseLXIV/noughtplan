@@ -9,6 +9,14 @@ class ImageConstant {
 
   static String imgCar = 'assets/images/img_car.svg';
 
+  static String imgGradient = 'assets/images/gradient.svg';
+
+  static String imgTrashNew = 'assets/images/trash.svg';
+
+  static String imgLogo1 = 'assets/images/logo1.svg';
+
+  static String imgLogo2 = 'assets/images/logo2.svg';
+
   static String imgEntertainment = 'assets/images/entertainment.svg';
 
   static String imgJamaica = 'assets/images/ja.png';
@@ -186,6 +194,8 @@ class ImageConstant {
 
   static String imgGroup183001 = 'assets/images/img_group183001.png';
 
+  static String imgGroup18301 = 'assets/images/Group_18300.png';
+
   static String imgVolumeBlack900 = 'assets/images/img_volume_black_900.svg';
 
   static String imgHomeBlueGray300 = 'assets/images/img_home_blue_gray_300.svg';
@@ -195,6 +205,8 @@ class ImageConstant {
   static String imgFile = 'assets/images/img_file.svg';
 
   static String imgAppbar = 'assets/images/img_appbar.svg';
+
+  static String imgEdit1 = 'assets/images/edit.svg';
 
   static String imgEdit = 'assets/images/img_edit.svg';
 
