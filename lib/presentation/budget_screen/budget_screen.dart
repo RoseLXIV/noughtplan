@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter_neumorphic/flutter_neumorphic.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 import 'package:noughtplan/core/constants/budgets.dart';
 import 'package:noughtplan/presentation/budget_screen/widgets/user_types_bugdet_widget.dart';
@@ -129,26 +130,76 @@ class BudgetScreen extends ConsumerWidget {
                           ),
                           Align(
                             alignment: Alignment.topRight,
-                            child: Padding(
-                              padding: getPadding(
-                                right: 17,
-                                top: 28,
-                              ),
-                              child: IconButton(
-                                icon: CustomImageView(
-                                  svgPath: ImageConstant.imgEdit1,
-                                  height: getSize(
-                                    24,
+                            child: Row(
+                              children: [
+                                Padding(
+                                  padding: getPadding(
+                                    right: 17,
+                                    top: 28,
                                   ),
-                                  width: getSize(
-                                    24,
+                                  child: IconButton(
+                                    icon: CustomImageView(
+                                      svgPath: ImageConstant.imgEdit1,
+                                      height: getSize(
+                                        24,
+                                      ),
+                                      width: getSize(
+                                        24,
+                                      ),
+                                    ), // Replace with your desired icon
+                                    onPressed: () {
+                                      // Your onPressed code goes here
+                                      print("IconButton tapped");
+                                    },
                                   ),
-                                ), // Replace with your desired icon
-                                onPressed: () {
-                                  // Your onPressed code goes here
-                                  print("IconButton tapped");
-                                },
-                              ),
+                                ),
+                                Padding(
+                                  padding: getPadding(
+                                    right: 17,
+                                    top: 34,
+                                  ),
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      showDialog(
+                                        context: context,
+                                        builder: (BuildContext context) {
+                                          return AlertDialog(
+                                            title: Text(
+                                              'Please read the instructions below',
+                                              textAlign: TextAlign.center,
+                                              style: AppStyle
+                                                  .txtHelveticaNowTextBold16,
+                                            ),
+                                            content: Text(
+                                              "In this step, you'll be able to add discretionary categories to your budget. Follow the instructions below:\n\n"
+                                              "1. Browse through the available categories or use the search bar to find specific ones that match your interests and lifestyle.\n"
+                                              "2. Tap on a category to add it to your chosen categories list. You can always tap again to remove it if needed.\n"
+                                              "3. Once you've added all the discretionary categories you want, press the 'Next' button to move on to reviewing your budget.\n\n"
+                                              "Remember, these discretionary categories represent your non-essential expenses, such as entertainment, hobbies, and dining out. Adding them thoughtfully will help you create a balanced budget, allowing for personal enjoyment while still managing your finances effectively.",
+                                              textAlign: TextAlign.center,
+                                              style:
+                                                  AppStyle.txtManropeRegular14,
+                                            ),
+                                            actions: [
+                                              TextButton(
+                                                onPressed: () =>
+                                                    Navigator.pop(context),
+                                                child: Text('Close'),
+                                              ),
+                                            ],
+                                          );
+                                        },
+                                      );
+                                    },
+                                    child: Container(
+                                      margin: EdgeInsets.only(bottom: 7),
+                                      child: SvgPicture.asset(
+                                        ImageConstant.imgQuestion,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
