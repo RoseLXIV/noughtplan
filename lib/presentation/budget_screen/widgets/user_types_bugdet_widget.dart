@@ -10,52 +10,11 @@ class SpendingTypePill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Color color;
-    switch (type) {
-      case 'Balanced Spender':
-        color = Colors.green;
-        break;
-      case 'Impulsive Spender':
-        color = Colors.red;
-        break;
-      case 'Necessary Spender':
-        color = Colors.blue.shade400;
-        break;
-      default:
-        color = Colors.grey;
-    }
-    return Container(
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(20),
-          bottomLeft: Radius.circular(20),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.5),
-            spreadRadius: 0,
-            blurRadius: 5,
-            offset: Offset(0, 2),
-          ),
-        ],
-      ),
-      padding: getPadding(left: 4),
-      height: 50,
-      child: Center(
-        child: Text(
-          type,
-          overflow: TextOverflow.visible,
-          textAlign: TextAlign.center,
-          style: AppStyle.txtManropeBold12.copyWith(
-            color: Colors.white,
-          ),
-        ),
-      ),
-    );
+    return Container();
   }
 }
 
+// Updated SavingTypePill
 class SavingTypePill extends StatelessWidget {
   final String type;
 
@@ -63,65 +22,11 @@ class SavingTypePill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Color color;
-    switch (type) {
-      case 'Non-Saver':
-        color = Colors.grey;
-        break;
-      case 'Overspender':
-        color = Colors.red;
-        break;
-      case 'Wealthy':
-        color = Colors.green;
-        break;
-      case 'Cautious':
-        color = Colors.orange;
-        break;
-      case 'Frugal':
-        color = ColorConstant.greenA700;
-        break;
-      case 'Prudent Saver':
-        color = ColorConstant.blue900;
-        break;
-      case 'Limited Saver':
-        color = Colors.yellow;
-        break;
-      case 'Strategic':
-        color = Colors.blueGrey;
-        break;
-      case 'Balanced Saver':
-        color = Colors.greenAccent;
-        break;
-      default:
-        color = Colors.grey;
-    }
-    return Container(
-      decoration: BoxDecoration(
-        color: color,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.5),
-            spreadRadius: 0,
-            blurRadius: 5,
-            offset: Offset(0, 2),
-          ),
-        ],
-      ),
-      padding: EdgeInsets.all(5),
-      height: 50,
-      child: Center(
-        child: Text(
-          type,
-          textAlign: TextAlign.center,
-          style: AppStyle.txtManropeBold12.copyWith(
-            color: Colors.white,
-          ),
-        ),
-      ),
-    );
+    return Container();
   }
 }
 
+// Updated DebtTypePill
 class DebtTypePill extends StatelessWidget {
   final String type;
 
@@ -129,53 +34,61 @@ class DebtTypePill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Color color;
-    switch (type) {
-      case 'Debt Free':
-        color = Colors.green;
-        break;
-      case 'Minimal Debt':
-        color = Colors.greenAccent;
-        break;
-      case 'Moderate Debt':
-        color = Colors.orange.shade500;
-        break;
-      case 'Danger Zone':
-        color = Colors.red;
-        break;
-      case 'High Debt':
-        color = Colors.deepPurple;
-        break;
-      default:
-        color = Colors.grey;
-    }
-    return Container(
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.only(
-          topRight: Radius.circular(20),
-          bottomRight: Radius.circular(20),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.5),
-            spreadRadius: 0,
-            blurRadius: 5,
-            offset: Offset(0, 2),
-          ),
-        ],
-      ),
-      padding: getPadding(right: 3),
-      height: 50,
-      child: Center(
-        child: Text(
-          type,
-          textAlign: TextAlign.center,
-          style: AppStyle.txtManropeBold12.copyWith(
-            color: Colors.white,
-          ),
-        ),
-      ),
-    );
+    return Container();
+  }
+}
+
+Color getColorForSpendingType(String type) {
+  switch (type) {
+    case 'Balanced Spender':
+      return Colors.green;
+    case 'Impulsive Spender':
+      return Colors.red;
+    case 'Necessary Spender':
+      return Colors.blue.shade400;
+    default:
+      return Colors.grey;
+  }
+}
+
+Color getColorForSavingType(String type) {
+  switch (type) {
+    case 'Non-Saver':
+      return Colors.grey;
+    case 'Overspender':
+      return Colors.red;
+    case 'Wealthy':
+      return ColorConstant.deepPurpleA400;
+    case 'Cautious':
+      return Colors.orange;
+    case 'Frugal':
+      return Colors.green;
+    case 'Prudent Saver':
+      return ColorConstant.blue90001;
+    case 'Limited Saver':
+      return Colors.yellow.shade300;
+    case 'Strategic':
+      return Colors.green.shade300;
+    case 'Balanced Saver':
+      return Colors.greenAccent;
+    default:
+      return Colors.grey;
+  }
+}
+
+Color getColorForDebtType(String type) {
+  switch (type) {
+    case 'Debt Free':
+      return Colors.green;
+    case 'Minimal Debt':
+      return Colors.greenAccent;
+    case 'Moderate Debt':
+      return Colors.blue.shade700;
+    case 'Danger Zone':
+      return Colors.orange;
+    case 'High Debt':
+      return Colors.red;
+    default:
+      return Colors.grey;
   }
 }

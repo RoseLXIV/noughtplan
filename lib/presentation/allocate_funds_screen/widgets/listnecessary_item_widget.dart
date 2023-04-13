@@ -228,7 +228,7 @@ class ListNecessaryItemWidget extends ConsumerWidget {
                                       letterSpacing: getHorizontalSize(0.3),
                                     ),
                                   ),
-                                  backgroundColor: ColorConstant.redA700,
+                                  backgroundColor: ColorConstant.amber600,
                                   duration: Duration(seconds: 3),
                                 ),
                               );

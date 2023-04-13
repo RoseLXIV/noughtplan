@@ -438,7 +438,16 @@ class AppStyle {
   static TextStyle txtManropeBold12 = TextStyle(
     color: ColorConstant.blueGray300,
     fontSize: getFontSize(
-      13,
+      12,
+    ),
+    fontFamily: 'Manrope',
+    fontWeight: FontWeight.w900,
+  );
+
+  static TextStyle txtManropeBold11 = TextStyle(
+    color: ColorConstant.blueGray300,
+    fontSize: getFontSize(
+      11,
     ),
     fontFamily: 'Manrope',
     fontWeight: FontWeight.w900,

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:noughtplan/core/app_export.dart';
 import 'package:noughtplan/core/budget/providers/budget_state_provider.dart';
+import 'package:noughtplan/presentation/budget_screen/widgets/user_types_bugdet_widget.dart';
 import 'package:noughtplan/presentation/home_page_screen/widgets/user_types_widget.dart';
 
 // ignore: must_be_immutable
@@ -51,7 +52,7 @@ class ListItemWidget extends ConsumerWidget {
               budgetName,
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.left,
-              style: AppStyle.txtHelveticaNowTextBold28WhiteA700.copyWith(
+              style: AppStyle.txtHelveticaNowTextBold24WhiteA700.copyWith(
                 letterSpacing: getHorizontalSize(
                   0.3,
                 ),
@@ -59,26 +60,46 @@ class ListItemWidget extends ConsumerWidget {
             ),
           ),
           Padding(
-            padding: getPadding(top: 10, left: 24, right: 24),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Container(
-                    child: SpendingTypeBox(type: spendingType),
-                  ),
+            padding: getPadding(top: 14, left: 24, right: 24),
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(60),
+                gradient: LinearGradient(
+                  colors: [
+                    getColorForSpendingType(spendingType),
+                    getColorForSavingType(savingType),
+                    getColorForDebtType(debtType),
+                  ],
+                  stops: [0.0, 0.5, 1.0],
                 ),
-                Expanded(
-                  child: Container(
-                    child: SavingTypeBox(type: savingType),
+              ),
+              height: 5,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Container(
+                      child: SpendingTypePill(
+                        type: spendingType,
+                      ),
+                    ),
                   ),
-                ),
-                Expanded(
-                  child: Container(
-                    child: DebtTypeBox(type: debtType),
+                  Expanded(
+                    child: Container(
+                      child: SavingTypePill(
+                        type: savingType,
+                      ),
+                    ),
                   ),
-                ),
-              ],
+                  Expanded(
+                    child: Container(
+                      child: DebtTypePill(
+                        type: debtType,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
 

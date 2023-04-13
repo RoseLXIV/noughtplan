@@ -415,68 +415,64 @@ class CategoryDiscretionaryScreen extends HookConsumerWidget {
                           mainAxisAlignment: MainAxisAlignment.start,
                           children: [
                             CustomAppBar(
-                                height: getVerticalSize(70),
-                                leadingWidth: 25,
-                                leading: AppbarImage(
+                              height: getVerticalSize(70),
+                              leadingWidth: 25,
+                              leading: AppbarImage(
+                                onTap: () {
+                                  Navigator.pop(context);
+                                },
+                                height: getSize(24),
+                                width: getSize(24),
+                                svgPath: ImageConstant.imgArrowleft,
+                                margin: getMargin(bottom: 1),
+                              ),
+                              centerTitle: true,
+                              title:
+                                  AppbarTitle(text: "Discretionary Categories"),
+                              actions: [
+                                GestureDetector(
                                   onTap: () {
-                                    Navigator.pop(context);
+                                    showDialog(
+                                      context: context,
+                                      builder: (BuildContext context) {
+                                        return AlertDialog(
+                                          title: Text(
+                                            'Please read the instructions below',
+                                            textAlign: TextAlign.center,
+                                            style: AppStyle
+                                                .txtHelveticaNowTextBold16,
+                                          ),
+                                          content: Text(
+                                            "In this step, you'll be able to add discretionary categories to your budget. Follow the instructions below:\n\n"
+                                            "1. Browse through the available categories or use the search bar to find specific ones that match your interests and lifestyle.\n"
+                                            "2. Tap on a category to add it to your chosen categories list. You can always tap again to remove it if needed.\n"
+                                            "3. Once you've added all the discretionary categories you want, press the 'Next' button to move on to reviewing your budget.\n\n"
+                                            "Remember, these discretionary categories represent your non-essential expenses, such as entertainment, hobbies, and dining out. Adding them thoughtfully will help you create a balanced budget, allowing for personal enjoyment while still managing your finances effectively.",
+                                            textAlign: TextAlign.center,
+                                            style: AppStyle.txtManropeRegular14,
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(context),
+                                              child: Text('Close'),
+                                            ),
+                                          ],
+                                        );
+                                      },
+                                    );
                                   },
-                                  height: getSize(24),
-                                  width: getSize(24),
-                                  svgPath: ImageConstant.imgArrowleft,
-                                  margin: getMargin(bottom: 1),
-                                ),
-                                centerTitle: true,
-                                title: AppbarTitle(
-                                    text: "Discretionary Categories"),
-                                actions: [
-                                  GestureDetector(
-                                    onTap: () {
-                                      showDialog(
-                                        context: context,
-                                        builder: (BuildContext context) {
-                                          return AlertDialog(
-                                            title: Text(
-                                              'Please read the instructions below',
-                                              textAlign: TextAlign.center,
-                                              style: AppStyle
-                                                  .txtHelveticaNowTextBold16,
-                                            ),
-                                            content: Text(
-                                              "In this step, you'll be able to add discretionary categories to your budget. Follow the instructions below:\n\n"
-                                              "1. Browse through the available categories or use the search bar to find specific ones that match your interests and lifestyle.\n"
-                                              "2. Tap on a category to add it to your chosen categories list. You can always tap again to remove it if needed.\n"
-                                              "3. Once you've added all the discretionary categories you want, press the 'Next' button to move on to reviewing your budget.\n\n"
-                                              "Remember, these discretionary categories represent your non-essential expenses, such as entertainment, hobbies, and dining out. Adding them thoughtfully will help you create a balanced budget, allowing for personal enjoyment while still managing your finances effectively.",
-                                              textAlign: TextAlign.center,
-                                              style:
-                                                  AppStyle.txtManropeRegular14,
-                                            ),
-                                            actions: [
-                                              TextButton(
-                                                onPressed: () =>
-                                                    Navigator.pop(context),
-                                                child: Text('Close'),
-                                              ),
-                                            ],
-                                          );
-                                        },
-                                      );
-                                    },
-                                    // height: getSize(24),
-                                    //     width: getSize(24),
-                                    //     svgPath: ImageConstant.imgQuestion,
-                                    //     margin: getMargin(bottom: 1)
-                                    child: Container(
-                                      margin: EdgeInsets.only(bottom: 7),
-                                      child: SvgPicture.asset(
-                                        ImageConstant.imgQuestion,
-                                        height: 24,
-                                        width: 24,
-                                      ),
+                                  child: Container(
+                                    margin: EdgeInsets.only(bottom: 7),
+                                    child: SvgPicture.asset(
+                                      ImageConstant.imgQuestion,
+                                      height: 24,
+                                      width: 24,
                                     ),
-                                  )
-                                ]),
+                                  ),
+                                ),
+                              ],
+                            ),
                             CustomSearchView(
                               focusNode: FocusNode(),
                               controller: searchController,
@@ -722,12 +718,16 @@ class CategoryDiscretionaryScreen extends HookConsumerWidget {
               ),
               Container(
                 margin: getMargin(left: 3),
-                padding: getPadding(left: 21, top: 12, right: 21, bottom: 12),
+                padding: getPadding(left: 21, top: 10, right: 21, bottom: 12),
                 decoration: AppDecoration.outlineBluegray5000c,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
+                    CustomImageView(
+                      svgPath: ImageConstant.imgCarousel3,
+                      margin: getMargin(bottom: 10),
+                    ),
                     CustomButton(
                       height: getVerticalSize(56),
                       text: "Next",

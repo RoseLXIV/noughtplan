@@ -723,12 +723,16 @@ class CategoryNecessaryScreen extends HookConsumerWidget {
               ),
               Container(
                 margin: getMargin(left: 3),
-                padding: getPadding(left: 21, top: 12, right: 21, bottom: 12),
+                padding: getPadding(left: 21, top: 10, right: 21, bottom: 12),
                 decoration: AppDecoration.outlineBluegray5000c,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
+                    CustomImageView(
+                      svgPath: ImageConstant.imgCarousel2,
+                      margin: getMargin(bottom: 10),
+                    ),
                     CustomButton(
                       height: getVerticalSize(56),
                       text: "Next",

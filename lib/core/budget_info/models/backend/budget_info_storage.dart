@@ -341,6 +341,7 @@ class BudgetInfoStorage {
     required String userId,
   }) async {
     // Fetch budgets from Firestore
+    print('User ID: $userId');
     final budgetsRef = FirebaseFirestore.instance
         .collection(FirebaseCollectionName.budgets)
         .where(FirebaseFieldName.id, isEqualTo: userId);
@@ -374,7 +375,7 @@ class BudgetInfoStorage {
 
 String categorizeSpender(
     double totalNecessaryExpense, double totalDiscretionaryExpense) {
-  if ((totalNecessaryExpense - totalDiscretionaryExpense).abs() < 150) {
+  if ((totalNecessaryExpense - totalDiscretionaryExpense).abs() < 300) {
     return 'Balanced Spender';
   }
   if (totalDiscretionaryExpense > totalNecessaryExpense) {

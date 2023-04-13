@@ -347,63 +347,74 @@ class GeneratorSalaryScreen extends ConsumerWidget {
                                 height: getSize(24),
                                 width: getSize(24),
                                 margin: getMargin(top: 15, bottom: 15)),
-                            Container(
-                              margin: EdgeInsets.only(
-                                  bottom:
-                                      MediaQuery.of(context).viewInsets.bottom),
-                              child: CustomButtonForm(
-                                alignment: Alignment.bottomCenter,
-                                height: getVerticalSize(56),
-                                text: "Next",
-                                onTap: isValidated
-                                    ? () async {
-                                        final result =
-                                            await generateSalaryController
-                                                .saveBudgetInfo();
-                                        if (result == true) {
-                                          Navigator.pushNamed(context,
-                                              '/category_necessary_screen');
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(
-                                            SnackBar(
-                                              content: Text(
-                                                'Information saved successfully!',
-                                                textAlign: TextAlign.center,
-                                                style: AppStyle
-                                                    .txtHelveticaNowTextBold16WhiteA700
-                                                    .copyWith(
-                                                  letterSpacing:
-                                                      getHorizontalSize(0.3),
+                            Column(
+                              children: [
+                                CustomImageView(
+                                  svgPath: ImageConstant.imgCarousel1,
+                                  margin: getMargin(top: 10, bottom: 10),
+                                ),
+                                Container(
+                                  margin: EdgeInsets.only(
+                                      bottom: MediaQuery.of(context)
+                                          .viewInsets
+                                          .bottom),
+                                  child: CustomButtonForm(
+                                    alignment: Alignment.bottomCenter,
+                                    height: getVerticalSize(56),
+                                    text: "Next",
+                                    onTap: isValidated
+                                        ? () async {
+                                            final result =
+                                                await generateSalaryController
+                                                    .saveBudgetInfo();
+                                            if (result == true) {
+                                              Navigator.pushNamed(context,
+                                                  '/category_necessary_screen');
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(
+                                                SnackBar(
+                                                  content: Text(
+                                                    'Information saved successfully!',
+                                                    textAlign: TextAlign.center,
+                                                    style: AppStyle
+                                                        .txtHelveticaNowTextBold16WhiteA700
+                                                        .copyWith(
+                                                      letterSpacing:
+                                                          getHorizontalSize(
+                                                              0.3),
+                                                    ),
+                                                  ),
+                                                  backgroundColor:
+                                                      ColorConstant.blue900,
                                                 ),
-                                              ),
-                                              backgroundColor:
-                                                  ColorConstant.blue900,
-                                            ),
-                                          );
-                                        } else {
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(
-                                            SnackBar(
-                                              content: Text(
-                                                'Please fill in all the fields!',
-                                                textAlign: TextAlign.center,
-                                                style: AppStyle
-                                                    .txtHelveticaNowTextBold16WhiteA700
-                                                    .copyWith(
-                                                  letterSpacing:
-                                                      getHorizontalSize(0.3),
+                                              );
+                                            } else {
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(
+                                                SnackBar(
+                                                  content: Text(
+                                                    'Please fill in all the fields!',
+                                                    textAlign: TextAlign.center,
+                                                    style: AppStyle
+                                                        .txtHelveticaNowTextBold16WhiteA700
+                                                        .copyWith(
+                                                      letterSpacing:
+                                                          getHorizontalSize(
+                                                              0.3),
+                                                    ),
+                                                  ),
+                                                  backgroundColor:
+                                                      ColorConstant.redA700,
                                                 ),
-                                              ),
-                                              backgroundColor:
-                                                  ColorConstant.redA700,
-                                            ),
-                                          );
-                                        }
-                                        print(result);
-                                      }
-                                    : null,
-                                enabled: isValidated,
-                              ),
+                                              );
+                                            }
+                                            print(result);
+                                          }
+                                        : null,
+                                    enabled: isValidated,
+                                  ),
+                                ),
+                              ],
                             ),
                           ]))),
               Align(

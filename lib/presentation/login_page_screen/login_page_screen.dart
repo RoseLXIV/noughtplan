@@ -6,6 +6,7 @@ import 'package:noughtplan/core/auth/providers/auth_state_provider.dart';
 import 'package:noughtplan/core/auth/providers/is_logged_in_provider.dart';
 import 'package:noughtplan/core/auth/providers/password_visibility_provider_signin.dart';
 import 'package:noughtplan/presentation/generator_salary_screen/generator_salary_screen.dart';
+import 'package:noughtplan/presentation/home_page_screen/home_page_screen.dart';
 import 'package:noughtplan/widgets/custom_button.dart';
 import 'package:noughtplan/widgets/custom_button_form.dart'
     hide ButtonVariant, ButtonPadding, ButtonFontStyle;
@@ -45,7 +46,7 @@ class LoginPageScreen extends ConsumerWidget {
     final bool isValidated = signInState.status.isValidated;
     // final authenticationState = ref.watch(authProvider);
     if (isLoggedIn) {
-      return GeneratorSalaryScreen();
+      return HomePageScreen();
     }
     return SafeArea(
         child: Scaffold(

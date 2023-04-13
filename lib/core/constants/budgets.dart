@@ -8,11 +8,11 @@ class Budget {
   final DateTime budgetDate;
   final String budgetType;
   final String currency;
-  final Map<String, double> debtExpense;
+  final Map<String, double>? debtExpense;
   final String debtType;
-  final Map<String, double> discretionaryExpense;
+  final Map<String, double>? discretionaryExpense;
   final String userId;
-  final Map<String, double> necessaryExpense;
+  final Map<String, double>? necessaryExpense;
   final double salary;
   final String savingType;
   final String spendingType;

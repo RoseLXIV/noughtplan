@@ -9,6 +9,7 @@ import 'package:noughtplan/core/auth/providers/password_visibility_provider.dart
 import 'package:noughtplan/core/auth/signup/controller/signup_controller.dart';
 import 'package:noughtplan/core/forms/form_validators.dart';
 import 'package:noughtplan/presentation/generator_salary_screen/generator_salary_screen.dart';
+import 'package:noughtplan/presentation/home_page_screen/home_page_screen.dart';
 import 'package:noughtplan/widgets/custom_button.dart';
 import 'package:noughtplan/widgets/custom_button_form.dart'
     hide ButtonVariant, ButtonPadding, ButtonFontStyle;
@@ -49,10 +50,10 @@ class SignUpEmailScreen extends ConsumerWidget {
     final bool isValidated = signUpState.status.isValidated;
     final authenticationState = ref.watch(authProvider);
     if (isLoggedIn) {
-      return GeneratorSalaryScreen();
+      return HomePageScreen();
     } else if (authenticationState.status ==
         AuthenticationStatus.authenticated) {
-      return GeneratorSalaryScreen();
+      return HomePageScreen();
     }
     return SafeArea(
         child: Scaffold(

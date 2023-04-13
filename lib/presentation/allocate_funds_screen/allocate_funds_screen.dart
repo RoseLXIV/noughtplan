@@ -334,17 +334,17 @@ class AllocateFundsScreen extends ConsumerWidget {
                                           builder: (BuildContext context) {
                                             return AlertDialog(
                                               title: Text(
-                                                'Please read the instructions below',
+                                                'Allocate Funds Instructions',
                                                 textAlign: TextAlign.center,
                                                 style: AppStyle
                                                     .txtHelveticaNowTextBold16,
                                               ),
                                               content: Text(
-                                                "In this step, you'll be able to add discretionary categories to your budget. Follow the instructions below:\n\n"
-                                                "1. Browse through the available categories or use the search bar to find specific ones that match your interests and lifestyle.\n"
-                                                "2. Tap on a category to add it to your chosen categories list. You can always tap again to remove it if needed.\n"
-                                                "3. Once you've added all the discretionary categories you want, press the 'Next' button to move on to reviewing your budget.\n\n"
-                                                "Remember, these discretionary categories represent your non-essential expenses, such as entertainment, hobbies, and dining out. Adding them thoughtfully will help you create a balanced budget, allowing for personal enjoyment while still managing your finances effectively.",
+                                                "Let's allocate your funds! Here's how:\n\n"
+                                                "1. Fill in the amounts for each category. Press the reset button if you'd like to clear all inputs and start over.\n"
+                                                "2. Click the auto-assign discretionary button to distribute funds evenly among categories. Keep in mind that if you edit a field, you won't be able to auto-assign funds anymore.\n"
+                                                "3. Make sure to enter amounts for all categories, as any leftover funds won't be included in the final results.\n\n"
+                                                "Remember, allocating funds thoughtfully will help you create a well-balanced budget that suits your lifestyle and keeps your finances in check.",
                                                 textAlign: TextAlign.center,
                                                 style: AppStyle
                                                     .txtManropeRegular14,
@@ -353,7 +353,17 @@ class AllocateFundsScreen extends ConsumerWidget {
                                                 TextButton(
                                                   onPressed: () =>
                                                       Navigator.pop(context),
-                                                  child: Text('Close'),
+                                                  child: Text(
+                                                    'Close',
+                                                    style: AppStyle
+                                                        .txtHelveticaNowTextBold14
+                                                        .copyWith(
+                                                            letterSpacing:
+                                                                getHorizontalSize(
+                                                                    0.2),
+                                                            color: ColorConstant
+                                                                .blueA700),
+                                                  ),
                                                 ),
                                               ],
                                             );
@@ -817,12 +827,16 @@ class AllocateFundsScreen extends ConsumerWidget {
                   alignment: Alignment.bottomCenter,
                   child: Container(
                     padding:
-                        getPadding(left: 24, top: 12, right: 24, bottom: 12),
+                        getPadding(left: 24, top: 10, right: 24, bottom: 12),
                     decoration: AppDecoration.outlineBluegray5000c,
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       mainAxisAlignment: MainAxisAlignment.start,
                       children: [
+                        CustomImageView(
+                          svgPath: ImageConstant.imgCarousel4,
+                          margin: getMargin(bottom: 10),
+                        ),
                         CustomButton(
                           onTap: () async {
                             TextEditingController budgetNameController =

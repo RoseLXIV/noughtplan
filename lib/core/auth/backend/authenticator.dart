@@ -99,10 +99,16 @@ class Authenticator {
       required String password,
       required String name}) async {
     try {
-      await FirebaseAuth.instance.createUserWithEmailAndPassword(
+      final userCredential =
+          await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
+      // Set the display name
+      await userCredential.user!.updateDisplayName(name);
+
+      // Force a refresh of the user object to get the latest data
+      await userCredential.user!.reload();
       return AuthResult.success;
     } on FirebaseAuthException catch (e) {
       if (e.code == 'email-already-in-use') {

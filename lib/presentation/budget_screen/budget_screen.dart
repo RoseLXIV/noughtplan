@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter_neumorphic/flutter_neumorphic.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:noughtplan/core/constants/budgets.dart';
 import 'package:noughtplan/presentation/budget_screen/widgets/user_types_bugdet_widget.dart';
 
@@ -29,8 +30,51 @@ class BudgetScreen extends ConsumerWidget {
         budget?.discretionaryExpense ?? {};
     final Map<String, double> debtCategories = budget?.debtExpense ?? {};
 
-    final pieChartData = _generatePieChartData(
+    final double necessaryTotal =
+        necessaryCategories.values.fold(0, (a, b) => a + b);
+    final double discretionaryTotal =
+        discretionaryCategories.values.fold(0, (a, b) => a + b);
+    final double debtTotal = debtCategories.values.fold(0, (a, b) => a + b);
+
+    final totalExpenses = necessaryTotal + discretionaryTotal + debtTotal;
+
+    final numberFormat = NumberFormat.currency(symbol: '\$', decimalDigits: 2);
+
+    final String necessaryTotalFormatted = numberFormat.format(necessaryTotal);
+    final String discretionaryTotalFormatted =
+        numberFormat.format(discretionaryTotal);
+    final String debtTotalFormatted = numberFormat.format(debtTotal);
+    final String totalExpensesFormatted = numberFormat.format(totalExpenses);
+
+    final pieChartDataResult = _generatePieChartData(
         necessaryCategories, discretionaryCategories, debtCategories);
+    final PieChartData pieChartData = pieChartDataResult['pieChartData'];
+    final percentages = pieChartDataResult['percentages'];
+
+    List<Map<String, String>> necessaryBudgetItems = [];
+    List<Map<String, String>> discretionaryBudgetItems = [];
+    List<Map<String, String>> debtBudgetItems = [];
+
+    necessaryCategories.forEach((key, value) {
+      necessaryBudgetItems.add({
+        'category': key,
+        'amount': numberFormat.format(value),
+      });
+    });
+
+    discretionaryCategories.forEach((key, value) {
+      discretionaryBudgetItems.add({
+        'category': key,
+        'amount': numberFormat.format(value),
+      });
+    });
+
+    debtCategories.forEach((key, value) {
+      debtBudgetItems.add({
+        'category': key,
+        'amount': numberFormat.format(value),
+      });
+    });
 
     return SafeArea(
       child: Scaffold(
@@ -43,351 +87,944 @@ class BudgetScreen extends ConsumerWidget {
           child: Stack(
             // alignment: Alignment.bottomCenter,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  CustomImageView(
-                    imagePath: ImageConstant.imgGroup183001,
-                    height: getVerticalSize(
-                      53,
-                    ),
-                    width: getHorizontalSize(
-                      161,
-                    ),
-                    alignment: Alignment.topLeft,
-                    margin: getMargin(
-                      left: 17,
-                      top: 25,
-                    ),
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: Transform(
+                  transform: Matrix4.identity()..scale(1.0, 1.0, 0.1),
+                  child: CustomImageView(
+                    imagePath: ImageConstant.imgTopographic7,
+                    height: MediaQuery.of(context).size.height *
+                        1, // Set the height to 50% of the screen height
+                    width: MediaQuery.of(context)
+                        .size
+                        .width, // Set the width to the full screen width
+                    // alignment: Alignment.,
                   ),
-                  Align(
-                    alignment: Alignment.topRight,
-                    child: Padding(
-                      padding: getPadding(
-                        right: 17,
-                        top: 28,
-                      ),
-                      child: IconButton(
-                        icon: CustomImageView(
-                          svgPath: ImageConstant.imgEdit1,
-                          height: getSize(
-                            24,
-                          ),
-                          width: getSize(
-                            24,
-                          ),
-                        ), // Replace with your desired icon
-                        onPressed: () {
-                          // Your onPressed code goes here
-                          print("IconButton tapped");
-                        },
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              Padding(
-                padding: getPadding(
-                  top: 95,
                 ),
-                child: Align(
-                  alignment: Alignment.topCenter,
-                  child: Padding(
-                    padding: getPadding(
-                      left: 30,
-                      right: 30,
-                      bottom: 1,
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: [
-                        Padding(
-                          padding: getPadding(
-                            left: 0,
-                            right: 0,
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Expanded(
-                                child: Container(
-                                  child: SpendingTypePill(
-                                      type: budget?.spendingType ?? ''),
-                                ),
-                              ),
-                              Expanded(
-                                  child: Container(
-                                      child: SavingTypePill(
-                                          type: budget?.savingType ?? ''))),
-                              Expanded(
-                                  child: Container(
-                                      child: DebtTypePill(
-                                          type: budget?.debtType ?? ''))),
-                            ],
-                          ),
-                        ),
-                        Container(
-                          width: double.maxFinite,
-                          child: Container(
+              ),
+              SingleChildScrollView(
+                child: Container(
+                  padding: getPadding(bottom: 25),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          CustomImageView(
+                            imagePath: ImageConstant.imgGroup183001,
+                            height: getVerticalSize(
+                              53,
+                            ),
                             width: getHorizontalSize(
-                              327,
+                              161,
                             ),
+                            alignment: Alignment.topLeft,
                             margin: getMargin(
-                              top: 15,
+                              left: 17,
+                              top: 25,
                             ),
-                            padding: getPadding(
-                              left: 5,
-                              top: 30,
-                              right: 5,
-                              bottom: 30,
-                            ),
-                            decoration: AppDecoration.outlineGray100.copyWith(
-                              borderRadius: BorderRadiusStyle.roundedBorder12,
-                            ),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                Neumorphic(
-                                  style: NeumorphicStyle(
-                                    shape: NeumorphicShape.convex,
-                                    boxShape: NeumorphicBoxShape.roundRect(
-                                        BorderRadius.circular(320)),
-                                    depth: 1,
-                                    lightSource: LightSource.topLeft,
-                                    color: ColorConstant.gray50,
+                          ),
+                          Align(
+                            alignment: Alignment.topRight,
+                            child: Padding(
+                              padding: getPadding(
+                                right: 17,
+                                top: 28,
+                              ),
+                              child: IconButton(
+                                icon: CustomImageView(
+                                  svgPath: ImageConstant.imgEdit1,
+                                  height: getSize(
+                                    24,
                                   ),
-                                  child: Container(
-                                    height: getSize(320),
-                                    width: getSize(320),
-                                    // margin: getMargin(top: 9),
-                                    child: Stack(
-                                      alignment: Alignment.center,
-                                      children: [
-                                        Align(
-                                          alignment: Alignment.center,
-                                          child: PieChart(
-                                            pieChartData,
-                                            swapAnimationCurve: Curves.bounceIn,
+                                  width: getSize(
+                                    24,
+                                  ),
+                                ), // Replace with your desired icon
+                                onPressed: () {
+                                  // Your onPressed code goes here
+                                  print("IconButton tapped");
+                                },
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      Container(
+                        child: Padding(
+                          padding: getPadding(
+                            top: 20,
+                          ),
+                          child: Align(
+                            alignment: Alignment.topCenter,
+                            child: Padding(
+                              padding: getPadding(
+                                left: 30,
+                                right: 30,
+                                bottom: 1,
+                              ),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                children: [
+                                  Padding(
+                                    padding: getPadding(
+                                      left: 0,
+                                      right: 0,
+                                    ),
+                                    child: Neumorphic(
+                                      style: NeumorphicStyle(
+                                        shape: NeumorphicShape.convex,
+                                        boxShape: NeumorphicBoxShape.roundRect(
+                                            BorderRadius.circular(20)),
+                                        depth: 0.5,
+                                        intensity: 2,
+                                        surfaceIntensity: 0.8,
+                                        lightSource: LightSource.top,
+                                        color: ColorConstant.gray50,
+                                      ),
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          borderRadius:
+                                              BorderRadius.circular(20),
+                                          gradient: LinearGradient(
+                                            colors: [
+                                              getColorForSpendingType(
+                                                  budget?.spendingType ?? ''),
+                                              getColorForSavingType(
+                                                  budget?.savingType ?? ''),
+                                              getColorForDebtType(
+                                                  budget?.debtType ?? ''),
+                                            ],
+                                            stops: [0.0, 0.5, 1.0],
                                           ),
                                         ),
-                                        Align(
-                                          alignment: Alignment.center,
-                                          child: Neumorphic(
-                                            style: NeumorphicStyle(
-                                              shape: NeumorphicShape.flat,
-                                              boxShape:
-                                                  NeumorphicBoxShape.roundRect(
-                                                      BorderRadius.circular(
-                                                          195)),
-                                              depth: -1,
-                                              lightSource: LightSource.topLeft,
-                                              color: Colors.white,
-                                            ),
-                                            child: Container(
-                                              height: getSize(
-                                                  195), // Adjust the size as needed
-                                              width: getSize(
-                                                  195), // Adjust the size as needed
-                                              decoration: BoxDecoration(
-                                                color: Colors.white,
-                                                borderRadius: BorderRadius.circular(
-                                                    190), // Adjust the border radius as needed
+                                        height: 13,
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Expanded(
+                                              child: Container(
+                                                child: SpendingTypePill(
+                                                  type: budget?.spendingType ??
+                                                      '',
+                                                ),
                                               ),
-                                              // Add your content or child widget here
                                             ),
-                                          ),
+                                            Expanded(
+                                              child: Container(
+                                                child: SavingTypePill(
+                                                  type:
+                                                      budget?.savingType ?? '',
+                                                ),
+                                              ),
+                                            ),
+                                            Expanded(
+                                              child: Container(
+                                                child: DebtTypePill(
+                                                  type: budget?.debtType ?? '',
+                                                ),
+                                              ),
+                                            ),
+                                          ],
                                         ),
+                                      ),
+                                    ),
+                                  ),
+                                  Padding(
+                                    padding: getPadding(top: 7),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(budget?.spendingType ?? '',
+                                            style: AppStyle.txtManropeSemiBold12
+                                                .copyWith(
+                                              color: getColorForSpendingType(
+                                                  budget?.spendingType ?? ''),
+                                            )),
+                                        Text(budget?.savingType ?? '',
+                                            style: AppStyle.txtManropeSemiBold12
+                                                .copyWith(
+                                              color: getColorForSavingType(
+                                                  budget?.savingType ?? ''),
+                                            )),
+                                        Text(budget?.debtType ?? '',
+                                            style: AppStyle.txtManropeSemiBold12
+                                                .copyWith(
+                                              color: getColorForDebtType(
+                                                  budget?.debtType ?? ''),
+                                            )),
                                       ],
                                     ),
                                   ),
-                                ),
-                                Padding(
-                                  padding: getPadding(
-                                    left: 6,
-                                    top: 22,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        Padding(
-                          padding: getPadding(
-                            top: 29,
-                          ),
-                          child: Text(
-                            "Budget Details",
-                            overflow: TextOverflow.ellipsis,
-                            textAlign: TextAlign.left,
-                            style: AppStyle.txtHelveticaNowTextBold16.copyWith(
-                              letterSpacing: getHorizontalSize(
-                                0.4,
-                              ),
-                            ),
-                          ),
-                        ),
-                        Padding(
-                          padding: getPadding(
-                            top: 8,
-                          ),
-                          child: ListView.separated(
-                            physics: NeverScrollableScrollPhysics(),
-                            shrinkWrap: true,
-                            separatorBuilder: (context, index) {
-                              return SizedBox(
-                                height: getVerticalSize(
-                                  1,
-                                ),
-                              );
-                            },
-                            itemCount: 0,
-                            itemBuilder: (context, index) {
-                              return ListchartItemWidget();
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              Align(
-                alignment: Alignment.bottomCenter,
-                child: Container(
-                  height: getVerticalSize(
-                    65,
-                  ),
-                  width: double.maxFinite,
-                  child: Stack(
-                    alignment: Alignment.topLeft,
-                    children: [
-                      Align(
-                        alignment: Alignment.bottomCenter,
-                        child: Container(
-                          height: getVerticalSize(
-                            50,
-                          ),
-                          width: double.maxFinite,
-                          decoration: BoxDecoration(
-                            color: ColorConstant.whiteA700,
-                            boxShadow: [
-                              BoxShadow(
-                                color: ColorConstant.blueGray5000a,
-                                spreadRadius: getHorizontalSize(
-                                  2,
-                                ),
-                                blurRadius: getHorizontalSize(
-                                  2,
-                                ),
-                                offset: Offset(
-                                  0,
-                                  -8,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      Align(
-                        alignment: Alignment.center,
-                        child: Column(
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                Padding(
-                                  padding: getPadding(top: 10),
-                                  child: Material(
-                                    color: Colors.transparent,
-                                    child: Ink(
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
+                                  Container(
+                                    padding: getPadding(
+                                      top: 20,
+                                    ),
+                                    width: double.maxFinite,
+                                    child: Neumorphic(
+                                      style: NeumorphicStyle(
+                                        shape: NeumorphicShape.flat,
+                                        boxShape: NeumorphicBoxShape.roundRect(
+                                            BorderRadius.circular(20)),
+                                        depth: 3,
+                                        intensity: 0.5,
+                                        lightSource: LightSource.topLeft,
+                                        color: ColorConstant.gray50,
                                       ),
-                                      child: IconButton(
-                                        icon: CustomImageView(
-                                          svgPath: ImageConstant.imgUser,
-                                          height: getVerticalSize(
-                                            24,
-                                          ),
-                                          width: getHorizontalSize(
-                                            24,
-                                          ),
-                                        ), // Replace with your desired icon
-                                        onPressed: () {
-                                          // Your onPressed code goes here
-                                          print("IconButton tapped");
-                                        },
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                Card(
-                                  clipBehavior: Clip.antiAlias,
-                                  elevation: 0,
-                                  child: Container(
-                                    height: getVerticalSize(
-                                      50,
-                                    ),
-                                    width: getHorizontalSize(
-                                      100,
-                                    ),
-                                    decoration:
-                                        AppDecoration.fillBlueA700.copyWith(
-                                      borderRadius:
-                                          BorderRadiusStyle.roundedBorder12,
-                                    ),
-                                    child: IconButton(
-                                      icon: CustomImageView(
-                                        svgPath:
-                                            ImageConstant.imgClockWhiteA700,
-                                        height: getVerticalSize(
-                                          24,
-                                        ),
+                                      child: Container(
                                         width: getHorizontalSize(
-                                          24,
+                                          327,
                                         ),
-                                      ), // Replace with your desired icon
-                                      onPressed: () {
-                                        // Your onPressed code goes here
-                                        print("IconButton tapped");
-                                      },
+                                        // margin: getMargin(
+                                        //   top: 15,
+                                        // ),
+                                        padding: getPadding(
+                                          left: 5,
+                                          top: 30,
+                                          right: 5,
+                                          bottom: 30,
+                                        ),
+                                        decoration: AppDecoration.outlineGray100
+                                            .copyWith(
+                                          borderRadius:
+                                              BorderRadiusStyle.roundedBorder12,
+                                        ),
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.end,
+                                          children: [
+                                            Neumorphic(
+                                              style: NeumorphicStyle(
+                                                shape: NeumorphicShape.convex,
+                                                boxShape: NeumorphicBoxShape
+                                                    .roundRect(
+                                                        BorderRadius.circular(
+                                                            320)),
+                                                depth: 1,
+                                                intensity: 0.7,
+                                                lightSource:
+                                                    LightSource.topLeft,
+                                                color: ColorConstant.gray50,
+                                              ),
+                                              child: Container(
+                                                height: getSize(320),
+                                                width: getSize(320),
+                                                child: Stack(
+                                                  alignment: Alignment.center,
+                                                  children: [
+                                                    Align(
+                                                      alignment:
+                                                          Alignment.center,
+                                                      child: Neumorphic(
+                                                        style: NeumorphicStyle(
+                                                          shape: NeumorphicShape
+                                                              .concave,
+                                                          boxShape: NeumorphicBoxShape
+                                                              .roundRect(
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          195)),
+                                                          depth: 20,
+                                                          intensity: 0.5,
+                                                          surfaceIntensity: 0.1,
+                                                          lightSource:
+                                                              LightSource
+                                                                  .topLeft,
+                                                          color: ColorConstant
+                                                              .gray100,
+                                                        ),
+                                                        child: Container(
+                                                          child: PieChart(
+                                                            pieChartData,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    Align(
+                                                      alignment:
+                                                          Alignment.center,
+                                                      child: Neumorphic(
+                                                        style: NeumorphicStyle(
+                                                          shape: NeumorphicShape
+                                                              .concave,
+                                                          boxShape: NeumorphicBoxShape
+                                                              .roundRect(
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          195)),
+                                                          depth: -1.5,
+                                                          intensity: 0.70,
+                                                          lightSource:
+                                                              LightSource
+                                                                  .topLeft,
+                                                          color: ColorConstant
+                                                              .blue50,
+                                                        ),
+                                                        child: Container(
+                                                          height: getSize(
+                                                              195), // Adjust the size as needed
+                                                          width: getSize(
+                                                              195), // Adjust the size as needed
+                                                          decoration:
+                                                              BoxDecoration(
+                                                            color: Colors.white,
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .circular(
+                                                                        190), // Adjust the border radius as needed
+                                                          ),
+                                                          child: Padding(
+                                                            padding: getPadding(
+                                                                top: 10),
+                                                            child: Column(
+                                                              crossAxisAlignment:
+                                                                  CrossAxisAlignment
+                                                                      .center,
+                                                              mainAxisAlignment:
+                                                                  MainAxisAlignment
+                                                                      .center,
+                                                              children: [
+                                                                Padding(
+                                                                  padding:
+                                                                      getPadding(
+                                                                    bottom: 8,
+                                                                  ),
+                                                                  child: Row(
+                                                                    mainAxisAlignment:
+                                                                        MainAxisAlignment
+                                                                            .center,
+                                                                    children: [
+                                                                      Text(
+                                                                        '${percentages['necessary'].toStringAsFixed(0)} / ${percentages['discretionary'].toStringAsFixed(0)} / ${percentages['debt'].toStringAsFixed(0)}',
+                                                                        style: AppStyle
+                                                                            .txtHelveticaNowTextBold12
+                                                                            .copyWith(
+                                                                          color:
+                                                                              ColorConstant.blueGray300,
+                                                                        ),
+                                                                      ),
+                                                                    ],
+                                                                  ),
+                                                                ),
+                                                                Text(
+                                                                  '${totalExpensesFormatted}',
+                                                                  style: AppStyle
+                                                                      .txtHelveticaNowTextBold24
+                                                                      .copyWith(
+                                                                    color: ColorConstant
+                                                                        .gray90001,
+                                                                  ),
+                                                                  overflow:
+                                                                      TextOverflow
+                                                                          .ellipsis,
+                                                                ),
+                                                                Padding(
+                                                                  padding:
+                                                                      getPadding(
+                                                                          top:
+                                                                              8),
+                                                                ),
+                                                                Text(
+                                                                  'Created: ${DateFormat('MM/dd/yyyy').format(budget!.budgetDate)}',
+                                                                  style: AppStyle
+                                                                      .txtManropeSemiBold12
+                                                                      .copyWith(
+                                                                    color: ColorConstant
+                                                                        .blueGray300,
+                                                                  ),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                          ),
+                                                          // Add your content or child widget here
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                            Padding(
+                                              padding: getPadding(
+                                                // left: 6,
+                                                top: 22,
+                                              ),
+                                            ),
+                                            SingleChildScrollView(
+                                              physics: BouncingScrollPhysics(),
+                                              scrollDirection: Axis.horizontal,
+                                              child: Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment
+                                                        .spaceBetween,
+                                                children: [
+                                                  Padding(
+                                                    padding:
+                                                        const EdgeInsets.all(
+                                                            8.0),
+                                                    child: Neumorphic(
+                                                      style: NeumorphicStyle(
+                                                        shape: NeumorphicShape
+                                                            .convex,
+                                                        boxShape:
+                                                            NeumorphicBoxShape
+                                                                .roundRect(
+                                                                    BorderRadius
+                                                                        .circular(
+                                                                            8)),
+                                                        depth: 1,
+                                                        intensity: 0.7,
+                                                        surfaceIntensity: 0.2,
+                                                        lightSource:
+                                                            LightSource.top,
+                                                        color: ColorConstant
+                                                            .whiteA700,
+                                                      ),
+                                                      child: Container(
+                                                        width:
+                                                            getHorizontalSize(
+                                                          110,
+                                                        ),
+                                                        height: getSize(
+                                                          40,
+                                                        ),
+                                                        child: Row(
+                                                          mainAxisAlignment:
+                                                              MainAxisAlignment
+                                                                  .center,
+                                                          children: [
+                                                            Neumorphic(
+                                                              style:
+                                                                  NeumorphicStyle(
+                                                                shape:
+                                                                    NeumorphicShape
+                                                                        .convex,
+                                                                boxShape: NeumorphicBoxShape.roundRect(
+                                                                    BorderRadius
+                                                                        .circular(
+                                                                            10)),
+                                                                depth: 1,
+                                                                intensity: 0.7,
+                                                                surfaceIntensity:
+                                                                    0.6,
+                                                                lightSource:
+                                                                    LightSource
+                                                                        .top,
+                                                                color:
+                                                                    ColorConstant
+                                                                        .gray50,
+                                                              ),
+                                                              child: Container(
+                                                                height: getSize(
+                                                                  18,
+                                                                ),
+                                                                width: getSize(
+                                                                  18,
+                                                                ),
+                                                                decoration:
+                                                                    BoxDecoration(
+                                                                  color: Color(
+                                                                      0xFF1A237E),
+                                                                  borderRadius:
+                                                                      BorderRadius
+                                                                          .circular(
+                                                                    getHorizontalSize(
+                                                                      2,
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                            ),
+                                                            Padding(
+                                                              padding:
+                                                                  getPadding(
+                                                                left: 6,
+                                                              ),
+                                                              child: Column(
+                                                                crossAxisAlignment:
+                                                                    CrossAxisAlignment
+                                                                        .start,
+                                                                mainAxisAlignment:
+                                                                    MainAxisAlignment
+                                                                        .center,
+                                                                children: [
+                                                                  Text(
+                                                                    "Necessary",
+                                                                    overflow:
+                                                                        TextOverflow
+                                                                            .ellipsis,
+                                                                    textAlign:
+                                                                        TextAlign
+                                                                            .left,
+                                                                    style: AppStyle
+                                                                        .txtManropeBold11
+                                                                        .copyWith(
+                                                                      color: ColorConstant
+                                                                          .blueGray9007f,
+                                                                      letterSpacing:
+                                                                          getHorizontalSize(
+                                                                        0.3,
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                  Text(
+                                                                    "${necessaryTotalFormatted}",
+                                                                    overflow:
+                                                                        TextOverflow
+                                                                            .ellipsis,
+                                                                    textAlign:
+                                                                        TextAlign
+                                                                            .left,
+                                                                    style: AppStyle
+                                                                        .txtHelveticaNowTextBold12
+                                                                        .copyWith(
+                                                                      color: Color(
+                                                                          0xFF1A237E),
+                                                                      letterSpacing:
+                                                                          getHorizontalSize(
+                                                                        0.2,
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  Padding(
+                                                    padding:
+                                                        const EdgeInsets.all(
+                                                            8.0),
+                                                    child: Neumorphic(
+                                                      style: NeumorphicStyle(
+                                                        shape: NeumorphicShape
+                                                            .convex,
+                                                        boxShape:
+                                                            NeumorphicBoxShape
+                                                                .roundRect(
+                                                                    BorderRadius
+                                                                        .circular(
+                                                                            8)),
+                                                        depth: 1,
+                                                        intensity: 0.7,
+                                                        surfaceIntensity: 0.2,
+                                                        lightSource:
+                                                            LightSource.top,
+                                                        color: ColorConstant
+                                                            .whiteA700,
+                                                      ),
+                                                      child: Container(
+                                                        width:
+                                                            getHorizontalSize(
+                                                          110,
+                                                        ),
+                                                        height: getSize(
+                                                          40,
+                                                        ),
+                                                        child: Row(
+                                                          mainAxisAlignment:
+                                                              MainAxisAlignment
+                                                                  .center,
+                                                          children: [
+                                                            Neumorphic(
+                                                              style:
+                                                                  NeumorphicStyle(
+                                                                shape:
+                                                                    NeumorphicShape
+                                                                        .convex,
+                                                                boxShape: NeumorphicBoxShape.roundRect(
+                                                                    BorderRadius
+                                                                        .circular(
+                                                                            10)),
+                                                                depth: 1,
+                                                                intensity: 0.7,
+                                                                surfaceIntensity:
+                                                                    0.6,
+                                                                lightSource:
+                                                                    LightSource
+                                                                        .top,
+                                                                color:
+                                                                    ColorConstant
+                                                                        .gray50,
+                                                              ),
+                                                              child: Container(
+                                                                height: getSize(
+                                                                  18,
+                                                                ),
+                                                                width: getSize(
+                                                                  18,
+                                                                ),
+                                                                decoration:
+                                                                    BoxDecoration(
+                                                                  color: Color(
+                                                                      0xFF1E90FF),
+                                                                  borderRadius:
+                                                                      BorderRadius
+                                                                          .circular(
+                                                                    getHorizontalSize(
+                                                                      2,
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                            ),
+                                                            Padding(
+                                                              padding:
+                                                                  getPadding(
+                                                                left: 6,
+                                                              ),
+                                                              child: Column(
+                                                                crossAxisAlignment:
+                                                                    CrossAxisAlignment
+                                                                        .start,
+                                                                mainAxisAlignment:
+                                                                    MainAxisAlignment
+                                                                        .center,
+                                                                children: [
+                                                                  Text(
+                                                                    "Discretionary",
+                                                                    overflow:
+                                                                        TextOverflow
+                                                                            .ellipsis,
+                                                                    textAlign:
+                                                                        TextAlign
+                                                                            .left,
+                                                                    style: AppStyle
+                                                                        .txtManropeBold11
+                                                                        .copyWith(
+                                                                      color: ColorConstant
+                                                                          .blueGray9007f,
+                                                                      letterSpacing:
+                                                                          getHorizontalSize(
+                                                                        0.3,
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                  Text(
+                                                                    "${discretionaryTotalFormatted}",
+                                                                    overflow:
+                                                                        TextOverflow
+                                                                            .ellipsis,
+                                                                    textAlign:
+                                                                        TextAlign
+                                                                            .left,
+                                                                    style: AppStyle
+                                                                        .txtHelveticaNowTextBold12
+                                                                        .copyWith(
+                                                                      color: Color(
+                                                                          0xFF1E90FF),
+                                                                      letterSpacing:
+                                                                          getHorizontalSize(
+                                                                        0.2,
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  Padding(
+                                                    padding:
+                                                        const EdgeInsets.all(
+                                                            8.0),
+                                                    child: Neumorphic(
+                                                      style: NeumorphicStyle(
+                                                        shape: NeumorphicShape
+                                                            .convex,
+                                                        boxShape:
+                                                            NeumorphicBoxShape
+                                                                .roundRect(
+                                                                    BorderRadius
+                                                                        .circular(
+                                                                            8)),
+                                                        depth: 1,
+                                                        intensity: 0.7,
+                                                        surfaceIntensity: 0.2,
+                                                        lightSource:
+                                                            LightSource.top,
+                                                        color: ColorConstant
+                                                            .whiteA700,
+                                                      ),
+                                                      child: Container(
+                                                        width:
+                                                            getHorizontalSize(
+                                                          110,
+                                                        ),
+                                                        height: getSize(
+                                                          40,
+                                                        ),
+                                                        child: Row(
+                                                          mainAxisAlignment:
+                                                              MainAxisAlignment
+                                                                  .center,
+                                                          children: [
+                                                            Neumorphic(
+                                                              style:
+                                                                  NeumorphicStyle(
+                                                                shape:
+                                                                    NeumorphicShape
+                                                                        .convex,
+                                                                boxShape: NeumorphicBoxShape.roundRect(
+                                                                    BorderRadius
+                                                                        .circular(
+                                                                            10)),
+                                                                depth: 1,
+                                                                intensity: 0.7,
+                                                                surfaceIntensity:
+                                                                    0.6,
+                                                                lightSource:
+                                                                    LightSource
+                                                                        .top,
+                                                                color:
+                                                                    ColorConstant
+                                                                        .gray50,
+                                                              ),
+                                                              child: Container(
+                                                                height: getSize(
+                                                                  18,
+                                                                ),
+                                                                width: getSize(
+                                                                  18,
+                                                                ),
+                                                                decoration:
+                                                                    BoxDecoration(
+                                                                  color: ColorConstant
+                                                                      .blueA700,
+                                                                  borderRadius:
+                                                                      BorderRadius
+                                                                          .circular(
+                                                                    getHorizontalSize(
+                                                                      2,
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                            ),
+                                                            Padding(
+                                                              padding:
+                                                                  getPadding(
+                                                                left: 6,
+                                                              ),
+                                                              child: Column(
+                                                                crossAxisAlignment:
+                                                                    CrossAxisAlignment
+                                                                        .start,
+                                                                mainAxisAlignment:
+                                                                    MainAxisAlignment
+                                                                        .center,
+                                                                children: [
+                                                                  Text(
+                                                                    "Debt/Loans",
+                                                                    overflow:
+                                                                        TextOverflow
+                                                                            .ellipsis,
+                                                                    textAlign:
+                                                                        TextAlign
+                                                                            .left,
+                                                                    style: AppStyle
+                                                                        .txtManropeBold11
+                                                                        .copyWith(
+                                                                      color: ColorConstant
+                                                                          .blueGray9007f,
+                                                                      letterSpacing:
+                                                                          getHorizontalSize(
+                                                                        0.3,
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                  Text(
+                                                                    "${debtTotalFormatted}",
+                                                                    overflow:
+                                                                        TextOverflow
+                                                                            .ellipsis,
+                                                                    textAlign:
+                                                                        TextAlign
+                                                                            .left,
+                                                                    style: AppStyle
+                                                                        .txtHelveticaNowTextBold12
+                                                                        .copyWith(
+                                                                      color: ColorConstant
+                                                                          .blueA700,
+                                                                      letterSpacing:
+                                                                          getHorizontalSize(
+                                                                        0.2,
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
                                     ),
                                   ),
-                                ),
-                                Padding(
-                                  padding: getPadding(top: 10, right: 0),
-                                  child: Material(
-                                    child: Ink(
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
+                                  Padding(
+                                    padding: getPadding(
+                                      top: 29,
+                                    ),
+                                    child: Text(
+                                      "Debt Amounts",
+                                      overflow: TextOverflow.ellipsis,
+                                      textAlign: TextAlign.left,
+                                      style: AppStyle.txtHelveticaNowTextBold16
+                                          .copyWith(
+                                        letterSpacing: getHorizontalSize(
+                                          0.4,
+                                        ),
                                       ),
-                                      child: IconButton(
-                                        icon: CustomImageView(
-                                          svgPath: ImageConstant
-                                              .imgVolumeBlueGray300,
-                                          height: getSize(
-                                            24,
-                                          ),
-                                          width: getSize(
-                                            24,
-                                          ),
-                                        ), // Replace with your desired icon
-                                        onPressed: () {
-                                          // Your onPressed code goes here
-                                          print("IconButton tapped");
+                                    ),
+                                  ),
+                                  Padding(
+                                    padding: getPadding(
+                                      top: 8,
+                                    ),
+                                    child: Padding(
+                                      padding:
+                                          getPadding(top: 8, left: 8, right: 8),
+                                      child: ListView.separated(
+                                        physics: BouncingScrollPhysics(),
+                                        shrinkWrap: true,
+                                        separatorBuilder: (context, index) {
+                                          return SizedBox(
+                                            height: getVerticalSize(
+                                              16,
+                                            ),
+                                          );
+                                        },
+                                        itemCount: debtBudgetItems.length,
+                                        itemBuilder: (context, index) {
+                                          return ListchartItemWidget(
+                                            category: debtBudgetItems[index]
+                                                ['category']!,
+                                            amount: debtBudgetItems[index]
+                                                ['amount']!,
+                                          );
                                         },
                                       ),
                                     ),
                                   ),
-                                ),
-                              ],
+                                  Padding(
+                                    padding: getPadding(
+                                      top: 29,
+                                    ),
+                                    child: Text(
+                                      "Necessary Amounts",
+                                      overflow: TextOverflow.ellipsis,
+                                      textAlign: TextAlign.left,
+                                      style: AppStyle.txtHelveticaNowTextBold16
+                                          .copyWith(
+                                        letterSpacing: getHorizontalSize(
+                                          0.4,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  Padding(
+                                    padding: getPadding(
+                                      top: 8,
+                                    ),
+                                    child: Padding(
+                                      padding:
+                                          getPadding(top: 8, left: 8, right: 8),
+                                      child: ListView.separated(
+                                        physics: BouncingScrollPhysics(),
+                                        shrinkWrap: true,
+                                        separatorBuilder: (context, index) {
+                                          return SizedBox(
+                                            height: getVerticalSize(
+                                              16,
+                                            ),
+                                          );
+                                        },
+                                        itemCount: necessaryBudgetItems.length,
+                                        itemBuilder: (context, index) {
+                                          return ListchartItemWidget(
+                                            category:
+                                                necessaryBudgetItems[index]
+                                                    ['category']!,
+                                            amount: necessaryBudgetItems[index]
+                                                ['amount']!,
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                  ),
+                                  Padding(
+                                    padding: getPadding(
+                                      top: 29,
+                                    ),
+                                    child: Text(
+                                      "Discretionary Amounts",
+                                      overflow: TextOverflow.ellipsis,
+                                      textAlign: TextAlign.left,
+                                      style: AppStyle.txtHelveticaNowTextBold16
+                                          .copyWith(
+                                        letterSpacing: getHorizontalSize(
+                                          0.4,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  Padding(
+                                    padding: getPadding(
+                                      top: 8,
+                                    ),
+                                    child: Padding(
+                                      padding:
+                                          getPadding(top: 8, left: 8, right: 8),
+                                      child: ListView.separated(
+                                        physics: BouncingScrollPhysics(),
+                                        shrinkWrap: true,
+                                        separatorBuilder: (context, index) {
+                                          return SizedBox(
+                                            height: getVerticalSize(
+                                              16,
+                                            ),
+                                          );
+                                        },
+                                        itemCount:
+                                            discretionaryBudgetItems.length,
+                                        itemBuilder: (context, index) {
+                                          return ListchartItemWidget(
+                                            category:
+                                                discretionaryBudgetItems[index]
+                                                    ['category']!,
+                                            amount:
+                                                discretionaryBudgetItems[index]
+                                                    ['amount']!,
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ],
+                          ),
                         ),
                       ),
                     ],
@@ -401,45 +1038,15 @@ class BudgetScreen extends ConsumerWidget {
     );
   }
 
-  PieChartData _generatePieChartData(
-      Map<String, double> necessaryCategories,
-      Map<String, double> discretionaryCategories,
-      Map<String, double> debtCategories) {
+  Map<String, dynamic> _generatePieChartData(
+    Map<String, double> necessaryCategories,
+    Map<String, double> discretionaryCategories,
+    Map<String, double> debtCategories,
+  ) {
     final List<Color> colors = [
       Color(0xFF1A237E), // Indigo 900
-      Color(0xFF1E90FF),
-      // Indigo 200
-      Color(0xFF1565C0), // Blue 800
-      Color(0xFF0D47A1), // Light Blue 900
-      Color(0xFF42A5F5), // Light Blue 400
-      Color(0xFF8B1E9B), // Bright Purple
-      Color(0xFF4A61DC), // Bright Indigo
-      // Dodger Blue// Deep Sky Blue
-      Color(0xFF40E0D0), // Turquoise
-      Color(0xFF3CB371), // Medium Sea Green
-      Color(0xFF32CD32), // Lime Green
-      Color(0xFF9ACD32), // Yellow Green
-      Color(0xFFFFD700), // Gold
-      Color(0xFFFFA500), // Orange
-      Color(0xFF7B68EE), // Medium Slate Blue
-      Color(0xFF4682B4), // Steel Blue
-      Color(0xFF00CED1), // Dark Turquoise
-      Color(0xFF20B2AA), // Light Sea Green
-      Color(0xFFADFF2F), // Green Yellow
-      Color(0xFFFFD54F), // Light Yellow
-      Color(0xFF8BC34A), // Light Green
-      Color(0xFFCDDC39), // Lime
-      Color(0xFFFFC107), // Amber
-      Color(0xFFBA68C8), // Medium Orchid
-      Color(0xFF7E57C2), // Deep Lavender
-      Color(0xFF5C6BC0), // Light Blue
-      Color(0xFF26A69A), // Medium Aquamarine
-      Color(0xFF66BB6A), // Soft Green
-      Color(0xFFD4E157), // Light Lime
-      Color(0xFFFFB74D), // Light Orange
-      Color(0xFF9575CD), // Light Purple
-      Color(0xFF7986CB), // Soft Blue
-      Color(0xFF4DB6AC), // Soft Green
+      Color(0xFF1E90FF), // Indigo 200
+      ColorConstant.blueA700, // Blue 800
     ];
 
     final double necessaryTotal =
@@ -453,6 +1060,13 @@ class BudgetScreen extends ConsumerWidget {
       "Discretionary": discretionaryTotal,
       "Debt": debtTotal,
     };
+
+    final double totalBudget = necessaryTotal + discretionaryTotal + debtTotal;
+
+    final double necessaryPercentage = necessaryTotal / totalBudget * 100;
+    final double discretionaryPercentage =
+        discretionaryTotal / totalBudget * 100;
+    final double debtPercentage = debtTotal / totalBudget * 100;
 
     int colorIndex = 0;
 
@@ -469,11 +1083,49 @@ class BudgetScreen extends ConsumerWidget {
       );
     }).toList();
 
-    return PieChartData(
-      sections: sections,
-      sectionsSpace: 0,
-      centerSpaceRadius: 100,
-      borderData: FlBorderData(show: false),
-    );
+    return {
+      'pieChartData': PieChartData(
+        sections: sections,
+        sectionsSpace: 0,
+        centerSpaceRadius: 100,
+        borderData: FlBorderData(show: true),
+      ),
+      'percentages': {
+        'necessary': necessaryPercentage,
+        'discretionary': discretionaryPercentage,
+        'debt': debtPercentage,
+      },
+    };
   }
 }
+ //
+
+  // Color(0xFF0D47A1), // Light Blue 900
+      // Color(0xFF42A5F5), // Light Blue 400
+      // Color(0xFF8B1E9B), // Bright Purple
+      // Color(0xFF4A61DC), // Bright Indigo
+      // Color.fromARGB(255, 28, 89, 83), // Turquoise
+      // Color(0xFF3CB371), // Medium Sea Green
+      // Color(0xFF32CD32), // Lime Green
+      // Color(0xFF9ACD32), // Yellow Green
+      // Color(0xFFFFD700), // Gold
+      // Color(0xFFFFA500), // Orange
+      // Color(0xFF7B68EE), // Medium Slate Blue
+      // Color(0xFF4682B4), // Steel Blue
+      // Color(0xFF00CED1), // Dark Turquoise
+      // Color(0xFF20B2AA), // Light Sea Green
+      // Color(0xFFADFF2F), // Green Yellow
+      // Color(0xFFFFD54F), // Light Yellow
+      // Color(0xFF8BC34A), // Light Green
+      // Color(0xFFCDDC39), // Lime
+      // Color(0xFFFFC107), // Amber
+      // Color(0xFFBA68C8), // Medium Orchid
+      // Color(0xFF7E57C2), // Deep Lavender
+      // Color(0xFF5C6BC0), // Light Blue
+      // Color(0xFF26A69A), // Medium Aquamarine
+      // Color(0xFF66BB6A), // Soft Green
+      // Color(0xFFD4E157), // Light Lime
+      // Color(0xFFFFB74D), // Light Orange
+      // Color(0xFF9575CD), // Light Purple
+      // Color(0xFF7986CB), // Soft Blue
+      // Color(0xFF4DB6AC), // Soft Green

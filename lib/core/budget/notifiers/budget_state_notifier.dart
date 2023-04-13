@@ -27,7 +27,7 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
             const BudgetDiscretionaryInfoStorage(),
         _budgetIdStorage = const BudgetIdStorage(),
         super(const BudgetState.unknown()) {
-    // fetchSalary();
+    fetchUserBudgets();
   }
 
   Future<void> saveBudgetInfo({
@@ -702,44 +702,19 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
     }
   }
 
-  Future<void> fetchUserBudgets() async {
+  Future<List<Budget?>> fetchUserBudgets() async {
     try {
       final userId = _authenticator.userId;
-      print(userId);
-
-      // Ensure userId is not null before proceeding
       if (userId == null) {
-        state = BudgetState(
-          status: BudgetStatus.failure,
-          isLoading: false,
-          userId: null,
-          budgets: [],
-        );
         print('userId is null');
-        return;
+        return [];
       }
-      // Set the state to loading
-      state = state.copiedWithIsLoading(true);
 
-      // Fetch the user's budgets
       final userBudgets =
           await _budgetInfoStorage.getUserBudgets(userId: userId);
-
-      // print('userBudgets: $userBudgets');
-
-      // Update the state with the fetched budgets
-      state = state.copiedWithStatusAndBudgets(
-        status: BudgetStatus.success,
-        isLoading: false,
-        budgets: userBudgets,
-      );
+      return userBudgets;
     } catch (e) {
-      // Handle the error case
-      state = state.copiedWithStatusAndBudgets(
-        status: BudgetStatus.failure,
-        isLoading: false,
-        budgets: [],
-      );
+      return [];
     }
   }
 }

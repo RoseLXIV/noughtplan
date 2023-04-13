@@ -26,6 +26,8 @@ import 'package:noughtplan/presentation/term_and_condition_screen/term_and_condi
 import 'package:noughtplan/presentation/my_account_screen/my_account_screen.dart';
 import 'package:noughtplan/presentation/app_navigation_screen/app_navigation_screen.dart';
 import 'package:noughtplan/presentation/home_page_screen/home_page_screen.dart';
+import 'package:noughtplan/presentation/expense_tracking_screen/expense_tracking_screen.dart';
+import 'package:noughtplan/presentation/main_budget_home_screen/main_budget_home_screen.dart';
 
 class AppRoutes {
   static const String splashScreen = '/splash_screen';
@@ -93,6 +95,10 @@ class AppRoutes {
 
   static const String homePageScreen = '/home_page_screen';
 
+  static const String expenseTrackingScreen = '/expense_tracking_screen';
+
+  static const String mainBudgetHomeScreen = '/main_budget_home_screen';
+
   static Map<String, WidgetBuilder> routes = {
     splashScreen: (context) => SplashScreen(),
     getStartedScreen: (context) => GetStartedScreen(),
@@ -121,6 +127,8 @@ class AppRoutes {
     termAndConditionScreen: (context) => TermAndConditionScreen(),
     myAccountScreen: (context) => MyAccountScreen(),
     appNavigationScreen: (context) => AppNavigationScreen(),
-    homePageScreen: (context) => HomePageScreen()
+    homePageScreen: (context) => HomePageScreen(),
+    expenseTrackingScreen: (context) => ExpenseTrackingScreen(),
+    mainBudgetHomeScreen: (context) => MainBudgetHomeScreen(),
   };
 }
