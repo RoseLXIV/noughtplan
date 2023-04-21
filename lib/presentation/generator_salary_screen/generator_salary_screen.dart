@@ -185,74 +185,139 @@ class GeneratorSalaryScreen extends ConsumerWidget {
                                     ),
                                   )
                                 ]),
-                            Container(
-                              // padding: const EdgeInsets.all(8.0),
-                              // height: getVerticalSize(42),
-                              margin: getMargin(top: 132),
-                              alignment: Alignment.center,
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceEvenly,
-                                children: [
-                                  Text("Currency",
-                                      textAlign: TextAlign.left,
-                                      style: AppStyle.txtHelveticaNowTextBold16
-                                          .copyWith(
-                                              letterSpacing:
-                                                  getHorizontalSize(0.5))),
-                                  Column(
-                                    children: [
-                                      DropdownButton<CurrencyTypes>(
-                                        alignment: Alignment.center,
-                                        value: data._selectedCurrency,
-                                        onChanged: (CurrencyTypes? currency) {
-                                          ref
-                                              .watch(dataProvider)
-                                              .selectedCurrency = currency;
+                            Column(
+                              children: [
+                                Align(
+                                  alignment: Alignment.topCenter,
+                                  child: Padding(
+                                    padding: getPadding(
+                                        top: 60, right: 30, left: 30),
+                                    child: TextField(
+                                        focusNode: salaryFocusNode,
+                                        maxLength: 12,
+                                        keyboardType:
+                                            TextInputType.numberWithOptions(
+                                                decimal: true),
+                                        inputFormatters: [
+                                          ThousandsFormatter(),
+                                        ],
+                                        onChanged: (salary) {
                                           generateSalaryController
-                                              .onCurrencyChange(
-                                                  currency?.name ?? '');
-                                          print(
-                                              'Selected currency: ${currency?.name}');
+                                              .onSalaryChange(salary);
+                                          print(salary);
                                         },
-                                        items: currencyList
-                                            .map<
-                                                DropdownMenuItem<
-                                                    CurrencyTypes>>(
-                                              (currency) => DropdownMenuItem<
-                                                  CurrencyTypes>(
-                                                value: currency,
-                                                child: Row(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment.center,
-                                                  children: [
-                                                    Image.asset(currency.flag,
-                                                        height: 20, width: 30),
-                                                    SizedBox(width: 5),
-                                                    Text(currency.name,
-                                                        style: AppStyle
-                                                            .txtHelveticaNowTextBold16),
-                                                  ],
-                                                ),
-                                              ),
-                                            )
-                                            .toList(),
-                                      ),
-                                      if (generateSalaryState.currency.error !=
-                                          null)
-                                        Text(
-                                          Currency.showCurrencyErrorMessage(
-                                                  showErrorCurrency)
-                                              .toString(),
-                                          style: AppStyle.txtManropeRegular12
+                                        decoration: InputDecoration(
+                                          prefixText: '\$ ',
+                                          errorText: generateSalaryState
+                                                          .salary.error !=
+                                                      null &&
+                                                  salaryFocusNode.hasFocus
+                                              ? Salary.showSalaryErrorMessage(
+                                                      showErrorSalary)
+                                                  .toString()
+                                              : null,
+                                          errorStyle: AppStyle
+                                              .txtManropeRegular12
                                               .copyWith(
-                                                  color: ColorConstant
-                                                      .lightBlueA200),
+                                                  color: ColorConstant.redA700),
+                                          prefixStyle: AppStyle
+                                              .txtHelveticaNowTextBold40,
+                                          hintText: '0.00',
+                                          labelText: 'Salary',
+                                          labelStyle: AppStyle
+                                              .txtHelveticaNowTextBold16,
+                                          floatingLabelBehavior:
+                                              FloatingLabelBehavior.always,
+                                          border: OutlineInputBorder(
+                                            borderSide: BorderSide.none,
+                                            borderRadius:
+                                                BorderRadius.circular(8.0),
+                                          ),
+                                          filled: true,
                                         ),
+                                        textAlign: TextAlign.center,
+                                        style:
+                                            AppStyle.txtHelveticaNowTextBold40),
+                                  ),
+                                ),
+                                Container(
+                                  // padding: const EdgeInsets.all(8.0),
+                                  // height: getVerticalSize(42),
+                                  // margin: getMargin(top: 132),
+                                  alignment: Alignment.center,
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceEvenly,
+                                    children: [
+                                      Text("Currency",
+                                          textAlign: TextAlign.left,
+                                          style: AppStyle
+                                              .txtHelveticaNowTextBold16
+                                              .copyWith(
+                                                  letterSpacing:
+                                                      getHorizontalSize(0.5))),
+                                      Column(
+                                        children: [
+                                          DropdownButton<CurrencyTypes>(
+                                            alignment: Alignment.center,
+                                            value: data._selectedCurrency,
+                                            onChanged:
+                                                (CurrencyTypes? currency) {
+                                              ref
+                                                  .watch(dataProvider)
+                                                  .selectedCurrency = currency;
+                                              generateSalaryController
+                                                  .onCurrencyChange(
+                                                      currency?.name ?? '');
+                                              print(
+                                                  'Selected currency: ${currency?.name}');
+                                            },
+                                            items: currencyList
+                                                .map<
+                                                    DropdownMenuItem<
+                                                        CurrencyTypes>>(
+                                                  (currency) =>
+                                                      DropdownMenuItem<
+                                                          CurrencyTypes>(
+                                                    value: currency,
+                                                    child: Row(
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .center,
+                                                      children: [
+                                                        Image.asset(
+                                                            currency.flag,
+                                                            height: 20,
+                                                            width: 30),
+                                                        SizedBox(width: 5),
+                                                        Text(currency.name,
+                                                            style: AppStyle
+                                                                .txtHelveticaNowTextBold16),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                )
+                                                .toList(),
+                                          ),
+                                          if (generateSalaryState
+                                                  .currency.error !=
+                                              null)
+                                            Text(
+                                              Currency.showCurrencyErrorMessage(
+                                                      showErrorCurrency)
+                                                  .toString(),
+                                              style: AppStyle
+                                                  .txtManropeRegular12
+                                                  .copyWith(
+                                                      color: ColorConstant
+                                                          .lightBlueA200),
+                                            ),
+                                        ],
+                                      ),
                                     ],
                                   ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
                             Container(
                               // padding: const EdgeInsets.all(8.0),
@@ -417,43 +482,6 @@ class GeneratorSalaryScreen extends ConsumerWidget {
                               ],
                             ),
                           ]))),
-              Align(
-                alignment: Alignment.topCenter,
-                child: Padding(
-                  padding: getPadding(top: 120, right: 30, left: 30),
-                  child: TextField(
-                      focusNode: salaryFocusNode,
-                      maxLength: 12,
-                      keyboardType:
-                          TextInputType.numberWithOptions(decimal: true),
-                      inputFormatters: [
-                        ThousandsFormatter(),
-                      ],
-                      onChanged: (salary) {
-                        generateSalaryController.onSalaryChange(salary);
-                        print(salary);
-                      },
-                      decoration: InputDecoration(
-                        prefixText: '\$ ',
-                        errorText: generateSalaryState.salary.error != null &&
-                                salaryFocusNode.hasFocus
-                            ? Salary.showSalaryErrorMessage(showErrorSalary)
-                                .toString()
-                            : null,
-                        errorStyle: AppStyle.txtManropeRegular12
-                            .copyWith(color: ColorConstant.redA700),
-                        prefixStyle: AppStyle.txtHelveticaNowTextBold40,
-                        hintText: '0.00',
-                        border: OutlineInputBorder(
-                          borderSide: BorderSide.none,
-                          borderRadius: BorderRadius.circular(8.0),
-                        ),
-                        filled: true,
-                      ),
-                      textAlign: TextAlign.center,
-                      style: AppStyle.txtHelveticaNowTextBold40),
-                ),
-              ),
             ],
           ),
         ),

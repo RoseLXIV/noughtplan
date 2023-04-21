@@ -7,13 +7,13 @@ import 'package:intl/intl.dart';
 import 'package:noughtplan/core/app_export.dart';
 
 // ignore: must_be_immutable
-class ListchartItemWidget extends HookWidget {
+class ListDebtChartItemWidgetDebt extends HookWidget {
   final String category;
   final String amount;
   final double totalAmount;
   final VoidCallback? onLoad;
 
-  ListchartItemWidget({
+  ListDebtChartItemWidgetDebt({
     required this.category,
     required this.amount,
     required this.totalAmount,
@@ -32,12 +32,16 @@ class ListchartItemWidget extends HookWidget {
     double amountDouble =
         double.parse(amount.replaceAll('\$', '').replaceAll(',', ''));
     // print('amountDouble: $amountDouble');
-    double remainingAmount = amountDouble - totalAmount;
-    Color progressBarColor =
-        remainingAmount >= 0 ? Colors.green.shade300 : Colors.red.shade300;
+    double remainingAmount = totalAmount - amountDouble;
+
+    double progressValue = totalAmount / amountDouble;
+
+    Color progressBarColor = Colors.green.shade400;
+    Color progressBarEmptyColor = Colors.blue.shade400;
     Color amountTextColor =
-        remainingAmount >= 0 ? Colors.grey.shade800 : Colors.red;
-    String formattedRemainingAmount =
+        remainingAmount >= 0 ? Colors.green : Colors.grey.shade800;
+
+    String formattedRemainingAmount = (remainingAmount > 0 ? '+' : '') +
         NumberFormat.currency(symbol: '\$', decimalDigits: 2)
             .format(remainingAmount);
     return Container(
@@ -75,9 +79,9 @@ class ListchartItemWidget extends HookWidget {
                   Padding(
                     padding: getPadding(bottom: 3),
                     child: Text(
-                      "Total Spent",
+                      "Total Debt Paid",
                       overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.left,
+                      textAlign: TextAlign.right,
                       style: AppStyle.txtManropeSemiBold10Bluegray300.copyWith(
                         letterSpacing: getHorizontalSize(
                           0.2,
@@ -91,40 +95,20 @@ class ListchartItemWidget extends HookWidget {
                         width: 132,
                         child: ClipRRect(
                           borderRadius: BorderRadius.all(Radius.circular(8.0)),
-                          child: LinearProgressIndicator(
-                            value: totalAmount /
-                                double.parse(amount
-                                    .replaceAll('\$', '')
-                                    .replaceAll(',', '')),
+                          child: ReversedLinearProgressIndicator(
+                            value: progressValue,
                             minHeight: 15,
-                            backgroundColor: ColorConstant.gray100,
-                            valueColor:
-                                AlwaysStoppedAnimation<Color>(progressBarColor),
+                            backgroundColor: progressBarEmptyColor,
+                            valueColor: (progressBarColor),
                           ),
                         ),
                       ),
                       Positioned(
                         top: 0.1,
                         left: 4,
-                        // left: max(
-                        //     0,
-                        //     (MediaQuery.of(context).size.width - 165) *
-                        //             (totalAmount /
-                        //                 double.parse(amount
-                        //                     .replaceAll('\$', '')
-                        //                     .replaceAll(',', ''))) -
-                        //         28),
-                        // right: min(
-                        //     0,
-                        //     (MediaQuery.of(context).size.width - 165) *
-                        //             (totalAmount /
-                        //                 double.parse(amount
-                        //                     .replaceAll('\$', '')
-                        //                     .replaceAll(',', ''))) -
-                        //         28), // Adjust this value to position the text properly
                         child: Text(
                           formattedTotalAmount,
-                          textAlign: TextAlign.left,
+                          textAlign: TextAlign.right,
                           style: AppStyle.txtHelveticaNowTextBold12
                               .copyWith(color: Colors.grey.shade800),
                         ),
@@ -145,7 +129,7 @@ class ListchartItemWidget extends HookWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  "Remaining Amount",
+                  "Debt Paid",
                   overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.right,
                   style: AppStyle.txtManropeSemiBold10Bluegray300.copyWith(
@@ -178,6 +162,48 @@ class ListchartItemWidget extends HookWidget {
           // ),
         ],
       ),
+    );
+  }
+}
+
+class ReversedLinearProgressIndicator extends StatelessWidget {
+  final double value;
+  final double minHeight;
+  final Color backgroundColor;
+  final Color valueColor;
+
+  ReversedLinearProgressIndicator({
+    required this.value,
+    required this.minHeight,
+    required this.backgroundColor,
+    required this.valueColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        Container(
+          height: minHeight,
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+        Align(
+          alignment: Alignment.centerRight,
+          child: FractionallySizedBox(
+            widthFactor: value,
+            child: Container(
+              height: minHeight,
+              decoration: BoxDecoration(
+                color: valueColor,
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

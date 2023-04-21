@@ -9,7 +9,8 @@ import 'package:noughtplan/core/budget/generate_salary/controller/generate_salar
 import 'package:noughtplan/core/budget/models/budget_status.dart';
 import 'package:noughtplan/core/budget/providers/budget_state_provider.dart';
 import 'package:noughtplan/core/budget_info/models/backend/budget_necessary_categories_storage.dart';
-import 'package:noughtplan/presentation/category_necessary_screen/widgets/category_button.dart';
+import 'package:noughtplan/core/constants/budgets.dart';
+import 'package:noughtplan/presentation/category_necessary_screen_edit/widgets/category_button.dart';
 import 'package:noughtplan/widgets/custom_text_button.dart';
 
 import '../category_necessary_screen/widgets/gridtrendingup_item_widget.dart';
@@ -233,7 +234,7 @@ Map<int, String> getButtonTextsForGridItem(String gridItemText) {
   }
 }
 
-class ButtonListState extends ChangeNotifier {
+class ButtonListStateEdit extends ChangeNotifier {
   Map<String, List<String>> selectedCategories = {};
   String? currentParentCategory;
   final filteredCategories = ValueNotifier<List<String>>([]);
@@ -302,8 +303,8 @@ class ButtonListState extends ChangeNotifier {
   }
 }
 
-class CategorySearchNotifier extends StateNotifier<List<String>> {
-  CategorySearchNotifier() : super([]);
+class CategorySearchNotifierEdit extends StateNotifier<List<String>> {
+  CategorySearchNotifierEdit() : super([]);
 
   void updateFilteredCategories(
     BuildContext context,
@@ -331,27 +332,50 @@ class CategorySearchNotifier extends StateNotifier<List<String>> {
 }
 
 final categorySearchProvider =
-    StateNotifierProvider<CategorySearchNotifier, List<String>>(
-        (ref) => CategorySearchNotifier());
+    StateNotifierProvider<CategorySearchNotifierEdit, List<String>>(
+        (ref) => CategorySearchNotifierEdit());
 
-final buttonListStateProvider =
-    ChangeNotifierProvider<ButtonListState>((ref) => ButtonListState());
+final buttonListStateProviderEdit =
+    ChangeNotifierProvider<ButtonListStateEdit>((ref) => ButtonListStateEdit());
 
 // ignore_for_file: must_be_immutable
-class CategoryNecessaryScreen extends HookConsumerWidget {
+class CategoryNecessaryScreenEdit extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final Budget? selectedBudget =
+        ModalRoute.of(context)!.settings.arguments as Budget?;
+
     final searchController = useTextEditingController();
 
     final filteredCategories = ref.watch(categorySearchProvider);
 
-    final buttonListState = ref.watch(buttonListStateProvider);
+    final buttonListState = ref.watch(buttonListStateProviderEdit);
     Map<String, List<String>> selectedCategories =
         buttonListState.selectedCategories;
     String? parentCategory = buttonListState.currentParentCategory;
     List<String> selectedButtonTexts =
         parentCategory != null ? selectedCategories[parentCategory] ?? [] : [];
     List<Widget> selectedButtons = [];
+
+    void initializeSelectedButtons(Map<String, double> necessaryExpense) {
+      necessaryExpense.forEach((key, value) {
+        ref.read(buttonListStateProviderEdit.notifier).addCategory(key);
+      });
+    }
+
+    void initializeSelectedButtonsDebt(Map<String, double> debtExpense) {
+      debtExpense.forEach((key, value) {
+        ref.read(buttonListStateProviderEdit.notifier).addCategory(key);
+      });
+    }
+
+    useEffect(() {
+      Future.microtask(() {
+        initializeSelectedButtons(selectedBudget?.necessaryExpense ?? {});
+        initializeSelectedButtonsDebt(selectedBudget?.debtExpense ?? {});
+      });
+      return () {}; // Cleanup function
+    }, []);
 
     selectedCategories.forEach((parentCategory, buttonTexts) {
       buttonTexts.forEach((buttonText) {
@@ -361,7 +385,7 @@ class CategoryNecessaryScreen extends HookConsumerWidget {
             child: GestureDetector(
               onTap: () {
                 ref
-                    .read(buttonListStateProvider.notifier)
+                    .read(buttonListStateProviderEdit.notifier)
                     .removeCategory(parentCategory, buttonText);
               },
               child: Container(
@@ -384,6 +408,174 @@ class CategoryNecessaryScreen extends HookConsumerWidget {
         );
       });
     });
+
+    print('selectedCategories: $selectedCategories');
+    // print('selectedButtons: $selectedButtons');
+
+    void _showModalBottomSheet(BuildContext context,
+        Map<int, String> buttonTexts, String parentCategory) {
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (BuildContext context) {
+          return Stack(
+            children: [
+              BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 1, sigmaY: 1),
+                child: Container(
+                    // color: Colors.grey.withOpacity(0.5),
+                    ),
+              ),
+              DraggableScrollableSheet(
+                initialChildSize: 0.4, // Set the initial height of the modal
+                minChildSize: 0.4, // Set the minimum height of the modal
+                maxChildSize: 0.6, // Set the maximum height of the modal
+                builder:
+                    (BuildContext context, ScrollController scrollController) {
+                  return ClipRRect(
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(32),
+                      topRight: Radius.circular(32),
+                    ),
+                    child: Container(
+                      color: Colors.white,
+                      padding: EdgeInsets.all(16),
+                      child: GridView.builder(
+                        padding: EdgeInsets.zero,
+                        itemCount: buttonTexts.length,
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 3,
+                          mainAxisSpacing: 8,
+                          crossAxisSpacing: 8,
+                          childAspectRatio: 2,
+                        ),
+                        itemBuilder: (BuildContext context, int index) {
+                          final entry = buttonTexts.entries.elementAt(index);
+                          return CategoryButtonEdit(
+                            index: entry.key,
+                            text: entry.value,
+                            // selectedCategories:
+                            //     buttonListState.selectedCategories,
+                          );
+                        },
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
+          );
+        },
+      );
+    }
+
+    void showAddCategoryModal(BuildContext context, WidgetRef ref) {
+      TextEditingController customCategoryController = TextEditingController();
+
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (BuildContext context) {
+          void submitForm() async {
+            final customCategory = customCategoryController.text;
+            if (customCategory.isNotEmpty) {
+              ref
+                  .read(buttonListStateProviderEdit.notifier)
+                  .addCategory(customCategory);
+            }
+          }
+
+          return Stack(
+            children: [
+              BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 1, sigmaY: 1),
+                child: Container(),
+              ),
+              DraggableScrollableSheet(
+                initialChildSize: 0.7,
+                minChildSize: 0.7,
+                maxChildSize: 0.8,
+                builder:
+                    (BuildContext context, ScrollController scrollController) {
+                  return Padding(
+                    padding: EdgeInsets.only(
+                      bottom: MediaQuery.of(context).viewInsets.bottom,
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(32),
+                        topRight: Radius.circular(32),
+                      ),
+                      child: Container(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            Container(
+                              color: Colors.white,
+                              padding: EdgeInsets.all(16),
+                              child: SingleChildScrollView(
+                                controller: scrollController,
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: TextField(
+                                        onSubmitted: (_) => submitForm(),
+                                        controller: customCategoryController,
+                                        textAlign: TextAlign.center,
+                                        decoration: InputDecoration(
+                                          labelText: "Custom Category",
+                                          labelStyle: AppStyle
+                                              .txtHelveticaNowTextBold14
+                                              .copyWith(
+                                            color: ColorConstant.blueGray300,
+                                          ),
+                                          floatingLabelBehavior:
+                                              FloatingLabelBehavior.always,
+                                          hintText:
+                                              "Enter a custom category name...",
+                                          hintStyle: AppStyle
+                                              .txtManropeSemiBold14
+                                              .copyWith(
+                                                  color:
+                                                      ColorConstant.blueGray300,
+                                                  letterSpacing: 0.0),
+                                          border: OutlineInputBorder(
+                                            borderRadius: BorderRadiusStyle
+                                                .txtRoundedBorder10,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    SizedBox(height: 16),
+                                    CustomButton(
+                                      onTap: () {
+                                        submitForm();
+                                        Navigator.pop(context);
+                                      },
+                                      alignment: Alignment.bottomCenter,
+                                      height: getVerticalSize(56),
+                                      text: "Save",
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
+          );
+        },
+      );
+    }
 
     return SafeArea(
       child: Scaffold(
@@ -441,12 +633,16 @@ class CategoryNecessaryScreen extends HookConsumerWidget {
                               actions: [
                                 Row(
                                   children: [
-                                    Container(
-                                      width: 70,
-                                      child: SvgPicture.asset(
-                                        ImageConstant.imgPlus,
-                                        height: 24,
-                                        width: 24,
+                                    GestureDetector(
+                                      onTap: () =>
+                                          showAddCategoryModal(context, ref),
+                                      child: Container(
+                                        width: 70,
+                                        child: SvgPicture.asset(
+                                          ImageConstant.imgPlus,
+                                          height: 24,
+                                          width: 24,
+                                        ),
                                       ),
                                     ),
                                     GestureDetector(
@@ -543,12 +739,14 @@ class CategoryNecessaryScreen extends HookConsumerWidget {
                                           5.0, // Set the aspect ratio of the grid items
                                     ),
                                     itemBuilder: (context, index) {
-                                      final buttonListState =
-                                          ref.watch(buttonListStateProvider);
+                                      final buttonListState = ref
+                                          .watch(buttonListStateProviderEdit);
                                       final selectedButtons = buttonListState
                                           .selectedCategories.values
                                           .expand((element) => element)
                                           .toList();
+                                      // print(
+                                      //     'selectedButtons: $selectedButtons');
                                       final isSelected = selectedButtons
                                           .contains(filteredCategories[index]);
 
@@ -556,8 +754,9 @@ class CategoryNecessaryScreen extends HookConsumerWidget {
                                         onTap: () {
                                           if (selectedButtons.length < 30) {
                                             ref
-                                                .read(buttonListStateProvider
-                                                    .notifier)
+                                                .read(
+                                                    buttonListStateProviderEdit
+                                                        .notifier)
                                                 .addCategory(
                                                     filteredCategories[index]);
                                           } else {
@@ -580,10 +779,12 @@ class CategoryNecessaryScreen extends HookConsumerWidget {
                                                 .showSnackBar(snackBar);
                                           }
                                         },
-                                        child: CategoryButton(
+                                        child: CategoryButtonEdit(
                                           index: index,
                                           text: filteredCategories[index],
                                           isFromSearchResults: true,
+                                          // selectedCategories: buttonListState
+                                          // .selectedCategories,
                                         ),
                                       );
                                     },
@@ -710,7 +911,7 @@ class CategoryNecessaryScreen extends HookConsumerWidget {
                                           String parentCategory =
                                               gridItems[index]['text'];
                                           ref
-                                              .read(buttonListStateProvider
+                                              .read(buttonListStateProviderEdit
                                                   .notifier)
                                               .setCurrentParentCategory(
                                                   parentCategory);
@@ -900,59 +1101,4 @@ class CategoryNecessaryScreen extends HookConsumerWidget {
   onTapNext(BuildContext context) {
     Navigator.pushNamed(context, AppRoutes.categoryDiscretionaryScreen);
   }
-}
-
-void _showModalBottomSheet(
-    BuildContext context, Map<int, String> buttonTexts, String parentCategory) {
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    builder: (BuildContext context) {
-      return Stack(
-        children: [
-          BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 1, sigmaY: 1),
-            child: Container(
-                // color: Colors.grey.withOpacity(0.5),
-                ),
-          ),
-          DraggableScrollableSheet(
-            initialChildSize: 0.4, // Set the initial height of the modal
-            minChildSize: 0.4, // Set the minimum height of the modal
-            maxChildSize: 0.6, // Set the maximum height of the modal
-            builder: (BuildContext context, ScrollController scrollController) {
-              return ClipRRect(
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(32),
-                  topRight: Radius.circular(32),
-                ),
-                child: Container(
-                  color: Colors.white,
-                  padding: EdgeInsets.all(16),
-                  child: GridView.builder(
-                    padding: EdgeInsets.zero,
-                    itemCount: buttonTexts.length,
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 3,
-                      mainAxisSpacing: 8,
-                      crossAxisSpacing: 8,
-                      childAspectRatio: 2,
-                    ),
-                    itemBuilder: (BuildContext context, int index) {
-                      final entry = buttonTexts.entries.elementAt(index);
-                      return CategoryButton(
-                        index: entry.key,
-                        text: entry.value,
-                      );
-                    },
-                  ),
-                ),
-              );
-            },
-          ),
-        ],
-      );
-    },
-  );
 }

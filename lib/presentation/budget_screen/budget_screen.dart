@@ -1,11 +1,16 @@
 import 'dart:math';
 
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_neumorphic/flutter_neumorphic.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:noughtplan/core/budget/providers/budget_state_provider.dart';
 import 'package:noughtplan/core/constants/budgets.dart';
+import 'package:noughtplan/presentation/budget_screen/widgets/call_chat_gpt_highlights.dart';
 import 'package:noughtplan/presentation/budget_screen/widgets/user_types_bugdet_widget.dart';
+import 'package:noughtplan/presentation/expense_tracking_screen/actual_expenses_provider.dart';
 
 import '../budget_screen/widgets/listchart_item_widget.dart';
 import 'package:flutter/material.dart';
@@ -13,23 +18,133 @@ import 'package:noughtplan/core/app_export.dart';
 import 'package:noughtplan/widgets/custom_button.dart';
 import 'package:fl_chart/fl_chart.dart';
 
-class BudgetScreen extends ConsumerWidget {
+class BudgetScreen extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final budget = ModalRoute.of(context)?.settings.arguments as Budget?;
+    final Map<String, dynamic> args =
+        ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+    final Budget? selectedBudget = args['budget'];
+    final String firstName = args['firstName'];
 
-    print('Budget ID: ${budget?.budgetId}');
-    print('Budget Name: ${budget?.budgetName}');
-    print('Budget Type: ${budget?.budgetType}');
-    // print('Budget Necessary Categories: ${budget?.necessaryExpense}');
-    // print('Budget Discretionary Categories: ${budget?.discretionaryExpense}');
-    // print('Budget Debt Categories: ${budget?.debtExpense}');
+    final budgetNotifier = ref.watch(budgetStateProvider.notifier);
+
+    final _budgets = useState<List<Budget?>?>(null);
+    Budget? _updatedSelectedBudget;
+
+    Map<String, double> getTotalAmountPerCategory(
+        List<Map<String, dynamic>> actualExpenses) {
+      Map<String, double> totalAmountPerCategory = {};
+
+      actualExpenses.forEach((expense) {
+        String category = expense['category'];
+        double amount = expense['amount'];
+
+        if (totalAmountPerCategory.containsKey(category)) {
+          totalAmountPerCategory[category] =
+              totalAmountPerCategory[category]! + amount;
+        } else {
+          totalAmountPerCategory[category] = amount;
+        }
+      });
+
+      return totalAmountPerCategory;
+    }
+
+    Map<String, double> calculateTotalAmounts(Budget? budget) {
+      return getTotalAmountPerCategory(budget?.actualExpenses ?? []);
+    }
+
+    Map<String, double> totalAmounts =
+        getTotalAmountPerCategory(selectedBudget?.actualExpenses ?? []);
+
+    if (_budgets.value != null) {
+      // Future.microtask(() async {
+      final updatedSelectedBudget = _budgets.value!.firstWhere(
+        (budget) => budget?.budgetId == selectedBudget!.budgetId,
+        orElse: () => null,
+      );
+
+      _updatedSelectedBudget = updatedSelectedBudget;
+
+      if (updatedSelectedBudget != null) {
+        // final actualExpensesNotifier =
+        //     ref.read(actualExpensesProvider.notifier);
+        // actualExpensesNotifier
+        //     .updateActualExpenses(updatedSelectedBudget.actualExpenses);
+
+        // Update the totalAmounts
+        totalAmounts = calculateTotalAmounts(updatedSelectedBudget);
+      }
+      // });
+    }
+
+    String totalRemainingFundsFormatted = '';
+
+    double getTotalAmountsSum(Map<String, double> totalAmounts) {
+      double sum = 0;
+      totalAmounts.values.forEach((value) {
+        sum += value;
+      });
+      return sum;
+    }
+
+    print('Total Amounts: $totalAmounts');
+    print('Updated Selected Budget: $_updatedSelectedBudget');
+
+    void updateExpensesOnLoad() {
+      Future.microtask(
+        () async {
+          final fetchedBudgets = await budgetNotifier.fetchUserBudgets();
+          _budgets.value = fetchedBudgets;
+
+          if (_budgets.value != null) {
+            final updatedSelectedBudget = _budgets.value!.firstWhere(
+              (budget) => budget?.budgetId == selectedBudget!.budgetId,
+              orElse: () => null,
+            );
+
+            if (updatedSelectedBudget != null) {
+              final actualExpensesNotifier =
+                  await ref.read(actualExpensesProvider.notifier);
+              actualExpensesNotifier
+                  .updateActualExpenses(updatedSelectedBudget.actualExpenses);
+
+              // totalAmounts = calculateTotalAmounts(updatedSelectedBudget);
+            }
+          }
+        },
+      );
+    }
+
+    useEffect(() {
+      updateExpensesOnLoad();
+
+      return () {}; // Clean-up function
+    }, []);
+
+    Future<void> fetchGPTData() async {
+      if (_updatedSelectedBudget != null) {
+        // List<String> suggestions =
+        //     await getSuggestions(_updatedSelectedBudget);
+        List<String> highlights =
+            await getHighlights(_updatedSelectedBudget, firstName);
+        // List<String> achievements =
+        //     await getAchievements(_updatedSelectedBudget);
+
+        // print('Suggestions: $suggestions');
+        print('Highlights: $highlights');
+        // print('Achievements: $achievements');
+      }
+    }
+
+    // fetchGPTData();
 
     final Map<String, double> necessaryCategories =
-        budget?.necessaryExpense ?? {};
+        selectedBudget?.necessaryExpense ?? {};
     final Map<String, double> discretionaryCategories =
-        budget?.discretionaryExpense ?? {};
-    final Map<String, double> debtCategories = budget?.debtExpense ?? {};
+        selectedBudget?.discretionaryExpense ?? {};
+    final Map<String, double> debtCategories =
+        selectedBudget?.debtExpense ?? {};
 
     final double necessaryTotal =
         necessaryCategories.values.fold(0, (a, b) => a + b);
@@ -37,7 +152,7 @@ class BudgetScreen extends ConsumerWidget {
         discretionaryCategories.values.fold(0, (a, b) => a + b);
     final double debtTotal = debtCategories.values.fold(0, (a, b) => a + b);
 
-    final totalExpenses = necessaryTotal + discretionaryTotal + debtTotal;
+    final totalExpenses = selectedBudget!.salary;
 
     final numberFormat = NumberFormat.currency(symbol: '\$', decimalDigits: 2);
 
@@ -76,6 +191,12 @@ class BudgetScreen extends ConsumerWidget {
         'amount': numberFormat.format(value),
       });
     });
+
+    double totalExpensesSum = getTotalAmountsSum(totalAmounts);
+    double totalRemainingFunds = totalExpenses - totalExpensesSum;
+    totalRemainingFundsFormatted = numberFormat.format(totalRemainingFunds);
+
+    print('Total Remaining Funds: $totalRemainingFundsFormatted');
 
     return SafeArea(
       child: Scaffold(
@@ -148,7 +269,12 @@ class BudgetScreen extends ConsumerWidget {
                                       ),
                                     ), // Replace with your desired icon
                                     onPressed: () {
-                                      // Your onPressed code goes here
+                                      Navigator.pushNamed(context,
+                                          '/generator_salary_screen_edit',
+                                          arguments: {
+                                            'selectedBudget':
+                                                _updatedSelectedBudget,
+                                          });
                                       print("IconButton tapped");
                                     },
                                   ),
@@ -245,11 +371,11 @@ class BudgetScreen extends ConsumerWidget {
                                           gradient: LinearGradient(
                                             colors: [
                                               getColorForSpendingType(
-                                                  budget?.spendingType ?? ''),
+                                                  selectedBudget.spendingType),
                                               getColorForSavingType(
-                                                  budget?.savingType ?? ''),
+                                                  selectedBudget.savingType),
                                               getColorForDebtType(
-                                                  budget?.debtType ?? ''),
+                                                  selectedBudget.debtType),
                                             ],
                                             stops: [0.0, 0.5, 1.0],
                                           ),
@@ -262,8 +388,8 @@ class BudgetScreen extends ConsumerWidget {
                                             Expanded(
                                               child: Container(
                                                 child: SpendingTypePill(
-                                                  type: budget?.spendingType ??
-                                                      '',
+                                                  type: selectedBudget
+                                                      .spendingType,
                                                 ),
                                               ),
                                             ),
@@ -271,14 +397,14 @@ class BudgetScreen extends ConsumerWidget {
                                               child: Container(
                                                 child: SavingTypePill(
                                                   type:
-                                                      budget?.savingType ?? '',
+                                                      selectedBudget.savingType,
                                                 ),
                                               ),
                                             ),
                                             Expanded(
                                               child: Container(
                                                 child: DebtTypePill(
-                                                  type: budget?.debtType ?? '',
+                                                  type: selectedBudget.debtType,
                                                 ),
                                               ),
                                             ),
@@ -293,23 +419,23 @@ class BudgetScreen extends ConsumerWidget {
                                       mainAxisAlignment:
                                           MainAxisAlignment.spaceBetween,
                                       children: [
-                                        Text(budget?.spendingType ?? '',
+                                        Text(selectedBudget.spendingType,
                                             style: AppStyle.txtManropeSemiBold12
                                                 .copyWith(
                                               color: getColorForSpendingType(
-                                                  budget?.spendingType ?? ''),
+                                                  selectedBudget.spendingType),
                                             )),
-                                        Text(budget?.savingType ?? '',
+                                        Text(selectedBudget.savingType,
                                             style: AppStyle.txtManropeSemiBold12
                                                 .copyWith(
                                               color: getColorForSavingType(
-                                                  budget?.savingType ?? ''),
+                                                  selectedBudget.savingType),
                                             )),
-                                        Text(budget?.debtType ?? '',
+                                        Text(selectedBudget.debtType,
                                             style: AppStyle.txtManropeSemiBold12
                                                 .copyWith(
                                               color: getColorForDebtType(
-                                                  budget?.debtType ?? ''),
+                                                  selectedBudget.debtType),
                                             )),
                                       ],
                                     ),
@@ -340,7 +466,7 @@ class BudgetScreen extends ConsumerWidget {
                                           left: 5,
                                           top: 30,
                                           right: 5,
-                                          bottom: 30,
+                                          bottom: 15,
                                         ),
                                         decoration: AppDecoration.outlineGray100
                                             .copyWith(
@@ -446,7 +572,7 @@ class BudgetScreen extends ConsumerWidget {
                                                                 Padding(
                                                                   padding:
                                                                       getPadding(
-                                                                    bottom: 8,
+                                                                    bottom: 15,
                                                                   ),
                                                                   child: Row(
                                                                     mainAxisAlignment:
@@ -465,8 +591,29 @@ class BudgetScreen extends ConsumerWidget {
                                                                     ],
                                                                   ),
                                                                 ),
+                                                                Padding(
+                                                                  padding:
+                                                                      getPadding(
+                                                                          bottom:
+                                                                              3),
+                                                                  child: Text(
+                                                                    'Total Remaining Amount',
+                                                                    style: AppStyle
+                                                                        .txtManropeRegular10
+                                                                        .copyWith(
+                                                                      color: ColorConstant
+                                                                          .blueGray300,
+                                                                    ),
+                                                                    overflow:
+                                                                        TextOverflow
+                                                                            .ellipsis,
+                                                                  ),
+                                                                ),
                                                                 Text(
-                                                                  '${totalExpensesFormatted}',
+                                                                  '${totalRemainingFundsFormatted}',
+                                                                  textAlign:
+                                                                      TextAlign
+                                                                          .center,
                                                                   style: AppStyle
                                                                       .txtHelveticaNowTextBold24
                                                                       .copyWith(
@@ -481,10 +628,48 @@ class BudgetScreen extends ConsumerWidget {
                                                                   padding:
                                                                       getPadding(
                                                                           top:
-                                                                              8),
+                                                                              4),
+                                                                  child: Row(
+                                                                    mainAxisAlignment:
+                                                                        MainAxisAlignment
+                                                                            .center,
+                                                                    crossAxisAlignment:
+                                                                        CrossAxisAlignment
+                                                                            .center,
+                                                                    children: [
+                                                                      Text(
+                                                                        'of ',
+                                                                        style: AppStyle
+                                                                            .txtManropeSemiBold12
+                                                                            .copyWith(
+                                                                          color:
+                                                                              ColorConstant.blueGray300,
+                                                                        ),
+                                                                        overflow:
+                                                                            TextOverflow.ellipsis,
+                                                                      ),
+                                                                      Text(
+                                                                        '${totalExpensesFormatted}',
+                                                                        style: AppStyle
+                                                                            .txtHelveticaNowTextBold12
+                                                                            .copyWith(
+                                                                          color:
+                                                                              ColorConstant.blueGray300,
+                                                                        ),
+                                                                        overflow:
+                                                                            TextOverflow.ellipsis,
+                                                                      ),
+                                                                    ],
+                                                                  ),
+                                                                ),
+                                                                Padding(
+                                                                  padding:
+                                                                      getPadding(
+                                                                          top:
+                                                                              15),
                                                                 ),
                                                                 Text(
-                                                                  'Created: ${DateFormat('MM/dd/yyyy').format(budget!.budgetDate)}',
+                                                                  'Created: ${DateFormat('MM/dd/yyyy').format(selectedBudget.budgetDate)}',
                                                                   style: AppStyle
                                                                       .txtManropeSemiBold12
                                                                       .copyWith(
@@ -935,141 +1120,23 @@ class BudgetScreen extends ConsumerWidget {
                                   ),
                                   Padding(
                                     padding: getPadding(
-                                      top: 29,
+                                      top: 16,
                                     ),
-                                    child: Text(
-                                      "Debt Amounts",
-                                      overflow: TextOverflow.ellipsis,
-                                      textAlign: TextAlign.left,
-                                      style: AppStyle.txtHelveticaNowTextBold16
-                                          .copyWith(
-                                        letterSpacing: getHorizontalSize(
-                                          0.4,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  Padding(
-                                    padding: getPadding(
-                                      top: 8,
-                                    ),
-                                    child: Padding(
-                                      padding:
-                                          getPadding(top: 8, left: 8, right: 8),
-                                      child: ListView.separated(
-                                        physics: BouncingScrollPhysics(),
-                                        shrinkWrap: true,
-                                        separatorBuilder: (context, index) {
-                                          return SizedBox(
-                                            height: getVerticalSize(
-                                              16,
+                                    child: Column(
+                                      children: [
+                                        Text(
+                                          "Weekly Highlights",
+                                          overflow: TextOverflow.ellipsis,
+                                          textAlign: TextAlign.left,
+                                          style: AppStyle
+                                              .txtHelveticaNowTextBold16
+                                              .copyWith(
+                                            letterSpacing: getHorizontalSize(
+                                              0.4,
                                             ),
-                                          );
-                                        },
-                                        itemCount: debtBudgetItems.length,
-                                        itemBuilder: (context, index) {
-                                          return ListchartItemWidget(
-                                            category: debtBudgetItems[index]
-                                                ['category']!,
-                                            amount: debtBudgetItems[index]
-                                                ['amount']!,
-                                          );
-                                        },
-                                      ),
-                                    ),
-                                  ),
-                                  Padding(
-                                    padding: getPadding(
-                                      top: 29,
-                                    ),
-                                    child: Text(
-                                      "Necessary Amounts",
-                                      overflow: TextOverflow.ellipsis,
-                                      textAlign: TextAlign.left,
-                                      style: AppStyle.txtHelveticaNowTextBold16
-                                          .copyWith(
-                                        letterSpacing: getHorizontalSize(
-                                          0.4,
+                                          ),
                                         ),
-                                      ),
-                                    ),
-                                  ),
-                                  Padding(
-                                    padding: getPadding(
-                                      top: 8,
-                                    ),
-                                    child: Padding(
-                                      padding:
-                                          getPadding(top: 8, left: 8, right: 8),
-                                      child: ListView.separated(
-                                        physics: BouncingScrollPhysics(),
-                                        shrinkWrap: true,
-                                        separatorBuilder: (context, index) {
-                                          return SizedBox(
-                                            height: getVerticalSize(
-                                              16,
-                                            ),
-                                          );
-                                        },
-                                        itemCount: necessaryBudgetItems.length,
-                                        itemBuilder: (context, index) {
-                                          return ListchartItemWidget(
-                                            category:
-                                                necessaryBudgetItems[index]
-                                                    ['category']!,
-                                            amount: necessaryBudgetItems[index]
-                                                ['amount']!,
-                                          );
-                                        },
-                                      ),
-                                    ),
-                                  ),
-                                  Padding(
-                                    padding: getPadding(
-                                      top: 29,
-                                    ),
-                                    child: Text(
-                                      "Discretionary Amounts",
-                                      overflow: TextOverflow.ellipsis,
-                                      textAlign: TextAlign.left,
-                                      style: AppStyle.txtHelveticaNowTextBold16
-                                          .copyWith(
-                                        letterSpacing: getHorizontalSize(
-                                          0.4,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  Padding(
-                                    padding: getPadding(
-                                      top: 8,
-                                    ),
-                                    child: Padding(
-                                      padding:
-                                          getPadding(top: 8, left: 8, right: 8),
-                                      child: ListView.separated(
-                                        physics: BouncingScrollPhysics(),
-                                        shrinkWrap: true,
-                                        separatorBuilder: (context, index) {
-                                          return SizedBox(
-                                            height: getVerticalSize(
-                                              16,
-                                            ),
-                                          );
-                                        },
-                                        itemCount:
-                                            discretionaryBudgetItems.length,
-                                        itemBuilder: (context, index) {
-                                          return ListchartItemWidget(
-                                            category:
-                                                discretionaryBudgetItems[index]
-                                                    ['category']!,
-                                            amount:
-                                                discretionaryBudgetItems[index]
-                                                    ['amount']!,
-                                          );
-                                        },
-                                      ),
+                                      ],
                                     ),
                                   ),
                                 ],

@@ -61,6 +61,50 @@ class BudgetInfoStorage {
     }
   }
 
+  Future<bool> saveBudgetInfoUpdate({
+    required UserId id,
+    required BudgetId budgetId,
+    required double salary,
+    required String currency,
+    required String budgetType,
+  }) async {
+    try {
+      // print(id);
+      final budgetInfo = await FirebaseFirestore.instance
+          .collection(FirebaseCollectionName.budgets)
+          .where(FirebaseFieldName.budget_id, isEqualTo: budgetId.toString())
+          .limit(1)
+          .get();
+
+      if (budgetInfo.docs.isNotEmpty) {
+        await budgetInfo.docs.first.reference.update({
+          FirebaseFieldName.budget_id: budgetId.toString(),
+          FirebaseFieldName.salary: salary,
+          FirebaseFieldName.currency: currency,
+          FirebaseFieldName.budget_type: budgetType,
+        });
+        return true;
+      }
+
+      final payload = BudgetInfoPayload(
+        userId: id,
+        budgetId: budgetId,
+        salary: salary,
+        currency: currency,
+        budgetType: budgetType,
+      );
+      await FirebaseFirestore.instance
+          .collection(
+            FirebaseCollectionName.budgets,
+          )
+          .add(payload);
+
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
   Future<bool> saveBudgetInfoSubscriber({
     required UserId id,
     required BudgetId budgetId,
@@ -179,6 +223,35 @@ class BudgetInfoStorage {
       // If the budget document is found, delete it
       if (budgetInfo.docs.isNotEmpty) {
         await budgetInfo.docs.first.reference.delete();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<bool> deleteExpense(String budgetId, int index) async {
+    try {
+      // Find the budget document using the budgetId
+      final budgetInfo = await FirebaseFirestore.instance
+          .collection(FirebaseCollectionName.budgets)
+          .where(FirebaseFieldName.budget_id, isEqualTo: budgetId)
+          .limit(1)
+          .get();
+
+      // If the budget document is found, delete the expense at the given index
+      if (budgetInfo.docs.isNotEmpty) {
+        final budgetData = budgetInfo.docs.first.data();
+        final List<dynamic> actualExpenses = budgetData['actualExpenses'];
+
+        // Remove the expense at the given index
+        actualExpenses.removeAt(index);
+
+        // Update the budget document with the modified actualExpenses list
+        await budgetInfo.docs.first.reference
+            .update({'actualExpenses': actualExpenses});
+
         return true;
       }
       return false;
@@ -315,6 +388,44 @@ class BudgetInfoStorage {
     }
   }
 
+  Future<bool> addActualExpense({
+    required String budgetId,
+    required Map<String, dynamic> expenseData,
+  }) async {
+    try {
+      final budgetInfo = await FirebaseFirestore.instance
+          .collection(FirebaseCollectionName.budgets)
+          .where(FirebaseFieldName.budget_id, isEqualTo: budgetId)
+          .limit(1)
+          .get();
+
+      if (budgetInfo.docs.isNotEmpty) {
+        DocumentSnapshot budgetDoc = budgetInfo.docs.first;
+
+        Map<String, dynamic>? budgetData =
+            budgetDoc.data() as Map<String, dynamic>?;
+        List<Map<String, dynamic>> currentActualExpenses =
+            budgetData?['actualExpenses'] != null
+                ? List<Map<String, dynamic>>.from(budgetData!['actualExpenses'])
+                : [];
+
+        currentActualExpenses.add(expenseData);
+
+        await budgetDoc.reference.update({
+          'actualExpenses': currentActualExpenses,
+        });
+
+        print('Actual expense added: $expenseData');
+        return true;
+      }
+
+      return false;
+    } catch (e) {
+      print('Failed to add actual expense: $e');
+      return false;
+    }
+  }
+
   Future<String> fetchCurrency({required BudgetId budgetId}) async {
     print('Budget ID inside storage: $budgetId');
 
@@ -348,17 +459,17 @@ class BudgetInfoStorage {
 
     final querySnapshot = await budgetsRef.get();
 
-    print("querySnapshot.docs: ${querySnapshot.docs}");
+    // print("querySnapshot.docs: ${querySnapshot.docs}");
 
-    print("Number of documents retrieved: ${querySnapshot.docs.length}");
+    // print("Number of documents retrieved: ${querySnapshot.docs.length}");
 
     // Convert the querySnapshot to a List<Budget>
     final budgets = querySnapshot.docs
         .map((doc) {
           try {
-            print("doc.data(): ${doc.data()}");
+            // print("doc.data(): ${doc.data()}");
             final budget = Budget.fromMap(doc.data());
-            print('budget: $budget');
+            // print('budget: $budget');
             return budget;
           } catch (e) {
             print('Error converting document: $e');
@@ -368,7 +479,7 @@ class BudgetInfoStorage {
         .where((budget) => budget != null)
         .toList(); // Filter out null values
 
-    print("budgets: $budgets");
+    // print("budgets: $budgets");
     return budgets;
   }
 }

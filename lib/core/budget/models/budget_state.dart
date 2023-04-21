@@ -55,6 +55,22 @@ class BudgetState {
     );
   }
 
+  BudgetState copyWith({
+    BudgetStatus? status,
+    bool? isLoading,
+    UserId? userId,
+    double? salary,
+    List<Budget?>? budgets,
+  }) {
+    return BudgetState(
+      status: status ?? this.status,
+      isLoading: isLoading ?? this.isLoading,
+      userId: userId ?? this.userId,
+      salary: salary ?? this.salary,
+      budgets: budgets ?? this.budgets,
+    );
+  }
+
   @override
   bool operator ==(covariant BudgetState other) =>
       identical(this, other) ||

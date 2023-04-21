@@ -10,6 +10,7 @@ import 'package:noughtplan/core/constants/budgets.dart';
 import 'package:noughtplan/core/posts/typedefs/budget_id.dart';
 import 'package:noughtplan/core/posts/typedefs/user_id.dart';
 import 'package:noughtplan/core/budget_info/models/backend/budget_info_storage.dart';
+import 'package:noughtplan/presentation/expense_tracking_screen/actual_expenses_provider.dart';
 
 class BudgetStateNotifier extends StateNotifier<BudgetState> {
   final Authenticator _authenticator;
@@ -54,6 +55,53 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
     }
 
     final result = await _budgetInfoStorage.saveBudgetInfo(
+      id: userId,
+      budgetId: budgetId,
+      salary: salary,
+      currency: currency,
+      budgetType: budgetType,
+    );
+    if (result) {
+      state = BudgetState(
+        status: BudgetStatus.success,
+        isLoading: false,
+        userId: userId,
+        budgets: [],
+      );
+    } else {
+      state = BudgetState(
+        status: BudgetStatus.failure,
+        isLoading: false,
+        userId: userId,
+        budgets: [],
+      );
+    }
+  }
+
+  Future<void> saveBudgetInfoUpdate({
+    required BudgetId budgetId,
+    required double salary,
+    required String currency,
+    required String budgetType,
+  }) async {
+    state = state.copiedWithIsLoading(true);
+
+    // Get the user ID from the Authenticator
+    final userId = _authenticator.userId;
+    print(userId);
+
+    // Ensure userId is not null before proceeding
+    if (userId == null) {
+      state = BudgetState(
+        status: BudgetStatus.failure,
+        isLoading: false,
+        userId: null,
+        budgets: [],
+      );
+      return;
+    }
+
+    final result = await _budgetInfoStorage.saveBudgetInfoUpdate(
       id: userId,
       budgetId: budgetId,
       salary: salary,
@@ -538,6 +586,20 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
     }
   }
 
+  Future<void> deleteExpense(String budgetId, int index, WidgetRef ref) async {
+    try {
+      // Call the deleteExpense function from BudgetInfoStorage
+      await _budgetInfoStorage.deleteExpense(budgetId, index);
+
+      // Remove the expense from ActualExpensesNotifier
+      ref.read(actualExpensesProvider.notifier).removeExpenseAtIndex(index);
+
+      // ...rest of the code
+    } catch (e) {
+      print('Error deleting expense: $e');
+    }
+  }
+
   Future<String?> updateSpendingType({
     required String? budgetId,
     required double totalNecessaryExpense,
@@ -712,9 +774,60 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
 
       final userBudgets =
           await _budgetInfoStorage.getUserBudgets(userId: userId);
+      // print('User budgets: $userBudgets');
       return userBudgets;
     } catch (e) {
       return [];
+    }
+  }
+
+  Future<void> addActualExpense(
+      {required String? budgetId,
+      required Map<String, dynamic> expenseData,
+      required WidgetRef ref}) async {
+    if (budgetId == null) {
+      state = state.copyWith(
+        status: BudgetStatus.failure,
+        isLoading: false,
+        budgets: [],
+      );
+      return;
+    }
+    state = state.copyWith(isLoading: true);
+
+    final success = await _budgetInfoStorage.addActualExpense(
+      budgetId: budgetId,
+      expenseData: expenseData,
+    );
+
+    if (success) {
+      List<Budget?> updatedBudgets = await fetchUserBudgets();
+      state = state.copyWith(
+        status: BudgetStatus.success,
+        isLoading: false,
+        budgets: updatedBudgets,
+      );
+      // print('Updated budgets: $updatedBudgets');
+      // Get the updated budget
+      final updatedBudget =
+          updatedBudgets.firstWhere((b) => b?.budgetId == budgetId);
+      // print('Updated budgets AFTER: $updatedBudget');
+
+      // Update the actual expenses
+      if (updatedBudget != null) {
+        final actualExpensesNotifier =
+            ref.read(actualExpensesProvider.notifier);
+        actualExpensesNotifier
+            .updateActualExpenses(updatedBudget.actualExpenses);
+      }
+
+      print('Updated budgets: $updatedBudgets');
+    } else {
+      state = state.copyWith(
+        status: BudgetStatus.failure,
+        isLoading: false,
+        budgets: [],
+      );
     }
   }
 }

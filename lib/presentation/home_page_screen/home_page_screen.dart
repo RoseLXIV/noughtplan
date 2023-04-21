@@ -36,13 +36,18 @@ class HomePageScreen extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final budgetNotifier = ref.watch(budgetStateProvider.notifier);
-    final dataFetched = ref.watch(dataFetchedProvider.notifier);
+
     final _budgets = useState<List<Budget?>?>(null);
 
     useEffect(() {
       Future<void> fetchBudgets() async {
         final fetchedBudgets = await budgetNotifier.fetchUserBudgets();
+        // print('Fetched Budgets: $fetchedBudgets');
         _budgets.value = fetchedBudgets;
+        // print('Budgets: ${_budgets.value}');
+        _budgets.value?.forEach((budget) {
+          print('Salary: ${budget?.salary}');
+        });
       }
 
       fetchBudgets();
@@ -240,7 +245,7 @@ class HomePageScreen extends HookConsumerWidget {
                                                 MainAxisAlignment.center,
                                             children: [
                                               Text(
-                                                  "Press the plus (+) button to add a budget",
+                                                  "Press the plus (+) button to add a Budget",
                                                   style: AppStyle
                                                       .txtManropeBold12
                                                       .copyWith(
@@ -360,20 +365,19 @@ class HomePageScreen extends HookConsumerWidget {
                                         },
                                         child: InkWell(
                                           onTap: () {
-                                            Navigator.pushNamed(context,
-                                                '/main_budget_home_screen',
-                                                arguments: budget);
+                                            Navigator.pushNamed(
+                                              context,
+                                              '/main_budget_home_screen',
+                                              arguments: {
+                                                'budget': budget,
+                                                'firstName': firstName,
+                                              },
+                                            );
                                           },
                                           child: ListItemWidget(
                                             budgetName: budget.budgetName,
                                             budgetType: budget.budgetType,
-                                            totalExpenses: [
-                                              ...?budget.debtExpense?.values,
-                                              ...?budget
-                                                  .necessaryExpense?.values,
-                                              ...?budget
-                                                  .discretionaryExpense?.values,
-                                            ].fold(0, (a, b) => a + b),
+                                            totalExpenses: budget.salary,
                                             spendingType: budget.spendingType,
                                             savingType: budget.savingType,
                                             debtType: budget.debtType,

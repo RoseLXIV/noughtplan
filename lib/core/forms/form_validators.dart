@@ -9,5 +9,7 @@ export 'src/currency.dart';
 export 'src/amount.dart';
 export 'src/necessary_amount.dart';
 export 'src/discretionary_amount.dart';
+export 'src/date.dart';
+export 'src/category.dart';
 
 export 'package:formz/formz.dart';

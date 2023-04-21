@@ -9,7 +9,13 @@ class ImageConstant {
 
   static String imgCar = 'assets/images/img_car.svg';
 
+  static String imgHome2 = 'assets/images/home.svg';
+
   static String imgPlus1 = 'assets/images/plus.svg';
+
+  static String imgBudgetDetails = 'assets/images/businessplan.svg';
+
+  static String imgBudgetDetails1 = 'assets/images/Group.svg';
 
   static String imgCalender = 'assets/images/calendar.svg';
 

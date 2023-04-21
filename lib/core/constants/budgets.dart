@@ -16,6 +16,7 @@ class Budget {
   final double salary;
   final String savingType;
   final String spendingType;
+  final List<Map<String, dynamic>> actualExpenses;
 
   Budget({
     required this.budgetId,
@@ -31,6 +32,7 @@ class Budget {
     required this.salary,
     required this.savingType,
     required this.spendingType,
+    required this.actualExpenses,
   });
 
   // You can also add factory methods to create instances from your data source
@@ -54,6 +56,60 @@ class Budget {
       salary: map['salary'],
       savingType: map['saving_type'],
       spendingType: map['spending_type'],
+      actualExpenses: map['actualExpenses'] != null
+          ? List<Map<String, dynamic>>.from(map['actualExpenses'])
+          : [],
     );
+  }
+  Budget copyWith({
+    String? budgetId,
+    String? budgetName,
+    DateTime? budgetDate,
+    String? budgetType,
+    String? currency,
+    Map<String, double>? debtExpense,
+    String? debtType,
+    Map<String, double>? discretionaryExpense,
+    String? userId,
+    Map<String, double>? necessaryExpense,
+    double? salary,
+    String? savingType,
+    String? spendingType,
+    List<Map<String, dynamic>>? actualExpenses,
+  }) {
+    return Budget(
+      budgetId: budgetId ?? this.budgetId,
+      budgetName: budgetName ?? this.budgetName,
+      budgetDate: budgetDate ?? this.budgetDate,
+      budgetType: budgetType ?? this.budgetType,
+      currency: currency ?? this.currency,
+      debtExpense: debtExpense ?? this.debtExpense,
+      debtType: debtType ?? this.debtType,
+      discretionaryExpense: discretionaryExpense ?? this.discretionaryExpense,
+      userId: userId ?? this.userId,
+      necessaryExpense: necessaryExpense ?? this.necessaryExpense,
+      salary: salary ?? this.salary,
+      savingType: savingType ?? this.savingType,
+      spendingType: spendingType ?? this.spendingType,
+      actualExpenses: actualExpenses ?? this.actualExpenses,
+    );
+  }
+
+  String toString() {
+    return 'Budget('
+        'budgetId: $budgetId, '
+        'budgetName: $budgetName, '
+        'budgetDate: $budgetDate, '
+        'budgetType: $budgetType, '
+        'currency: $currency, '
+        'debtExpense: $debtExpense, '
+        'debtType: $debtType, '
+        'discretionaryExpense: $discretionaryExpense, '
+        'userId: $userId, '
+        'necessaryExpense: $necessaryExpense, '
+        'salary: $salary, '
+        'savingType: $savingType, '
+        'spendingType: $spendingType, '
+        'actualExpenses: $actualExpenses)';
   }
 }

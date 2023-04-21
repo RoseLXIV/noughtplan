@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:noughtplan/presentation/category_necessary_screen_edit/category_necessary_screen_edit.dart';
+import 'package:noughtplan/presentation/generator_salary_screen_edit/generator_salary_screen_edit.dart';
 import 'package:noughtplan/presentation/splash_screen/splash_screen.dart';
 import 'package:noughtplan/presentation/get_started_screen/get_started_screen.dart';
 import 'package:noughtplan/presentation/login_page_screen/login_page_screen.dart';
@@ -51,7 +53,13 @@ class AppRoutes {
 
   static const String generatorSalaryScreen = '/generator_salary_screen';
 
+  static const String generatorSalaryScreenEdit =
+      '/generator_salary_screen_edit';
+
   static const String categoryNecessaryScreen = '/category_necessary_screen';
+
+  static const String categoryNecessaryScreenEdit =
+      '/category_necessary_screen_edit';
 
   static const String categoryDiscretionaryScreen =
       '/category_discretionary_screen';
@@ -110,7 +118,9 @@ class AppRoutes {
     enableFaceIdScreen: (context) => EnableFaceIdScreen(),
     enableFingerprintScreen: (context) => EnableFingerprintScreen(),
     generatorSalaryScreen: (context) => GeneratorSalaryScreen(),
+    generatorSalaryScreenEdit: (context) => GeneratorSalaryScreenEdit(),
     categoryNecessaryScreen: (context) => CategoryNecessaryScreen(),
+    categoryNecessaryScreenEdit: (context) => CategoryNecessaryScreenEdit(),
     categoryDiscretionaryScreen: (context) => CategoryDiscretionaryScreen(),
     allocateFundsScreen: (context) => AllocateFundsScreen(),
     debtPageScreen: (context) => DebtPageScreen(),
