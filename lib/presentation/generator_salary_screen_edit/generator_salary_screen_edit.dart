@@ -127,10 +127,10 @@ class GeneratorSalaryScreenEdit extends HookConsumerWidget {
     final data = ref.watch(dataProvider);
     final dataBudgets = ref.watch(dataProviderBudgets);
     final selectedCurrency =
-        data.getCurrencyTypeByName(selectedBudget!.currency);
+        data.getCurrencyTypeByName(selectedBudget?.currency);
     final selectedCurrencyState = useState<CurrencyTypes>(selectedCurrency);
     final selectedBudgetType =
-        dataBudgets.getBudgetTypeByName(selectedBudget.budgetType);
+        dataBudgets.getBudgetTypeByName(selectedBudget?.budgetType);
     final selectedBudgetTypeState = useState<BudgetTypes>(selectedBudgetType);
     final currencyList = data.currencyList;
     final budgetList = dataBudgets.budgetList;
@@ -145,10 +145,11 @@ class GeneratorSalaryScreenEdit extends HookConsumerWidget {
 
     useEffect(() {
       Future.microtask(() {
-        generateSalaryController.initializeSalary(selectedBudget.salary);
-        generateSalaryController.initializeCurrency(selectedBudget.currency);
+        generateSalaryController.initializeSalary(selectedBudget?.salary ?? 0);
         generateSalaryController
-            .initializeBudgetType(selectedBudget.budgetType);
+            .initializeCurrency(selectedBudget?.currency ?? '');
+        generateSalaryController
+            .initializeBudgetType(selectedBudget?.budgetType ?? '');
       });
       return () {}; // Cleanup function
     }, []);
@@ -298,7 +299,8 @@ class GeneratorSalaryScreenEdit extends HookConsumerWidget {
                                                   generateSalaryController
                                                       .initializeSalary(
                                                           selectedBudget
-                                                              .salary);
+                                                                  ?.salary ??
+                                                              0);
                                                 }
                                               },
                                               decoration: InputDecoration(
@@ -321,7 +323,7 @@ class GeneratorSalaryScreenEdit extends HookConsumerWidget {
                                                 hintText: NumberFormat(
                                                         '#,##0.00')
                                                     .format(
-                                                        selectedBudget.salary),
+                                                        selectedBudget?.salary),
                                                 hintStyle: AppStyle
                                                     .txtHelveticaNowTextBold40
                                                     .copyWith(
@@ -548,11 +550,12 @@ class GeneratorSalaryScreenEdit extends HookConsumerWidget {
                                       onTap: isValidated
                                           ? () async {
                                               final budgetId =
-                                                  selectedBudget.budgetId;
+                                                  selectedBudget?.budgetId;
                                               final result =
                                                   await generateSalaryController
                                                       .saveBudgetInfoUpdate(
-                                                          budgetId);
+                                                budgetId ?? '',
+                                              );
                                               if (result == true) {
                                                 Navigator.pushNamed(context,
                                                     '/category_necessary_screen_edit',

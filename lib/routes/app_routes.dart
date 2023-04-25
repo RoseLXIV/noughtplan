@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:noughtplan/presentation/allocate_funds_screen_edit/allocate_funds_screen_edit.dart';
+import 'package:noughtplan/presentation/category_discretionary_screen_edit/category_discretionary_screen_edit.dart';
 import 'package:noughtplan/presentation/category_necessary_screen_edit/category_necessary_screen_edit.dart';
 import 'package:noughtplan/presentation/generator_salary_screen_edit/generator_salary_screen_edit.dart';
 import 'package:noughtplan/presentation/splash_screen/splash_screen.dart';
@@ -64,7 +66,12 @@ class AppRoutes {
   static const String categoryDiscretionaryScreen =
       '/category_discretionary_screen';
 
+  static const String categoryDiscretionaryScreenEdit =
+      '/category_discretionary_screen_edit';
+
   static const String allocateFundsScreen = '/allocate_funds_screen';
+
+  static const String allocateFundsScreenEdit = '/allocate_funds_screen_edit';
 
   static const String debtPageScreen = '/debt_page_screen';
 
@@ -122,7 +129,10 @@ class AppRoutes {
     categoryNecessaryScreen: (context) => CategoryNecessaryScreen(),
     categoryNecessaryScreenEdit: (context) => CategoryNecessaryScreenEdit(),
     categoryDiscretionaryScreen: (context) => CategoryDiscretionaryScreen(),
+    categoryDiscretionaryScreenEdit: (context) =>
+        CategoryDiscretionaryScreenEdit(),
     allocateFundsScreen: (context) => AllocateFundsScreen(),
+    allocateFundsScreenEdit: (context) => AllocateFundsScreenEdit(),
     debtPageScreen: (context) => DebtPageScreen(),
     cutBackScreen: (context) => CutBackScreen(),
     budgetScreen: (context) => BudgetScreen(),

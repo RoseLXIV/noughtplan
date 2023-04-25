@@ -1,0 +1,364 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:intl/intl.dart';
+import 'package:noughtplan/core/app_export.dart';
+import 'package:noughtplan/core/budget/allocate_funds/controller/remaining_funds_controller.dart';
+import 'package:noughtplan/core/budget/allocate_funds/controller/remaining_funds_controller_edit.dart';
+import 'package:noughtplan/core/budget/generate_salary/controller/generate_salary_controller.dart';
+import 'package:noughtplan/widgets/custom_button.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+class EnteredAmountsNotifierEdit extends StateNotifier<Map<String, double>> {
+  EnteredAmountsNotifierEdit() : super({});
+
+  double getAmount(String category) {
+    return state[category] ?? 0.0;
+  }
+
+  void updateAmount(String category, double amount) {
+    if (amount == 0) {
+      state = {...state}..remove(category);
+      print('EnteredAmountsNotifier - Removed amount for $category');
+    } else {
+      state = {...state, category: amount};
+      print('EnteredAmountsNotifier - Updated amount for $category to $amount');
+    }
+  }
+
+  void resetAmounts() {
+    for (var key in state.keys) {
+      state[key] = 0.0;
+      print('EnteredAmountsNotifier - Reset amount for $key to 0.0');
+    }
+    state =
+        Map<String, double>.from(state); // This line triggers a state update.
+    print('EnteredAmountsNotifier - Reset all amounts: $state');
+  }
+
+  void initializeAmounts(String category, double initialAmount) {
+    if (initialAmount != 0) {
+      state = {...state, category: initialAmount};
+      print(
+          'EnteredAmountsNotifierDebt - Initialized amount for $category to $initialAmount');
+    }
+  }
+}
+
+final enteredAmountsProviderEdit =
+    StateNotifierProvider<EnteredAmountsNotifierEdit, Map<String, double>>(
+        (ref) => EnteredAmountsNotifierEdit());
+
+// add this line
+class CustomTextEditingControllerEdit extends TextEditingController {
+  CustomTextEditingControllerEdit({String initialText = ''})
+      : super(text: initialText == '0.00' ? '' : _formatNumber(initialText));
+
+  static String _formatNumber(String number) {
+    if (number.isEmpty) {
+      return '';
+    }
+    final formatter = NumberFormat('#,##0.00', 'en_US');
+    double parsedNumber = double.tryParse(number) ?? 0;
+    return formatter.format(parsedNumber);
+  }
+}
+
+final textEditingControllerProviderEdit =
+    StateProvider.family<CustomTextEditingControllerEdit, String>(
+  (ref, category) {
+    final enteredAmounts = ref.watch(enteredAmountsProviderEdit.notifier).state;
+    final initialAmount = enteredAmounts[category] ?? 0.0;
+    print('Initial amount for $category: $initialAmount');
+    return CustomTextEditingControllerEdit(
+      initialText: initialAmount.toStringAsFixed(2),
+    );
+  },
+);
+
+final oldAmountsProviderEdit = StateNotifierProvider.autoDispose<
+    OldAmountsControllerEdit, Map<String, double>>((ref) {
+  return OldAmountsControllerEdit();
+});
+
+class OldAmountsControllerEdit extends StateNotifier<Map<String, double>> {
+  OldAmountsControllerEdit() : super({});
+
+  void setOldAmount(String category, double amount) {
+    state = {...state, category: amount};
+  }
+
+  double getOldAmount(String category) {
+    return state[category] ?? 0.0;
+  }
+}
+
+final focusNodeProvider =
+    StateProvider.family.autoDispose<FocusNode, String>((ref, category) {
+  return FocusNode();
+});
+
+// ignore: must_be_immutable
+class ListNecessaryItemWidgetEdit extends HookConsumerWidget {
+  final String category;
+  final double amount;
+
+  ListNecessaryItemWidgetEdit({required this.category, required this.amount});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final enteredAmounts = ref.watch(enteredAmountsProviderEdit);
+    final hasAmountEntered =
+        enteredAmounts[category] != null && enteredAmounts[category]! > 0;
+
+    // add this line
+    final CustomTextEditingControllerEdit _controller =
+        ref.watch(textEditingControllerProviderEdit(category).notifier).state;
+
+    final FocusNode focusNode =
+        ref.watch(focusNodeProvider(category).notifier).state;
+
+    // add this line
+    final remainingFundsStateProviderEdit = StateProvider<double>((ref) => 0.0);
+
+    final formatter = NumberFormat('#,##0.00', 'en_US');
+    final formattedAmount = formatter.format(amount);
+
+    useEffect(() {
+      Future.microtask(() {
+        double remainingFunds =
+            ref.read(remainingFundsProviderEdit.notifier).state;
+        final previousAmount =
+            ref.read(enteredAmountsProviderEdit.notifier).getAmount(category);
+        ref
+            .read(enteredAmountsProviderEdit.notifier)
+            .initializeAmounts(category, amount);
+
+        ref
+            .read(remainingFundsProviderEdit.notifier)
+            .updateFunds(amount, previousAmount);
+        ref.read(remainingFundsStateProviderEdit.notifier).state =
+            remainingFunds - amount + previousAmount;
+      });
+      return () {}; // Cleanup function
+    }, []);
+    return Container(
+      padding: getPadding(
+        left: 10,
+        top: 9,
+        right: 10,
+        bottom: 9,
+      ),
+      decoration: AppDecoration.outlineIndigo501.copyWith(
+        borderRadius: BorderRadiusStyle.roundedBorder12,
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          CustomButton(
+            height: getVerticalSize(60),
+            width: getSize(150),
+            text: category,
+            margin: getMargin(left: 6),
+            variant: hasAmountEntered
+                ? ButtonVariant.FillGreenOutlined
+                : ButtonVariant.FillGray100,
+            shape: ButtonShape.RoundedBorder6,
+            padding: ButtonPadding.PaddingT12,
+            fontStyle: ButtonFontStyle.ManropeSemiBold12Gray900,
+            onTap: () {
+              final FocusNode focusNode =
+                  ref.read(focusNodeProvider(category).notifier).state;
+              FocusScope.of(context).requestFocus(focusNode);
+            },
+          ),
+          Padding(
+            padding: getPadding(top: 2),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: getPadding(left: 5),
+                  child: Text(
+                    "Amount",
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.left,
+                    style: AppStyle.txtManropeSemiBold10Bluegray300.copyWith(
+                      letterSpacing: getHorizontalSize(0.2),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: getPadding(top: 3),
+                  child: SizedBox(
+                    width: 120, // adjust the width as needed
+                    child: Stack(
+                      alignment: Alignment.centerLeft,
+                      children: [
+                        Padding(
+                          padding: EdgeInsets.only(
+                              left:
+                                  4), // Adjust this value to position the prefix correctly
+                          child: Text(
+                            '\$',
+                            style: AppStyle.txtManropeBold18,
+                          ),
+                        ),
+                        TextField(
+                          focusNode: focusNode,
+                          controller: _controller,
+                          decoration: InputDecoration(
+                            hintText: "${formattedAmount}",
+                            hintStyle:
+                                AppStyle.txtManropeBold18BlueGrey.copyWith(
+                              letterSpacing: getHorizontalSize(0.3),
+                            ),
+                            contentPadding: EdgeInsets.only(
+                                left: 24,
+                                top: 2,
+                                bottom: 2), // Add left padding to avoid overlap
+                            isDense: true,
+                            border: InputBorder.none,
+                          ),
+                          keyboardType:
+                              TextInputType.numberWithOptions(decimal: true),
+                          inputFormatters: [
+                            ThousandsFormatter(),
+                          ],
+                          style: AppStyle.txtManropeBold18,
+                          onChanged: (text) {
+                            if (_controller.text == '0.00')
+                              _controller.text = '';
+                            String cleanedText =
+                                text.replaceAll(RegExp(','), '');
+                            double amount = double.tryParse(cleanedText) ?? 0.0;
+                            final previousAmount = ref
+                                .read(enteredAmountsProviderEdit.notifier)
+                                .getAmount(category);
+
+                            print("RemainingFundsController - OnChanged:");
+                            print("RemainingFundsController - Amount: $amount");
+                            print(
+                                "RemainingFundsController - Previous Amount: $previousAmount");
+
+                            // Get the updated remaining funds
+                            double remainingFunds = ref
+                                .read(remainingFundsProviderEdit.notifier)
+                                .state;
+
+                            if (amount != 0 &&
+                                remainingFunds - amount + previousAmount < 0) {
+                              FocusScope.of(context).unfocus();
+                              // Show a SnackBar if remaining funds go below zero
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Remaining funds cannot be less than zero',
+                                    textAlign: TextAlign.center,
+                                    style: AppStyle
+                                        .txtHelveticaNowTextBold16WhiteA700
+                                        .copyWith(
+                                      letterSpacing: getHorizontalSize(0.3),
+                                    ),
+                                  ),
+                                  backgroundColor: ColorConstant.amber600,
+                                  duration: Duration(seconds: 3),
+                                ),
+                              );
+
+                              // Clear the TextField
+                              amount = 0;
+                              _controller.clear();
+                              _controller.value =
+                                  _controller.value.copyWith(text: '');
+
+                              ref
+                                  .read(remainingFundsProviderEdit.notifier)
+                                  .updateFunds(amount, previousAmount);
+                              ref
+                                  .read(enteredAmountsProviderEdit.notifier)
+                                  .updateAmount(category, amount);
+                            } else {
+                              ref
+                                  .read(remainingFundsProviderEdit.notifier)
+                                  .updateFunds(amount, previousAmount);
+                              ref
+                                  .read(enteredAmountsProviderEdit.notifier)
+                                  .updateAmount(category, amount);
+                              // add this line
+                              ref
+                                      .read(remainingFundsStateProviderEdit
+                                          .notifier)
+                                      .state =
+                                  remainingFunds - amount + previousAmount;
+
+                              // Update the old amount after updating the remaining funds and entered amounts
+                              ref
+                                  .read(oldAmountsProviderEdit.notifier)
+                                  .setOldAmount(category, amount);
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class ThousandsFormatter extends TextInputFormatter {
+  final int maxLength;
+
+  ThousandsFormatter({this.maxLength = 12});
+
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue, TextEditingValue newValue) {
+    if (newValue.text.isEmpty) {
+      return newValue.copyWith(text: '');
+    } else if (newValue.text == '.') {
+      return newValue.copyWith(text: '0.');
+    } else if (newValue.text.contains('.') &&
+        newValue.text.indexOf('.') != newValue.text.lastIndexOf('.')) {
+      // if there are multiple dots
+      return oldValue;
+    } else {
+      // remove all non-digit characters
+      String value = newValue.text.replaceAll(RegExp(r'[^\d\.]'), '');
+
+      // split the value into integer and decimal parts
+      List<String> parts = value.split('.');
+
+      // truncate the integer part if it exceeds maxLength
+      if (parts[0].length > maxLength) {
+        parts[0] = parts[0].substring(0, maxLength);
+      }
+
+      // truncate the decimal part if it exceeds 2 digits
+      if (parts.length > 1 && parts[1].length > 2) {
+        parts[1] = parts[1].substring(0, 2);
+      }
+
+      // format the integer part with commas
+      parts[0] = NumberFormat.decimalPattern().format(int.parse(parts[0]));
+
+      // recombine the integer and decimal parts
+      String result = parts.join('.');
+
+      // return the updated TextEditingValue
+      return newValue.copyWith(
+        text: result,
+        selection: TextSelection.collapsed(offset: result.length),
+      );
+    }
+  }
+}

@@ -22,6 +22,8 @@ class ListchartItemWidget extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
+    print('totalAmount: $totalAmount');
+    print('amount: $amount');
     useEffect(() {
       onLoad?.call();
       return () {}; // Clean-up function
@@ -92,10 +94,7 @@ class ListchartItemWidget extends HookWidget {
                         child: ClipRRect(
                           borderRadius: BorderRadius.all(Radius.circular(8.0)),
                           child: LinearProgressIndicator(
-                            value: totalAmount /
-                                double.parse(amount
-                                    .replaceAll('\$', '')
-                                    .replaceAll(',', '')),
+                            value: totalAmount / amountDouble,
                             minHeight: 15,
                             backgroundColor: ColorConstant.gray100,
                             valueColor:

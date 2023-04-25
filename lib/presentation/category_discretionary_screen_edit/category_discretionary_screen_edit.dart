@@ -1,19 +1,18 @@
 import 'dart:ui';
 
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:noughtplan/core/auth/backend/authenticator.dart';
 import 'package:noughtplan/core/budget/generate_salary/controller/generate_salary_controller.dart';
 import 'package:noughtplan/core/budget/models/budget_status.dart';
 import 'package:noughtplan/core/budget/providers/budget_state_provider.dart';
-import 'package:noughtplan/core/budget_info/models/backend/budget_necessary_categories_storage.dart';
 import 'package:noughtplan/core/constants/budgets.dart';
-import 'package:noughtplan/presentation/category_necessary_screen_edit/widgets/category_button.dart';
-import 'package:noughtplan/widgets/custom_text_button.dart';
+import 'package:noughtplan/presentation/category_discretionary_screen/widgets/category_button_discretionary.dart';
+import 'package:noughtplan/presentation/category_discretionary_screen_edit/widgets/category_button_discretionary_edit.dart';
+// import 'package:noughtplan/presentation/category_necessary_screen/category_necessary_screen.dart';
+import 'package:noughtplan/presentation/category_necessary_screen/widgets/category_button.dart';
 
-import '../category_necessary_screen/widgets/gridtrendingup_item_widget.dart';
+import '../category_discretionary_screen/widgets/gridicon_item_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:noughtplan/core/app_export.dart';
 import 'package:noughtplan/widgets/app_bar/appbar_image.dart';
@@ -24,125 +23,116 @@ import 'package:noughtplan/widgets/custom_floating_button.dart';
 import 'package:noughtplan/widgets/custom_search_view.dart';
 
 final Map<int, String> buttonTexts = {
-  0: 'Rent',
-  1: 'Parking',
-  2: 'Home Insurance',
-  3: 'Property Tax',
-  4: 'HOA Fees',
-  5: 'Landscaping',
-  6: 'Home Repairs',
-  7: 'Home Improvements',
-  8: 'General Housing Costs',
+  0: 'Movies',
+  1: 'Music',
+  2: 'Video Games',
+  3: 'Concerts',
+  4: 'Theater',
+  5: 'Museums',
+  6: 'Sports Events',
+  7: 'Theme Parks',
+  8: 'Books',
+  9: 'Hobbies',
+  10: 'Outdoor Activities',
+  11: 'Fitness Classes',
+  12: 'General Entertainment Costs',
 };
 
-final Map<int, String> healthcareButtonTexts = {
-  0: 'Doctor Visits',
-  1: 'Prescriptions',
-  2: 'Dental Care',
-  3: 'Vision Care',
-  4: 'Mental Health',
-  5: 'Physical Therapy',
-  6: 'Medical Bills',
-  7: 'Health Insurance',
-  8: 'General Healthcare Costs',
+final Map<int, String> subscriptionButtonTexts = {
+  0: 'Streaming Services',
+  1: 'Magazines',
+  2: 'Newspapers',
+  3: 'Music Services',
+  4: 'Gym Memberships',
+  5: 'Online Courses',
+  6: 'Software Services',
+  7: 'App Subscriptions',
+  8: 'Cloud Storage',
+  9: 'General Subscriptions Costs',
 };
 
-final Map<int, String> utilitiesButtonTexts = {
-  0: 'Electricity',
-  1: 'Gas',
-  2: 'Water & Sewer',
-  3: 'Trash & Recycling',
-  4: 'Internet',
-  5: 'Cable TV',
-  6: 'Landline Phone',
-  7: 'Cell Phone',
-  8: 'General Utilities Costs',
+final Map<int, String> personalCareButtonTexts = {
+  0: 'Hair Care',
+  1: 'Skin Care',
+  2: 'Makeup',
+  3: 'Spa Services',
+  4: 'Massages',
+  5: 'Dental Care',
+  6: 'Eye Care',
+  7: 'Grooming',
+  8: 'Fitness',
+  9: 'General Personal Care Costs',
 };
 
-final Map<int, String> transportationButtonTexts = {
-  0: 'Fuel',
-  1: 'Car Insurance',
-  2: 'Car Maintenance',
-  3: 'Car Repairs',
-  4: 'Public Transportation',
-  5: 'Ride Sharing',
-  6: 'Taxis',
-  7: 'Bike Maintenance',
-  8: 'Parking Fees',
-  9: 'Tolls',
-  10: 'Vehicle Registration',
-  11: 'Driver\'s License',
-  12: 'General Transportation Costs',
+final Map<int, String> clothingButtonTexts = {
+  0: 'Shirts',
+  1: 'Pants',
+  2: 'Dresses',
+  3: 'Suits',
+  4: 'Shoes',
+  5: 'Accessories',
+  6: 'Outerwear',
+  7: 'Sportswear',
+  8: 'Underwear',
+  9: 'General Clothing Costs',
 };
 
-final Map<int, String> debtLoansCategories = {
-  0: 'Mortgage',
-  1: 'Student Loan',
-  2: 'Personal Loan',
-  3: 'Car Loan',
-  4: 'Credit Card Debt',
-  5: 'Payday Loan',
-  6: 'Business Loan',
-  7: 'Medical Debt',
-  8: 'Home Equity Loan',
-  9: 'Consolidation Loan',
-  10: 'Other Loans #1',
-  11: 'Other Loans #2',
-  12: 'General Debt',
+final Map<int, String> restaurantButtonTexts = {
+  0: 'Fast Food',
+  1: 'Casual Dining',
+  2: 'Fine Dining',
+  3: 'Cafes',
+  4: 'Bars',
+  5: 'Buffets',
+  6: 'Delivery Services',
+  7: 'Food Trucks',
+  8: 'Takeout',
+  9: 'General Restaurant Costs',
 };
 
-final Map<int, String> savingsCategories = {
-  0: 'Emergency Fund',
-  1: 'Retirement Savings',
-  2: 'Investments',
-  3: 'Education Savings',
-  4: 'Vacation Fund',
-  5: 'Down Payment',
-  6: 'Home Improvement Fund',
-  7: 'Debt Payoff',
-  8: 'Wedding Fund',
-  9: 'Vehicle Savings',
-  10: 'General Savings',
+final Map<int, String> technologyButtonTexts = {
+  0: 'Smartphones',
+  1: 'Laptops',
+  2: 'Tablets',
+  3: 'Gaming Consoles',
+  4: 'Wearables',
+  5: 'Smart Home Devices',
+  6: 'Audio Equipment',
+  7: 'Cameras',
+  8: 'Accessories',
+  9: 'General Technology Costs',
 };
 
-final Map<int, String> groceriesCategories = {
-  0: 'Fresh Produce',
-  1: 'Meat & Seafood',
-  2: 'Dairy & Refrigerated',
-  3: 'Bakery & Bread',
-  4: 'Beverages',
-  5: 'Pantry Essentials',
-  6: 'Frozen Foods',
-  7: 'Snacks & Sweets',
-  8: 'Health & Wellness',
-  9: 'Household Supplies',
-  10: 'General Groceries',
+final Map<int, String> personalSpendingButtonTexts = {
+  0: 'Hobbies',
+  1: 'Sports',
+  2: 'Vacations',
+  3: 'Gifts',
+  4: 'Events',
+  5: 'Memberships',
+  6: 'Courses',
+  7: 'Recreation',
+  8: 'Collectibles',
+  9: 'General Personal Spending',
 };
 
-final Map<int, String> educationCategories = {
-  0: 'Tuition Fees',
-  1: 'Textbooks & Course Materials',
-  2: 'Supplies & Equipment',
-  3: 'Technology & Software',
-  4: 'Extracurricular Activities',
-  5: 'Transportation & Travel',
-  6: 'Childcare & Tutoring',
-  8: 'Scholarships & Grants',
-  9: 'General Education Costs',
+final Map<int, String> otherButtonTexts = {
+  0: 'Legal Fees',
+  1: 'Taxes',
+  2: 'Fines',
+  3: 'Miscellaneous',
 };
 
-final Map<int, String> petChildCategories = {
-  0: 'Pet Food & Supplies',
-  1: 'Veterinary Care',
-  2: 'Pet Grooming',
-  3: 'Pet Boarding & Sitting',
-  4: 'Pet Training',
-  5: 'Childcare & Babysitting',
-  6: 'Children\'s Education & Tuition',
-  7: 'Children\'s Clothing',
-  8: 'Toys & Entertainment',
-  9: 'Extracurricular Activities',
-  10: 'Children\'s Health & Medical',
+final Map<int, String> givingButtonTexts = {
+  0: 'Charitable Donations',
+  1: 'Gifts',
+  2: 'Supporting Friends & Family',
+  3: 'Community Projects',
+  4: 'Fundraisers',
+  5: 'Sponsorships',
+  6: 'Volunteering',
+  7: 'Tithing',
+  8: 'Crowdfunding',
 };
 
 Map<int, String> mergeAllButtonTexts() {
@@ -151,14 +141,14 @@ Map<int, String> mergeAllButtonTexts() {
   int offset = 0;
   List<Map<int, String>> allMaps = [
     buttonTexts,
-    healthcareButtonTexts,
-    utilitiesButtonTexts,
-    transportationButtonTexts,
-    debtLoansCategories,
-    savingsCategories,
-    groceriesCategories,
-    educationCategories,
-    petChildCategories
+    subscriptionButtonTexts,
+    personalCareButtonTexts,
+    clothingButtonTexts,
+    restaurantButtonTexts,
+    technologyButtonTexts,
+    personalSpendingButtonTexts,
+    otherButtonTexts,
+    givingButtonTexts,
   ];
 
   for (final map in allMaps) {
@@ -171,70 +161,70 @@ Map<int, String> mergeAllButtonTexts() {
 
 List<Map<String, dynamic>> gridItems = [
   {
-    'text': 'Debt/Loans',
-    'iconPath': ImageConstant.imgTrendingup,
+    'text': 'Entertainment',
+    'iconPath': ImageConstant.imgEntertainment,
   },
   {
-    'text': 'Utilities',
-    'iconPath': ImageConstant.imgIcon,
+    'text': 'Subscriptions',
+    'iconPath': ImageConstant.imgSend,
   },
   {
-    'text': 'Transport',
-    'iconPath': ImageConstant.imgCarBlueA700,
+    'text': 'Personal Care',
+    'iconPath': ImageConstant.imgLocation,
   },
   {
-    'text': 'Savings',
-    'iconPath': ImageConstant.imgMusicBlueA700,
+    'text': 'Clothing',
+    'iconPath': ImageConstant.imgBag,
   },
   {
-    'text': 'Housing',
-    'iconPath': ImageConstant.imgHome,
+    'text': 'Restaurants',
+    'iconPath': ImageConstant.imgTrophyBlueA700,
   },
   {
-    'text': 'Groceries',
-    'iconPath': ImageConstant.imgVideocameraBlueA700,
+    'text': 'Technology',
+    'iconPath': ImageConstant.imgTrash,
   },
   {
-    'text': 'Education',
-    'iconPath': ImageConstant.imgCalendar,
+    'text': 'Personal Spending',
+    'iconPath': ImageConstant.imgVideocameraBlueA70048x48,
   },
   {
-    'text': 'Healthcare',
-    'iconPath': ImageConstant.imgDownload,
+    'text': 'Other',
+    'iconPath': ImageConstant.imgPlus,
   },
   {
-    'text': 'Pet/Child',
-    'iconPath': ImageConstant.imgIconBlueA700,
+    'text': 'Giving',
+    'iconPath': ImageConstant.imgVideocamera48x48,
   },
 ];
 
 Map<int, String> getButtonTextsForGridItem(String gridItemText) {
   switch (gridItemText) {
-    case 'Housing':
+    case 'Entertainment':
       return buttonTexts;
-    case 'Healthcare':
-      return healthcareButtonTexts;
-    case 'Utilities':
-      return utilitiesButtonTexts;
-    case 'Transport':
-      return transportationButtonTexts;
-    case 'Debt/Loans':
-      return debtLoansCategories;
-    case 'Savings':
-      return savingsCategories;
-    case 'Groceries':
-      return groceriesCategories;
-    case 'Education':
-      return educationCategories;
-    case 'Pet/Child':
-      return petChildCategories;
+    case 'Subscriptions':
+      return subscriptionButtonTexts;
+    case 'Personal Care':
+      return personalCareButtonTexts;
+    case 'Clothing':
+      return clothingButtonTexts;
+    case 'Restaurants':
+      return restaurantButtonTexts;
+    case 'Technology':
+      return technologyButtonTexts;
+    case 'Personal Spending':
+      return personalSpendingButtonTexts;
+    case 'Other':
+      return otherButtonTexts;
+    case 'Giving':
+      return givingButtonTexts;
     // Add more cases for other grid items if needed.
     default:
       return {}; // Return an empty map if no match is found.
   }
 }
 
-class ButtonListStateEdit extends ChangeNotifier {
+class ButtonListStateDiscretionaryEdit extends ChangeNotifier {
   Map<String, List<String>> selectedCategories = {};
   String? currentParentCategory;
   final filteredCategories = ValueNotifier<List<String>>([]);
@@ -303,8 +293,9 @@ class ButtonListStateEdit extends ChangeNotifier {
   }
 }
 
-class CategorySearchNotifierEdit extends StateNotifier<List<String>> {
-  CategorySearchNotifierEdit() : super([]);
+class CategorySearchNotifierDiscretionaryEdit
+    extends StateNotifier<List<String>> {
+  CategorySearchNotifierDiscretionaryEdit() : super([]);
 
   void updateFilteredCategories(
     BuildContext context,
@@ -331,25 +322,30 @@ class CategorySearchNotifierEdit extends StateNotifier<List<String>> {
   }
 }
 
-final categorySearchProvider =
-    StateNotifierProvider<CategorySearchNotifierEdit, List<String>>(
-        (ref) => CategorySearchNotifierEdit());
+final categorySearchProviderDiscretionaryEdit = StateNotifierProvider<
+    CategorySearchNotifierDiscretionaryEdit,
+    List<String>>((ref) => CategorySearchNotifierDiscretionaryEdit());
 
-final buttonListStateProviderEdit =
-    ChangeNotifierProvider<ButtonListStateEdit>((ref) => ButtonListStateEdit());
+final buttonListStateProviderDiscretionaryEdit =
+    ChangeNotifierProvider<ButtonListStateDiscretionaryEdit>(
+        (ref) => ButtonListStateDiscretionaryEdit());
 
 // ignore_for_file: must_be_immutable
-class CategoryNecessaryScreenEdit extends HookConsumerWidget {
+class CategoryDiscretionaryScreenEdit extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final Budget selectedBudget =
-        ModalRoute.of(context)!.settings.arguments as Budget;
+    final Map<String, dynamic> args =
+        ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
 
+    final Budget selectedBudget = args['selectedBudget'];
+
+    print('selectedBudget: $selectedBudget');
     final searchController = useTextEditingController();
 
-    final filteredCategories = ref.watch(categorySearchProvider);
+    final filteredCategories =
+        ref.watch(categorySearchProviderDiscretionaryEdit);
 
-    final buttonListState = ref.watch(buttonListStateProviderEdit);
+    final buttonListState = ref.watch(buttonListStateProviderDiscretionaryEdit);
     Map<String, List<String>> selectedCategories =
         buttonListState.selectedCategories;
     String? parentCategory = buttonListState.currentParentCategory;
@@ -357,22 +353,17 @@ class CategoryNecessaryScreenEdit extends HookConsumerWidget {
         parentCategory != null ? selectedCategories[parentCategory] ?? [] : [];
     List<Widget> selectedButtons = [];
 
-    void initializeSelectedButtons(Map<String, double> necessaryExpense) {
-      necessaryExpense.forEach((key, value) {
-        ref.read(buttonListStateProviderEdit.notifier).addCategory(key);
-      });
-    }
-
-    void initializeSelectedButtonsDebt(Map<String, double> debtExpense) {
-      debtExpense.forEach((key, value) {
-        ref.read(buttonListStateProviderEdit.notifier).addCategory(key);
+    void initializeSelectedButtons(Map<String, double> discretionaryExpense) {
+      discretionaryExpense.forEach((key, value) {
+        ref
+            .read(buttonListStateProviderDiscretionaryEdit.notifier)
+            .addCategory(key);
       });
     }
 
     useEffect(() {
       Future.microtask(() {
-        initializeSelectedButtons(selectedBudget.necessaryExpense ?? {});
-        initializeSelectedButtonsDebt(selectedBudget.debtExpense ?? {});
+        initializeSelectedButtons(selectedBudget.discretionaryExpense ?? {});
       });
       return () {}; // Cleanup function
     }, []);
@@ -385,7 +376,7 @@ class CategoryNecessaryScreenEdit extends HookConsumerWidget {
             child: GestureDetector(
               onTap: () {
                 ref
-                    .read(buttonListStateProviderEdit.notifier)
+                    .read(buttonListStateProviderDiscretionaryEdit.notifier)
                     .removeCategory(parentCategory, buttonText);
               },
               child: Container(
@@ -409,67 +400,6 @@ class CategoryNecessaryScreenEdit extends HookConsumerWidget {
       });
     });
 
-    print('selectedCategories: $selectedCategories');
-    // print('selectedButtons: $selectedButtons');
-
-    void _showModalBottomSheet(BuildContext context,
-        Map<int, String> buttonTexts, String parentCategory) {
-      showModalBottomSheet(
-        context: context,
-        isScrollControlled: true,
-        backgroundColor: Colors.transparent,
-        builder: (BuildContext context) {
-          return Stack(
-            children: [
-              BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 1, sigmaY: 1),
-                child: Container(
-                    // color: Colors.grey.withOpacity(0.5),
-                    ),
-              ),
-              DraggableScrollableSheet(
-                initialChildSize: 0.4, // Set the initial height of the modal
-                minChildSize: 0.4, // Set the minimum height of the modal
-                maxChildSize: 0.6, // Set the maximum height of the modal
-                builder:
-                    (BuildContext context, ScrollController scrollController) {
-                  return ClipRRect(
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(32),
-                      topRight: Radius.circular(32),
-                    ),
-                    child: Container(
-                      color: Colors.white,
-                      padding: EdgeInsets.all(16),
-                      child: GridView.builder(
-                        padding: EdgeInsets.zero,
-                        itemCount: buttonTexts.length,
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3,
-                          mainAxisSpacing: 8,
-                          crossAxisSpacing: 8,
-                          childAspectRatio: 2,
-                        ),
-                        itemBuilder: (BuildContext context, int index) {
-                          final entry = buttonTexts.entries.elementAt(index);
-                          return CategoryButtonEdit(
-                            index: entry.key,
-                            text: entry.value,
-                            // selectedCategories:
-                            //     buttonListState.selectedCategories,
-                          );
-                        },
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ],
-          );
-        },
-      );
-    }
-
     void showAddCategoryModal(BuildContext context, WidgetRef ref) {
       TextEditingController customCategoryController = TextEditingController();
 
@@ -482,7 +412,7 @@ class CategoryNecessaryScreenEdit extends HookConsumerWidget {
             final customCategory = customCategoryController.text;
             if (customCategory.isNotEmpty) {
               ref
-                  .read(buttonListStateProviderEdit.notifier)
+                  .read(buttonListStateProviderDiscretionaryEdit.notifier)
                   .addCategory(customCategory);
             }
           }
@@ -590,7 +520,7 @@ class CategoryNecessaryScreenEdit extends HookConsumerWidget {
                       left: 0,
                       right: 0,
                       child: Transform(
-                        transform: Matrix4.identity()..scale(1.0, 1.0, 1.0),
+                        transform: Matrix4.identity()..scale(1.0, -1.0, 1.0),
                         alignment: Alignment.center,
                         child: CustomImageView(
                           imagePath: ImageConstant.imgTopographic7,
@@ -625,7 +555,8 @@ class CategoryNecessaryScreenEdit extends HookConsumerWidget {
                                 margin: getMargin(bottom: 1),
                               ),
                               centerTitle: true,
-                              title: AppbarTitle(text: "Necessary Categories"),
+                              title:
+                                  AppbarTitle(text: "Discretionary Categories"),
                               actions: [
                                 Row(
                                   children: [
@@ -654,13 +585,13 @@ class CategoryNecessaryScreenEdit extends HookConsumerWidget {
                                                     .txtHelveticaNowTextBold16,
                                               ),
                                               content: Text(
-                                                " In this step, you'll be able to add and edit necessary categories to your budget. Follow the instructions below:\n\n"
+                                                "In this step, you'll be able to add and edit discretionary categories to your budget. Follow the instructions below:\n\n"
                                                 "1. Browse through the available categories or use the search bar to find specific ones that match your needs.\n"
                                                 "2. Tap on a category to add it to your chosen categories list. You can always tap again to remove it if needed.\n"
                                                 "3. To add a custom category, tap on the '+' icon, enter the category name in the text field, and press 'Save'.\n"
-                                                "4. Custom categories containing the words 'Debt' or 'Loan' will be automatically considered as Debt/Loan expenses.\n"
-                                                "5. Once you've added and edited all the necessary categories, press the 'Next' button to move on to adding discretionary categories.\n\n"
-                                                "Remember, these necessary categories represent your essential expenses, such as rent, utilities, and groceries. Adding them accurately will help you create a realistic budget and better manage your finances.",
+                                                "4. Please note that custom categories containing the words 'Debt' or 'Loan' will not be considered as discretionary expenses.\n"
+                                                "5. Once you've added and edited all the discretionary categories, press the 'Next' button to move on to reviewing your budget.\n\n"
+                                                "Remember, discretionary categories represent your non-essential expenses, such as entertainment, dining out, and hobbies. Adding them accurately will help you create a realistic budget and better manage your finances.",
                                                 textAlign: TextAlign.center,
                                                 style: AppStyle
                                                     .txtManropeRegular14,
@@ -707,7 +638,9 @@ class CategoryNecessaryScreenEdit extends HookConsumerWidget {
                               ),
                               onChanged: (query) {
                                 ref
-                                    .read(categorySearchProvider.notifier)
+                                    .read(
+                                        categorySearchProviderDiscretionaryEdit
+                                            .notifier)
                                     .updateFilteredCategories(
                                         context,
                                         query,
@@ -737,14 +670,12 @@ class CategoryNecessaryScreenEdit extends HookConsumerWidget {
                                           5.0, // Set the aspect ratio of the grid items
                                     ),
                                     itemBuilder: (context, index) {
-                                      final buttonListState = ref
-                                          .watch(buttonListStateProviderEdit);
+                                      final buttonListState = ref.watch(
+                                          buttonListStateProviderDiscretionaryEdit);
                                       final selectedButtons = buttonListState
                                           .selectedCategories.values
                                           .expand((element) => element)
                                           .toList();
-                                      // print(
-                                      //     'selectedButtons: $selectedButtons');
                                       final isSelected = selectedButtons
                                           .contains(filteredCategories[index]);
 
@@ -753,7 +684,7 @@ class CategoryNecessaryScreenEdit extends HookConsumerWidget {
                                           if (selectedButtons.length < 30) {
                                             ref
                                                 .read(
-                                                    buttonListStateProviderEdit
+                                                    buttonListStateProviderDiscretionaryEdit
                                                         .notifier)
                                                 .addCategory(
                                                     filteredCategories[index]);
@@ -777,12 +708,10 @@ class CategoryNecessaryScreenEdit extends HookConsumerWidget {
                                                 .showSnackBar(snackBar);
                                           }
                                         },
-                                        child: CategoryButtonEdit(
+                                        child: CategoryButtonDiscretionaryEdit(
                                           index: index,
                                           text: filteredCategories[index],
                                           isFromSearchResults: true,
-                                          // selectedCategories: buttonListState
-                                          // .selectedCategories,
                                         ),
                                       );
                                     },
@@ -854,37 +783,43 @@ class CategoryNecessaryScreenEdit extends HookConsumerWidget {
                                             letterSpacing:
                                                 getHorizontalSize(0.4)))),
                             Padding(
-                                padding: getPadding(top: 15, right: 8),
-                                child: Row(children: [
+                              padding: getPadding(top: 15),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
                                   CustomButton(
                                       height: getVerticalSize(28),
-                                      width: getHorizontalSize(158),
+                                      width: getHorizontalSize(143),
                                       text: "Necessary Exps.",
+                                      variant: ButtonVariant.FillWhiteA700,
                                       shape: ButtonShape.RoundedBorder6,
                                       padding: ButtonPadding.PaddingT3,
-                                      fontStyle:
-                                          ButtonFontStyle.ManropeSemiBold12,
+                                      fontStyle: ButtonFontStyle
+                                          .ManropeSemiBold12Bluegray300,
                                       prefixWidget: Container(
                                           margin: getMargin(right: 8),
                                           child: CustomImageView(
-                                              svgPath: ImageConstant.imgCar))),
-                                  Padding(
-                                      padding: getPadding(
-                                          left: 16, top: 7, bottom: 3),
-                                      child: Text("Discretionary Exps. ",
-                                          overflow: TextOverflow.ellipsis,
-                                          textAlign: TextAlign.left,
-                                          style: AppStyle.txtManropeSemiBold12
-                                              .copyWith(
-                                                  letterSpacing:
-                                                      getHorizontalSize(0.2)))),
-                                  CustomImageView(
-                                      svgPath: ImageConstant.imgCart,
-                                      height: getSize(22),
-                                      width: getSize(22),
-                                      margin:
-                                          getMargin(left: 8, top: 3, bottom: 3))
-                                ])),
+                                              svgPath:
+                                                  ImageConstant.imgVolume))),
+                                  CustomButton(
+                                    height: getVerticalSize(28),
+                                    width: getHorizontalSize(175),
+                                    text: "Discretionary Exps.",
+                                    shape: ButtonShape.RoundedBorder6,
+                                    padding: ButtonPadding.PaddingT3_1,
+                                    fontStyle:
+                                        ButtonFontStyle.ManropeSemiBold12,
+                                    suffixWidget: Container(
+                                      margin: getMargin(left: 8),
+                                      child: CustomImageView(
+                                          svgPath:
+                                              ImageConstant.imgCartWhiteA700),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                             Expanded(
                               child: Padding(
                                 padding: getPadding(top: 10),
@@ -911,8 +846,9 @@ class CategoryNecessaryScreenEdit extends HookConsumerWidget {
                                           String parentCategory =
                                               gridItems[index]['text'];
                                           ref
-                                              .read(buttonListStateProviderEdit
-                                                  .notifier)
+                                              .read(
+                                                  buttonListStateProviderDiscretionaryEdit
+                                                      .notifier)
                                               .setCurrentParentCategory(
                                                   parentCategory);
                                           _showModalBottomSheet(context,
@@ -942,35 +878,25 @@ class CategoryNecessaryScreenEdit extends HookConsumerWidget {
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
                     CustomImageView(
-                      svgPath: ImageConstant.imgCarousel2,
+                      svgPath: ImageConstant.imgCarousel3,
                       margin: getMargin(bottom: 10),
                     ),
                     CustomButton(
                       height: getVerticalSize(56),
                       text: "Next",
                       onTap: () async {
-                        final Map<String, double> debtLoanCategories = {
-                          "Mortgage": 0,
-                          "Car Loan": 0,
-                          "Student Loan": 0,
-                          "Personal Loan": 0,
-                          "Payday Loan": 0,
-                          "Business Loan": 0,
-                          "Medical Debt": 0,
-                          "Home Equity Loan": 0,
-                          "Consolidation Loan": 0,
-                          "Credit Card Debt": 0,
-                          "General Debt": 0,
-                          "Other Loans #1": 0,
-                          "Other Loans #2": 0,
-                        };
+                        final Map<String, dynamic> args =
+                            ModalRoute.of(context)!.settings.arguments
+                                as Map<String, dynamic>;
 
-                        bool isDebtOrLoanCategory(String categoryName) {
-                          final lowercaseCategoryName =
-                              categoryName.toLowerCase();
-                          return lowercaseCategoryName.contains("debt") ||
-                              lowercaseCategoryName.contains("loan");
-                        }
+                        final Map<String, double>
+                            necessaryCategoriesWithAmount =
+                            args['necessaryCategoriesWithAmount']
+                                as Map<String, double>;
+
+                        final Map<String, double> extractedDebtLoanCategories =
+                            args['extractedDebtLoanCategories']
+                                as Map<String, double>;
 
                         Map<String, double> allCategoriesWithAmount = {
                           for (String parentCategory in selectedCategories.keys)
@@ -979,64 +905,29 @@ class CategoryNecessaryScreenEdit extends HookConsumerWidget {
                               categoryName: 0,
                         };
 
-                        Map<String, double> necessaryCategoriesWithAmount = {
-                          for (String parentCategory in selectedCategories.keys)
-                            for (String categoryName
-                                in selectedCategories[parentCategory]!)
-                              if (!debtLoanCategories
-                                      .containsKey(categoryName) &&
-                                  !isDebtOrLoanCategory(categoryName))
-                                categoryName: 0,
-                        };
+                        final Map<String, double> discretionaryExpense =
+                            selectedBudget.discretionaryExpense ?? {};
 
-                        Map<String, double> extractedDebtLoanCategories = {
-                          for (String key in allCategoriesWithAmount.keys)
-                            if (debtLoanCategories.containsKey(key) ||
-                                isDebtOrLoanCategory(key))
-                              key: allCategoriesWithAmount[key]!,
-                        };
-
-                        final Map<String, double> necessaryExpense =
-                            selectedBudget.necessaryExpense ?? {};
-                        final Map<String, double> debtExpense =
-                            selectedBudget.debtExpense ?? {};
-
-                        necessaryCategoriesWithAmount.updateAll((key, value) {
-                          return necessaryExpense.containsKey(key)
-                              ? necessaryExpense[key]!
+                        allCategoriesWithAmount.updateAll((key, value) {
+                          return discretionaryExpense.containsKey(key)
+                              ? discretionaryExpense[key]!
                               : value;
                         });
 
-                        extractedDebtLoanCategories.updateAll((key, value) {
-                          return debtExpense.containsKey(key)
-                              ? debtExpense[key]!
-                              : value;
-                        });
-
-                        print(
-                            'All Categories with amount $allCategoriesWithAmount');
-                        print(
-                            'All Necessary Ammounts $necessaryCategoriesWithAmount');
-                        print('All Debt Amounts $extractedDebtLoanCategories');
+                        print('All Discretionary $allCategoriesWithAmount');
 
                         final budgetState =
                             ref.watch(budgetStateProvider.notifier);
                         final generateSalaryController =
                             ref.watch(generateSalaryProvider.notifier);
-                        final budgetId = selectedBudget.budgetId;
+                        final String? budgetId = selectedBudget.budgetId;
 
-                        await budgetState.saveBudgetNecessaryInfo(
+                        await budgetState.saveBudgetDiscretionaryInfo(
                           budgetId: budgetId,
-                          necessaryExpense: necessaryCategoriesWithAmount,
+                          discretionaryExpense: allCategoriesWithAmount,
                         );
 
-                        await budgetState.saveBudgetDebtInfo(
-                          budgetId: budgetId,
-                          debtExpense: extractedDebtLoanCategories,
-                        );
-
-                        if (budgetState.state.status == BudgetStatus.success &&
-                            allCategoriesWithAmount.isNotEmpty) {
+                        if (budgetState.state.status == BudgetStatus.success) {
                           // Show SnackBar with success message
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
@@ -1053,14 +944,18 @@ class CategoryNecessaryScreenEdit extends HookConsumerWidget {
                             ),
                           );
                           Navigator.pushNamed(
-                              context, '/category_discretionary_screen_edit',
-                              arguments: {
-                                'necessaryCategoriesWithAmount':
-                                    necessaryCategoriesWithAmount,
-                                'extractedDebtLoanCategories':
-                                    extractedDebtLoanCategories,
-                                'selectedBudget': selectedBudget,
-                              });
+                            context,
+                            '/allocate_funds_screen_edit',
+                            arguments: {
+                              'necessaryCategoriesWithAmount':
+                                  necessaryCategoriesWithAmount,
+                              'extractedDebtLoanCategories':
+                                  extractedDebtLoanCategories,
+                              'discretionaryCategoriesWithAmount':
+                                  allCategoriesWithAmount,
+                              'selectedBudget': selectedBudget
+                            },
+                          );
                         } else if (budgetState.state.status ==
                             BudgetStatus.failure) {
                           // Show SnackBar with failure message
@@ -1078,21 +973,6 @@ class CategoryNecessaryScreenEdit extends HookConsumerWidget {
                               backgroundColor: ColorConstant.redA700,
                             ),
                           );
-                        } else if (allCategoriesWithAmount.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                'Please select at least one category.',
-                                textAlign: TextAlign.center,
-                                style: AppStyle
-                                    .txtHelveticaNowTextBold16WhiteA700
-                                    .copyWith(
-                                  letterSpacing: getHorizontalSize(0.3),
-                                ),
-                              ),
-                              backgroundColor: ColorConstant.amber600,
-                            ),
-                          );
                         }
                       },
                     ),
@@ -1106,11 +986,62 @@ class CategoryNecessaryScreenEdit extends HookConsumerWidget {
     );
   }
 
-  onTapArrowleft1(BuildContext context) {
+  onTapArrowleft2(BuildContext context) {
     Navigator.pop(context);
   }
+}
 
-  onTapNext(BuildContext context) {
-    Navigator.pushNamed(context, AppRoutes.categoryDiscretionaryScreen);
-  }
+void _showModalBottomSheet(
+    BuildContext context, Map<int, String> buttonTexts, String parentCategory) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (BuildContext context) {
+      return Stack(
+        children: [
+          BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 1, sigmaY: 1),
+            child: Container(
+                // color: Colors.grey.withOpacity(0.5),
+                ),
+          ),
+          DraggableScrollableSheet(
+            initialChildSize: 0.4, // Set the initial height of the modal
+            minChildSize: 0.4, // Set the minimum height of the modal
+            maxChildSize: 0.6, // Set the maximum height of the modal
+            builder: (BuildContext context, ScrollController scrollController) {
+              return ClipRRect(
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(32),
+                  topRight: Radius.circular(32),
+                ),
+                child: Container(
+                  color: Colors.white,
+                  padding: EdgeInsets.all(16),
+                  child: GridView.builder(
+                    padding: EdgeInsets.zero,
+                    itemCount: buttonTexts.length,
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      mainAxisSpacing: 8,
+                      crossAxisSpacing: 8,
+                      childAspectRatio: 2,
+                    ),
+                    itemBuilder: (BuildContext context, int index) {
+                      final entry = buttonTexts.entries.elementAt(index);
+                      return CategoryButtonDiscretionaryEdit(
+                        index: entry.key,
+                        text: entry.value,
+                      );
+                    },
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      );
+    },
+  );
 }
