@@ -64,10 +64,10 @@ class AllocateFundsScreenEdit extends ConsumerWidget {
 
     final Budget selectedBudget = args?['selectedBudget'];
 
-    print('necessaryCategoriesWithAmount: $necessaryCategoriesWithAmount');
-    print('extractedDebtLoanCategories: $extractedDebtLoanCategories');
-    print(
-        'discretionaryCategoriesWithAmount: $discretionaryCategoriesWithAmount');
+    // print('necessaryCategoriesWithAmount: $necessaryCategoriesWithAmount');
+    // print('extractedDebtLoanCategories: $extractedDebtLoanCategories');
+    // print(
+    //     'discretionaryCategoriesWithAmount: $discretionaryCategoriesWithAmount');
 
     Map<String, double> getIndividualAmounts(
         WidgetRef ref, List<String> categories) {

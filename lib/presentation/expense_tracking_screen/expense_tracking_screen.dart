@@ -16,6 +16,7 @@ import 'package:noughtplan/core/constants/budgets.dart';
 import 'package:noughtplan/core/forms/form_validators.dart';
 import 'package:noughtplan/presentation/budget_screen/widgets/listchart_item_widget.dart';
 import 'package:noughtplan/presentation/budget_screen/widgets/listchart_item_widget_debt.dart';
+import 'package:noughtplan/presentation/budget_screen/widgets/listchart_item_widget_save.dart';
 import 'package:noughtplan/presentation/expense_tracking_screen/actual_expenses_provider.dart';
 import 'package:noughtplan/widgets/custom_button_form.dart';
 
@@ -56,7 +57,7 @@ class ExpenseTrackingScreen extends HookConsumerWidget {
 
       actualExpenses.forEach((expense) {
         String category = expense['category'];
-        double amount = expense['amount'];
+        double amount = (expense['amount'] as num).toDouble();
 
         if (totalAmountPerCategory.containsKey(category)) {
           totalAmountPerCategory[category] =
@@ -105,13 +106,15 @@ class ExpenseTrackingScreen extends HookConsumerWidget {
       return sum;
     }
 
-    print('Total Amounts: $totalAmounts');
+    // print('Total Amounts: $totalAmounts');
 
     void updateExpensesOnLoad() {
       Future.microtask(
         () async {
           final fetchedBudgets = await budgetNotifier.fetchUserBudgets();
-          _budgets.value = fetchedBudgets;
+          if (context.mounted) {
+            _budgets.value = fetchedBudgets;
+          }
 
           if (_budgets.value != null) {
             final updatedSelectedBudget = _budgets.value!.firstWhere(
@@ -158,15 +161,40 @@ class ExpenseTrackingScreen extends HookConsumerWidget {
     final String debtTotalFormatted = numberFormat.format(debtTotal);
     final String totalExpensesFormatted = numberFormat.format(totalExpenses);
 
+    final Map<String, double> savingsCategories = {
+      "Emergency Fund": 0,
+      "Retirement Savings": 0,
+      "Investments": 0,
+      "Education Savings": 0,
+      "Vacation Fund": 0,
+      "Down Payment": 0,
+      "Home Improvement Fund": 0,
+      "Home Equity Loan": 0,
+      "Debt Payoff": 0,
+      "Wedding Fund": 0,
+      "Vehicle Savings": 0,
+      "General Savings": 0,
+    };
+
     List<Map<String, String>> necessaryBudgetItems = [];
     List<Map<String, String>> discretionaryBudgetItems = [];
     List<Map<String, String>> debtBudgetItems = [];
+    List<Map<String, String>> savingsBudgetItems = [];
 
     necessaryCategories.forEach((key, value) {
-      necessaryBudgetItems.add({
-        'category': key,
-        'amount': numberFormat.format(value),
-      });
+      if (!savingsCategories.containsKey(key) &&
+          !key.toLowerCase().contains('savings') &&
+          !key.toLowerCase().contains('investment')) {
+        necessaryBudgetItems.add({
+          'category': key,
+          'amount': numberFormat.format(value),
+        });
+      } else {
+        savingsBudgetItems.add({
+          'category': key,
+          'amount': numberFormat.format(value),
+        });
+      }
     });
 
     discretionaryCategories.forEach((key, value) {
@@ -182,6 +210,8 @@ class ExpenseTrackingScreen extends HookConsumerWidget {
         'amount': numberFormat.format(value),
       });
     });
+
+    print('savingsBudgetItems $savingsBudgetItems');
 
     double totalExpensesSum = getTotalAmountsSum(totalAmounts);
     double totalRemainingFunds = totalExpenses - totalExpensesSum;
@@ -308,6 +338,41 @@ class ExpenseTrackingScreen extends HookConsumerWidget {
                                               letterSpacing: getHorizontalSize(
                                                 0.4,
                                               ),
+                                            ),
+                                          ),
+                                        ),
+                                        Padding(
+                                          padding: getPadding(top: 8),
+                                          child: Padding(
+                                            padding: getPadding(
+                                                top: 8, left: 8, right: 8),
+                                            child: ListView.separated(
+                                              physics: BouncingScrollPhysics(),
+                                              shrinkWrap: true,
+                                              separatorBuilder:
+                                                  (context, index) {
+                                                return SizedBox(
+                                                  height: getVerticalSize(16),
+                                                );
+                                              },
+                                              itemCount:
+                                                  savingsBudgetItems.length,
+                                              itemBuilder: (context, index) {
+                                                return ListDebtChartItemWidgetSave(
+                                                  category:
+                                                      savingsBudgetItems[index]
+                                                          ['category']!,
+                                                  amount:
+                                                      savingsBudgetItems[index]
+                                                          ['amount']!,
+                                                  totalAmount: totalAmounts[
+                                                          savingsBudgetItems[
+                                                                  index]
+                                                              ['category']] ??
+                                                      0,
+                                                  onLoad: updateExpensesOnLoad,
+                                                );
+                                              },
                                             ),
                                           ),
                                         ),
@@ -509,8 +574,8 @@ class ExpenseTrackingScreen extends HookConsumerWidget {
                                         orElse: () => null,
                                       );
 
-                                      print(
-                                          'Modal updatedSelectedBudget: $updatedSelectedBudget');
+                                      // print(
+                                      // 'Modal updatedSelectedBudget: $updatedSelectedBudget');
 
                                       if (updatedSelectedBudget != null) {
                                         final actualExpensesNotifier = ref.read(
@@ -612,8 +677,8 @@ class ExpenseTrackingScreen extends HookConsumerWidget {
                               final actualExpenses =
                                   ref.watch(actualExpensesProvider);
 
-                              print(
-                                  'actualExpenses from Expenses screen: $actualExpenses');
+                              // print(
+                              //     'actualExpenses from Expenses screen: $actualExpenses');
                               return CalendarWidget(
                                 budget: selectedBudget,
                                 actualExpenses: actualExpenses,
@@ -677,6 +742,8 @@ class ExpenseTrackingScreen extends HookConsumerWidget {
     ];
 
     String? selectedCategory;
+    String? recurringType;
+    int? duration;
     TextEditingController amountController = TextEditingController();
 
     return showModalBottomSheet(
@@ -696,6 +763,8 @@ class ExpenseTrackingScreen extends HookConsumerWidget {
             void resetValues() {
               setState(() {
                 selectedCategory = null;
+                recurringType = null;
+                duration = null;
                 amountController.text = '';
               });
             }
@@ -713,8 +782,8 @@ class ExpenseTrackingScreen extends HookConsumerWidget {
                         ),
                   ),
                   DraggableScrollableSheet(
-                    initialChildSize: 0.65,
-                    minChildSize: 0.65,
+                    initialChildSize: 0.7,
+                    minChildSize: 0.7,
                     maxChildSize: 1,
                     builder: (BuildContext context,
                         ScrollController scrollController) {
@@ -811,7 +880,6 @@ class ExpenseTrackingScreen extends HookConsumerWidget {
                                     enabled: false,
                                   ),
                                   SizedBox(height: 16),
-                                  SizedBox(height: 16),
                                   Container(
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(12),
@@ -827,26 +895,67 @@ class ExpenseTrackingScreen extends HookConsumerWidget {
 
                                         void submitForm() async {
                                           if (isValidated) {
-                                            Map<String, dynamic> expenseData = {
-                                              'date':
-                                                  selectedDate?.toString() ??
-                                                      DateTime.now().toString(),
-                                              'category':
-                                                  selectedCategory ?? '',
-                                              'amount': amountController
-                                                      .text.isNotEmpty
-                                                  ? double.tryParse(
-                                                      amountController.text
-                                                          .replaceAll(',', ''))
-                                                  : 0.0,
-                                            };
-                                            String budgetId = budget!.budgetId;
+                                            DateTime startDate =
+                                                selectedDate ?? DateTime.now();
+                                            List<DateTime> expenseDates = [];
 
-                                            print('budgetId: $budgetId');
+                                            switch (recurringType) {
+                                              case 'Monthly':
+                                                for (int i = 0;
+                                                    i < (duration ?? 0);
+                                                    i++) {
+                                                  expenseDates.add(
+                                                      startDate.add(Duration(
+                                                          days: 30 * i)));
+                                                }
+                                                break;
+                                              case 'Bi-Weekly':
+                                                for (int i = 0;
+                                                    i < (duration ?? 0);
+                                                    i++) {
+                                                  expenseDates.add(
+                                                      startDate.add(Duration(
+                                                          days: 14 * i)));
+                                                }
+                                                break;
+                                              case 'Weekly':
+                                                for (int i = 0;
+                                                    i < (duration ?? 0);
+                                                    i++) {
+                                                  expenseDates.add(
+                                                      startDate.add(Duration(
+                                                          days: 7 * i)));
+                                                }
+                                                break;
+                                              default:
+                                                expenseDates.add(startDate);
+                                            }
 
-                                            await expenseController
-                                                .addActualExpenseToBudget(
-                                                    budgetId, expenseData, ref);
+                                            for (DateTime expenseDate
+                                                in expenseDates) {
+                                              Map<String, dynamic> expenseData =
+                                                  {
+                                                'date': expenseDate.toString(),
+                                                'category':
+                                                    selectedCategory ?? '',
+                                                'amount': amountController
+                                                        .text.isNotEmpty
+                                                    ? double.tryParse(
+                                                        amountController.text
+                                                            .replaceAll(
+                                                                ',', ''))
+                                                    : 0.0,
+                                              };
+
+                                              String budgetId =
+                                                  budget!.budgetId;
+                                              print('budgetId: $budgetId');
+                                              await expenseController
+                                                  .addActualExpenseToBudget(
+                                                      budgetId,
+                                                      expenseData,
+                                                      ref);
+                                            }
 
                                             Navigator.pop(context);
                                             // resetValues();
@@ -1026,6 +1135,114 @@ class ExpenseTrackingScreen extends HookConsumerWidget {
                                                   .txtHelveticaNowTextBold40
                                                   .copyWith(
                                                 color: ColorConstant.blue90001,
+                                              ),
+                                            ),
+                                            // Place this snippet between your TextField and SizedBox(height: 16)
+                                            Padding(
+                                              padding: getPadding(top: 12),
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Padding(
+                                                    padding:
+                                                        getPadding(left: 10),
+                                                    child: Text(
+                                                        'Frequency (Optional)',
+                                                        textAlign:
+                                                            TextAlign.start,
+                                                        style: AppStyle
+                                                            .txtHelveticaNowTextBold12
+                                                            .copyWith(
+                                                          color: ColorConstant
+                                                              .blueGray300,
+                                                        )),
+                                                  ),
+                                                  Row(
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment
+                                                            .spaceAround,
+                                                    children: [
+                                                      DropdownButton<String>(
+                                                        hint: Text(
+                                                          "Recurring",
+                                                          style: AppStyle
+                                                              .txtHelveticaNowTextBold16
+                                                              .copyWith(
+                                                                  color: ColorConstant
+                                                                      .blueGray300),
+                                                        ),
+                                                        value: recurringType,
+                                                        items: <String>[
+                                                          'Monthly',
+                                                          'Bi-Weekly',
+                                                          'Weekly'
+                                                        ].map<
+                                                            DropdownMenuItem<
+                                                                String>>((String
+                                                            value) {
+                                                          return DropdownMenuItem<
+                                                              String>(
+                                                            value: value,
+                                                            child: Text(value,
+                                                                style: AppStyle
+                                                                    .txtHelveticaNowTextBold16
+                                                                    .copyWith(
+                                                                  color: ColorConstant
+                                                                      .black900,
+                                                                )),
+                                                          );
+                                                        }).toList(),
+                                                        onChanged:
+                                                            (String? newValue) {
+                                                          setState(() {
+                                                            recurringType =
+                                                                newValue!;
+                                                          });
+                                                        },
+                                                      ),
+                                                      DropdownButton<int>(
+                                                        hint: Text("Duration",
+                                                            style: AppStyle
+                                                                .txtHelveticaNowTextBold16
+                                                                .copyWith(
+                                                              color: ColorConstant
+                                                                  .blueGray300,
+                                                            )),
+                                                        value: duration,
+                                                        items: List<
+                                                                int>.generate(
+                                                            12,
+                                                            (i) =>
+                                                                i + 1).map<
+                                                            DropdownMenuItem<
+                                                                int>>((int
+                                                            value) {
+                                                          return DropdownMenuItem<
+                                                              int>(
+                                                            value: value,
+                                                            child: Text(
+                                                                value
+                                                                    .toString(),
+                                                                style: AppStyle
+                                                                    .txtHelveticaNowTextBold16
+                                                                    .copyWith(
+                                                                  color: ColorConstant
+                                                                      .black900,
+                                                                )),
+                                                          );
+                                                        }).toList(),
+                                                        onChanged:
+                                                            (int? newValue) {
+                                                          setState(() {
+                                                            duration =
+                                                                newValue!;
+                                                          });
+                                                        },
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ],
                                               ),
                                             ),
                                             SizedBox(height: 16),

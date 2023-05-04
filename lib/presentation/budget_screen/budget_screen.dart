@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -9,21 +10,118 @@ import 'package:intl/intl.dart';
 import 'package:noughtplan/core/budget/providers/budget_state_provider.dart';
 import 'package:noughtplan/core/constants/budgets.dart';
 import 'package:noughtplan/presentation/budget_screen/widgets/call_chat_gpt_highlights.dart';
+import 'package:noughtplan/presentation/budget_screen/widgets/spending_type_progress_bar.dart';
+import 'package:noughtplan/presentation/budget_screen/widgets/selected_budget_id.dart';
 import 'package:noughtplan/presentation/budget_screen/widgets/user_types_bugdet_widget.dart';
 import 'package:noughtplan/presentation/expense_tracking_screen/actual_expenses_provider.dart';
+import 'package:noughtplan/widgets/custom_button_form.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'dart:ui' as ui;
+import 'package:shared_preferences/shared_preferences.dart';
 
+import '../allocate_funds_screen/allocate_funds_screen.dart';
 import '../budget_screen/widgets/listchart_item_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:noughtplan/core/app_export.dart';
 import 'package:noughtplan/widgets/custom_button.dart';
 import 'package:fl_chart/fl_chart.dart';
 
+final buttonStateProvider =
+    StateNotifierProvider.family<ButtonState, ButtonData, String>(
+        (ref, budgetId) {
+  return ButtonState(budgetId);
+});
+
+class ButtonState extends StateNotifier<ButtonData> {
+  final String budgetId;
+
+  ButtonState(this.budgetId) : super(ButtonData(enabled: true, timerText: ''));
+
+  void update({required bool enabled, required String timerText}) {
+    state = ButtonData(enabled: enabled, timerText: timerText);
+  }
+}
+
+class ButtonData {
+  final bool enabled;
+  final String timerText;
+
+  ButtonData({required this.enabled, required this.timerText});
+}
+
+class InsightsNotifier extends StateNotifier<InsightsState> {
+  InsightsNotifier() : super(InsightsState());
+
+  void setLoading(bool isLoading) {
+    state = state.copyWith(isLoading: isLoading);
+  }
+
+  void setDataList(List<InsightItem> dataList) {
+    state = state.copyWith(dataList: dataList);
+  }
+}
+
+class InsightsState {
+  final bool isLoading;
+  final List<InsightItem> dataList;
+
+  InsightsState({
+    this.isLoading = false,
+    this.dataList = const [],
+  });
+
+  InsightsState copyWith({
+    bool? isLoading,
+    List<InsightItem>? dataList,
+  }) {
+    return InsightsState(
+      isLoading: isLoading ?? this.isLoading,
+      dataList: dataList ?? this.dataList,
+    );
+  }
+}
+
+class InsightItem {
+  final String iconPath;
+  final String content;
+  final String budgetId;
+
+  InsightItem({
+    required this.iconPath,
+    required this.content,
+    required this.budgetId,
+  });
+
+  factory InsightItem.fromJson(Map<String, dynamic> json) {
+    return InsightItem(
+      iconPath: json['iconPath'] as String,
+      content: json['content'] as String,
+      budgetId: json['budgetId'] as String,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'iconPath': iconPath,
+      'content': content,
+      'budgetId': budgetId,
+    };
+  }
+}
+
+final insightsNotifierProvider =
+    StateNotifierProvider<InsightsNotifier, InsightsState>(
+        (ref) => InsightsNotifier());
+
 class BudgetScreen extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final scrollController = ScrollController();
+    final isLoading = ValueNotifier<bool>(false);
     final Map<String, dynamic> args =
         ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
-    final Budget? selectedBudget = args['budget'];
+    final Budget selectedBudget = args['budget'];
     final String firstName = args['firstName'];
 
     final budgetNotifier = ref.watch(budgetStateProvider.notifier);
@@ -31,13 +129,23 @@ class BudgetScreen extends HookConsumerWidget {
     final _budgets = useState<List<Budget?>?>(null);
     Budget? _updatedSelectedBudget;
 
+    final String budgetId = selectedBudget.budgetId;
+    print('Budget Id: $budgetId');
+
     Map<String, double> getTotalAmountPerCategory(
         List<Map<String, dynamic>> actualExpenses) {
       Map<String, double> totalAmountPerCategory = {};
 
+      DateTime today = DateTime.now();
+
       actualExpenses.forEach((expense) {
+        final expenseDate = DateTime.parse(expense['date'] as String);
+        if (expenseDate.isAfter(today)) {
+          return; // skip this expense if its date is greater than today
+        }
+
         String category = expense['category'];
-        double amount = expense['amount'];
+        double amount = (expense['amount'] as num).toDouble();
 
         if (totalAmountPerCategory.containsKey(category)) {
           totalAmountPerCategory[category] =
@@ -55,12 +163,12 @@ class BudgetScreen extends HookConsumerWidget {
     }
 
     Map<String, double> totalAmounts =
-        getTotalAmountPerCategory(selectedBudget?.actualExpenses ?? []);
+        getTotalAmountPerCategory(selectedBudget.actualExpenses);
 
     if (_budgets.value != null) {
       // Future.microtask(() async {
       final updatedSelectedBudget = _budgets.value!.firstWhere(
-        (budget) => budget?.budgetId == selectedBudget!.budgetId,
+        (budget) => budget?.budgetId == selectedBudget.budgetId,
         orElse: () => null,
       );
 
@@ -95,15 +203,24 @@ class BudgetScreen extends HookConsumerWidget {
       Future.microtask(
         () async {
           final fetchedBudgets = await budgetNotifier.fetchUserBudgets();
-          _budgets.value = fetchedBudgets;
+          if (context.mounted) {
+            _budgets.value = fetchedBudgets;
+          }
 
           if (_budgets.value != null) {
             final updatedSelectedBudget = _budgets.value!.firstWhere(
-              (budget) => budget?.budgetId == selectedBudget!.budgetId,
+              (budget) => budget?.budgetId == selectedBudget.budgetId,
               orElse: () => null,
             );
 
             if (updatedSelectedBudget != null) {
+              // Update the selectedBudgetIdProvider with the budgetId of the updatedSelectedBudget
+              ref.read(selectedBudgetIdProvider.notifier).state =
+                  updatedSelectedBudget.budgetId;
+
+              print(
+                  'Setting the selected budget id to: ${updatedSelectedBudget.budgetId}');
+
               final actualExpensesNotifier =
                   await ref.read(actualExpensesProvider.notifier);
               actualExpensesNotifier
@@ -116,35 +233,211 @@ class BudgetScreen extends HookConsumerWidget {
       );
     }
 
-    useEffect(() {
-      updateExpensesOnLoad();
+    ValueNotifier<bool> buttonEnabled = ValueNotifier<bool>(true);
+    ValueNotifier<String> remainingTime = ValueNotifier<String>('');
 
-      return () {}; // Clean-up function
-    }, []);
-
-    Future<void> fetchGPTData() async {
+    Future<List<String>> fetchGPTDataMonthlyHightlights() async {
       if (_updatedSelectedBudget != null) {
-        // List<String> suggestions =
-        //     await getSuggestions(_updatedSelectedBudget);
         List<String> highlights =
             await getHighlights(_updatedSelectedBudget, firstName);
-        // List<String> achievements =
-        //     await getAchievements(_updatedSelectedBudget);
 
-        // print('Suggestions: $suggestions');
         print('Highlights: $highlights');
-        // print('Achievements: $achievements');
+        return highlights;
+      }
+      return [];
+    }
+
+    Future<List<String>> fetchGPTDataMonthlySuggestions() async {
+      if (_updatedSelectedBudget != null) {
+        List<String> suggestions =
+            await getSuggestions(_updatedSelectedBudget, firstName);
+
+        print('Suggestions: $suggestions');
+        return suggestions;
+      }
+      return [];
+    }
+
+    Future<DateTime> fetchServerTime() async {
+      final response =
+          await http.get(Uri.parse('http://worldtimeapi.org/api/ip'));
+
+      if (response.statusCode == 200) {
+        Map<String, dynamic> data = jsonDecode(response.body);
+        DateTime serverTime = DateTime.parse(data['datetime']);
+        return serverTime;
+      } else {
+        throw Exception('Failed to fetch server time');
       }
     }
 
-    // fetchGPTData();
+    Future<void> saveEndTime(String budgetId, int endTime) async {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('endTime_$budgetId', endTime);
+    }
+
+    Future<int?> loadEndTime(String budgetId) async {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      return prefs.getInt('endTime_$budgetId');
+    }
+
+    void startTimer(String budgetId, int duration) {
+      Timer.periodic(Duration(seconds: 1), (Timer timer) {
+        if (duration < 1000) {
+          timer.cancel();
+          buttonEnabled.value = true;
+        } else {
+          duration -= 1000;
+          int days = duration ~/ Duration.millisecondsPerDay;
+          int hours = duration %
+              Duration.millisecondsPerDay ~/
+              Duration.millisecondsPerHour;
+          int minutes = duration %
+              Duration.millisecondsPerHour ~/
+              Duration.millisecondsPerMinute;
+          int seconds = duration %
+              Duration.millisecondsPerMinute ~/
+              Duration.millisecondsPerSecond;
+          remainingTime.value =
+              '$days days, $hours hours, $minutes minutes, $seconds seconds';
+        }
+      });
+    }
+
+    Future<int?> checkTimerStatus() async {
+      int? savedEndTime = await loadEndTime(budgetId);
+      if (savedEndTime != null) {
+        int currentTime = DateTime.now().millisecondsSinceEpoch;
+        if (currentTime >= savedEndTime) {
+          buttonEnabled.value = true;
+          return null;
+        } else {
+          buttonEnabled.value = false;
+          int remainingDuration = savedEndTime - currentTime;
+          startTimer(budgetId, remainingDuration);
+          return remainingDuration;
+        }
+      } else {
+        buttonEnabled.value = true;
+        return null;
+      }
+    }
+
+    Future<void> saveListData(
+        String budgetId, List<InsightItem> listData) async {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String listDataJson =
+          jsonEncode(listData.map((item) => item.toJson()).toList());
+
+      await prefs.setString('listData_$budgetId', listDataJson);
+    }
+
+    Future<void> fetchDataAndShuffleList(String budgetId) async {
+      buttonEnabled.value = false;
+      ref.read(insightsNotifierProvider.notifier).setLoading(true);
+      List<String> highlights = await fetchGPTDataMonthlyHightlights();
+      List<String> suggestions = await fetchGPTDataMonthlySuggestions();
+      List<InsightItem> combinedList = [
+        ...highlights.map((highlight) => InsightItem(
+            content: highlight,
+            iconPath: 'assets/images/star.png',
+            budgetId: budgetId)),
+        ...suggestions.map((suggestion) => InsightItem(
+            content: suggestion,
+            iconPath: 'assets/images/bulb.png',
+            budgetId: budgetId)),
+      ];
+      List<InsightItem> specialItems = combinedList
+          .where((item) =>
+              item.content.contains("Overall") ||
+              item.content.contains("Finally") ||
+              item.content.contains("Lastly"))
+          .toList();
+
+      // Remove the special items from the combined list
+      combinedList.removeWhere((item) => specialItems.contains(item));
+
+      // Shuffle the remaining items
+      combinedList.shuffle();
+
+      // Add the special items back to the end of the list
+      combinedList.addAll(specialItems);
+      ref.read(insightsNotifierProvider.notifier).setDataList(combinedList);
+
+      await saveListData(budgetId, combinedList);
+      ref.read(insightsNotifierProvider.notifier).setLoading(false);
+    }
+
+    Future<List<InsightItem>?> loadListData(String budgetId) async {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? listDataJson = prefs.getString('listData_$budgetId');
+      if (listDataJson != null) {
+        List<dynamic> listDataMap = jsonDecode(listDataJson);
+        List<InsightItem> listData = listDataMap
+            .map((item) => InsightItem.fromJson(item as Map<String, dynamic>))
+            .where((item) => item.budgetId != null && item.budgetId == budgetId)
+            .toList();
+        return listData;
+      }
+      return null;
+    }
+
+    void updateTimerText(int remainingDuration) {
+      Timer.periodic(Duration(seconds: 1), (timer) {
+        remainingDuration -= 1000;
+
+        int days = remainingDuration ~/ Duration.millisecondsPerDay;
+        int hours = remainingDuration %
+            Duration.millisecondsPerDay ~/
+            Duration.millisecondsPerHour;
+        int minutes = remainingDuration %
+            Duration.millisecondsPerHour ~/
+            Duration.millisecondsPerMinute;
+        int seconds = remainingDuration %
+            Duration.millisecondsPerMinute ~/
+            Duration.millisecondsPerSecond;
+
+        String timerText =
+            "${days} Days ${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}";
+
+        if (remainingDuration <= 0) {
+          if (context.mounted) {
+            timer.cancel();
+            ref
+                .read(buttonStateProvider(budgetId).notifier)
+                .update(enabled: true, timerText: '');
+          }
+        } else {
+          if (context.mounted) {
+            ref
+                .read(buttonStateProvider(budgetId).notifier)
+                .update(enabled: false, timerText: timerText);
+          }
+        }
+      });
+    }
+
+    useEffect(() {
+      updateExpensesOnLoad();
+
+      loadListData(selectedBudget.budgetId).then((listData) {
+        if (listData != null) {
+          ref.read(insightsNotifierProvider.notifier).setDataList(listData);
+        }
+      });
+      checkTimerStatus().then((remainingDuration) {
+        if (remainingDuration != null && remainingDuration > 0) {
+          updateTimerText(remainingDuration);
+        }
+      });
+      return () {}; // Clean-up function
+    }, []);
 
     final Map<String, double> necessaryCategories =
-        selectedBudget?.necessaryExpense ?? {};
+        selectedBudget.necessaryExpense ?? {};
     final Map<String, double> discretionaryCategories =
-        selectedBudget?.discretionaryExpense ?? {};
-    final Map<String, double> debtCategories =
-        selectedBudget?.debtExpense ?? {};
+        selectedBudget.discretionaryExpense ?? {};
+    final Map<String, double> debtCategories = selectedBudget.debtExpense ?? {};
 
     final double necessaryTotal =
         necessaryCategories.values.fold(0, (a, b) => a + b);
@@ -152,7 +445,46 @@ class BudgetScreen extends HookConsumerWidget {
         discretionaryCategories.values.fold(0, (a, b) => a + b);
     final double debtTotal = debtCategories.values.fold(0, (a, b) => a + b);
 
-    final totalExpenses = selectedBudget!.salary;
+    Future<double> fetchExchangeRate(
+        String baseCurrency, String targetCurrency) async {
+      String apiKey =
+          '75b1040cb041406086e97f3476c890d7'; // Replace with your API key from exchangeratesapi.io
+      String apiUrl =
+          'https://open.er-api.com/v6/latest/$baseCurrency?apikey=$apiKey';
+
+      try {
+        final response = await http.get(Uri.parse(apiUrl));
+
+        if (response.statusCode == 200) {
+          var jsonResponse = jsonDecode(response.body);
+          double exchangeRate = jsonResponse['rates'][targetCurrency];
+          return exchangeRate;
+        } else {
+          throw Exception('Failed to load exchange rate');
+        }
+      } catch (e) {
+        throw Exception('Failed to fetch exchange rate: $e');
+      }
+    }
+
+    Future<Map<String, double>> _convertAndStoreTotals(String currency,
+        double necessaryTotal, double discretionaryTotal) async {
+      double necessaryTotalUSD = necessaryTotal;
+      double discretionaryTotalUSD = discretionaryTotal;
+
+      if (currency == 'JMD') {
+        double exchangeRate = await fetchExchangeRate('JMD', 'USD');
+        necessaryTotalUSD = necessaryTotal * exchangeRate;
+        discretionaryTotalUSD = discretionaryTotal * exchangeRate;
+      }
+
+      return {
+        'necessaryTotalUSD': necessaryTotalUSD,
+        'discretionaryTotalUSD': discretionaryTotalUSD,
+      };
+    }
+
+    final totalExpenses = selectedBudget.salary;
 
     final numberFormat = NumberFormat.currency(symbol: '\$', decimalDigits: 2);
 
@@ -202,9 +534,7 @@ class BudgetScreen extends HookConsumerWidget {
       child: Scaffold(
         backgroundColor: ColorConstant.whiteA700,
         body: Container(
-          height: getVerticalSize(
-            812,
-          ),
+          height: getVerticalSize(812),
           width: double.maxFinite,
           child: Stack(
             // alignment: Alignment.bottomCenter,
@@ -227,6 +557,7 @@ class BudgetScreen extends HookConsumerWidget {
                 ),
               ),
               SingleChildScrollView(
+                controller: scrollController,
                 child: Container(
                   padding: getPadding(bottom: 25),
                   child: Column(
@@ -291,20 +622,94 @@ class BudgetScreen extends HookConsumerWidget {
                                         builder: (BuildContext context) {
                                           return AlertDialog(
                                             title: Text(
-                                              'Please read the instructions below',
+                                              'Budget Details',
                                               textAlign: TextAlign.center,
                                               style: AppStyle
                                                   .txtHelveticaNowTextBold16,
                                             ),
-                                            content: Text(
-                                              "In this step, you'll be able to add discretionary categories to your budget. Follow the instructions below:\n\n"
-                                              "1. Browse through the available categories or use the search bar to find specific ones that match your interests and lifestyle.\n"
-                                              "2. Tap on a category to add it to your chosen categories list. You can always tap again to remove it if needed.\n"
-                                              "3. Once you've added all the discretionary categories you want, press the 'Next' button to move on to reviewing your budget.\n\n"
-                                              "Remember, these discretionary categories represent your non-essential expenses, such as entertainment, hobbies, and dining out. Adding them thoughtfully will help you create a balanced budget, allowing for personal enjoyment while still managing your finances effectively.",
-                                              textAlign: TextAlign.center,
-                                              style:
-                                                  AppStyle.txtManropeRegular14,
+                                            content: Column(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Text(
+                                                  "",
+                                                  textAlign: TextAlign.center,
+                                                  style: AppStyle
+                                                      .txtManropeRegular14,
+                                                ),
+                                                SizedBox(height: 10),
+                                                FutureBuilder(
+                                                  future:
+                                                      _convertAndStoreTotals(
+                                                          selectedBudget
+                                                              .currency,
+                                                          necessaryTotal,
+                                                          discretionaryTotal),
+                                                  builder:
+                                                      (BuildContext context,
+                                                          AsyncSnapshot<
+                                                                  Map<String,
+                                                                      double>>
+                                                              snapshot) {
+                                                    if (snapshot
+                                                            .connectionState ==
+                                                        ConnectionState
+                                                            .waiting) {
+                                                      return CircularProgressIndicator();
+                                                    } else if (snapshot
+                                                        .hasError) {
+                                                      return Text(
+                                                          'Error: ${snapshot.error}');
+                                                    } else {
+                                                      final necessaryTotalUSD =
+                                                          snapshot.data![
+                                                                  'necessaryTotalUSD'] ??
+                                                              0.0;
+                                                      final discretionaryTotalUSD =
+                                                          snapshot.data![
+                                                                  'discretionaryTotalUSD'] ??
+                                                              0.0;
+
+                                                      return SpendingTypeProgressBar(
+                                                        totalNecessaryExpense:
+                                                            necessaryTotalUSD,
+                                                        totalDiscretionaryExpense:
+                                                            discretionaryTotalUSD,
+                                                      );
+                                                    }
+                                                  },
+                                                ),
+                                                Padding(
+                                                  padding: getPadding(top: 7),
+                                                  child: Row(
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment
+                                                            .spaceBetween,
+                                                    children: [
+                                                      Text('Necessary Spender',
+                                                          style: AppStyle
+                                                              .txtManropeSemiBold10
+                                                              .copyWith(
+                                                            color: ColorConstant
+                                                                .blueGray800,
+                                                          )),
+                                                      Text('Balanced Spender',
+                                                          style: AppStyle
+                                                              .txtManropeSemiBold10
+                                                              .copyWith(
+                                                            color: ColorConstant
+                                                                .blueGray800,
+                                                          )),
+                                                      Text('Impulsive Spender',
+                                                          style: AppStyle
+                                                              .txtManropeSemiBold10
+                                                              .copyWith(
+                                                            color: ColorConstant
+                                                                .blueGray800,
+                                                          )),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ],
                                             ),
                                             actions: [
                                               TextButton(
@@ -1119,24 +1524,215 @@ class BudgetScreen extends HookConsumerWidget {
                                     ),
                                   ),
                                   Padding(
-                                    padding: getPadding(
-                                      top: 16,
-                                    ),
-                                    child: Column(
-                                      children: [
-                                        Text(
-                                          "Weekly Highlights",
-                                          overflow: TextOverflow.ellipsis,
-                                          textAlign: TextAlign.left,
-                                          style: AppStyle
-                                              .txtHelveticaNowTextBold16
-                                              .copyWith(
-                                            letterSpacing: getHorizontalSize(
-                                              0.4,
-                                            ),
+                                    padding: getPadding(top: 16, bottom: 16),
+                                    child: SingleChildScrollView(
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Padding(
+                                                padding: getPadding(
+                                                    left: 8,
+                                                    right: 8,
+                                                    top: 8,
+                                                    bottom: 16),
+                                                child: Text(
+                                                  "Budget Insight",
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  textAlign: TextAlign.left,
+                                                  style: AppStyle
+                                                      .txtHelveticaNowTextBold16
+                                                      .copyWith(
+                                                    letterSpacing:
+                                                        getHorizontalSize(
+                                                      0.4,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
                                           ),
-                                        ),
-                                      ],
+                                          Consumer(
+                                            builder: (context, ref, child) {
+                                              final insightsState = ref.watch(
+                                                  insightsNotifierProvider);
+                                              final filteredDataList =
+                                                  insightsState
+                                                      .dataList
+                                                      .where((insight) =>
+                                                          insight.budgetId ==
+                                                          budgetId)
+                                                      .toList();
+
+                                              return Column(
+                                                children: [
+                                                  if (filteredDataList
+                                                          .isNotEmpty ||
+                                                      insightsState.isLoading)
+                                                    Container(
+                                                      height: 300,
+                                                      padding: getPadding(
+                                                          top: 8, bottom: 8),
+                                                      child: insightsState
+                                                              .isLoading
+                                                          ? Center(
+                                                              child:
+                                                                  CircularProgressIndicator(),
+                                                            )
+                                                          : ListView.builder(
+                                                              physics:
+                                                                  ClampingScrollPhysics(),
+                                                              itemCount:
+                                                                  filteredDataList
+                                                                      .length,
+                                                              itemBuilder:
+                                                                  (context,
+                                                                      index) {
+                                                                final insight =
+                                                                    filteredDataList[
+                                                                        index];
+                                                                return CustomListItem(
+                                                                  iconPath: insight
+                                                                      .iconPath,
+                                                                  text: insight
+                                                                      .content,
+                                                                  backgroundColor: insight
+                                                                              .iconPath ==
+                                                                          'assets/images/star.png'
+                                                                      ? Colors
+                                                                          .blue // Background color for highlights
+                                                                      : Colors
+                                                                          .green,
+                                                                );
+                                                              },
+                                                            ),
+                                                    ),
+                                                ],
+                                              );
+                                            },
+                                          ),
+                                          Padding(padding: getPadding(top: 8)),
+                                          Consumer(builder: (context, ref, _) {
+                                            final buttonState = ref.watch(
+                                                buttonStateProvider(budgetId));
+                                            final buttonEnabled =
+                                                buttonState.enabled;
+                                            final timerText =
+                                                buttonState.timerText;
+
+                                            return CustomButtonForm(
+                                              onTap: buttonEnabled
+                                                  ? () async {
+                                                      scrollController
+                                                          .animateTo(
+                                                        scrollController
+                                                            .position
+                                                            .maxScrollExtent,
+                                                        duration: Duration(
+                                                            milliseconds: 500),
+                                                        curve: Curves.easeInOut,
+                                                      );
+                                                      // Disable the button immediately
+                                                      if (context.mounted) {
+                                                        ref
+                                                            .read(
+                                                                buttonStateProvider(
+                                                                        budgetId)
+                                                                    .notifier)
+                                                            .update(
+                                                                enabled: false,
+                                                                timerText: '');
+                                                      }
+
+                                                      await fetchDataAndShuffleList(
+                                                          budgetId);
+
+                                                      // Fetch server time
+                                                      DateTime serverTime =
+                                                          await fetchServerTime();
+
+                                                      // Start the timer
+                                                      int timerDurationInSeconds =
+                                                          30; // Replace with desired duration in seconds
+                                                      int endTime = serverTime
+                                                              .millisecondsSinceEpoch +
+                                                          (timerDurationInSeconds *
+                                                              1000);
+                                                      await saveEndTime(
+                                                          budgetId, endTime);
+
+                                                      Timer.periodic(
+                                                          Duration(seconds: 1),
+                                                          (timer) async {
+                                                        DateTime
+                                                            currentServerTime =
+                                                            await fetchServerTime();
+                                                        int remainingDurationInSeconds =
+                                                            (endTime -
+                                                                    currentServerTime
+                                                                        .millisecondsSinceEpoch) ~/
+                                                                1000;
+
+                                                        int days =
+                                                            (remainingDurationInSeconds ~/
+                                                                86400);
+                                                        int hours =
+                                                            (remainingDurationInSeconds %
+                                                                    86400) ~/
+                                                                3600;
+                                                        int minutes =
+                                                            (remainingDurationInSeconds %
+                                                                    3600) ~/
+                                                                60;
+                                                        int seconds =
+                                                            remainingDurationInSeconds %
+                                                                60;
+
+                                                        String remainingTime =
+                                                            "${days} Days ${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}";
+
+                                                        if (remainingDurationInSeconds <=
+                                                            0) {
+                                                          if (context.mounted) {
+                                                            ref
+                                                                .read(buttonStateProvider(
+                                                                        budgetId)
+                                                                    .notifier)
+                                                                .update(
+                                                                    enabled:
+                                                                        true,
+                                                                    timerText:
+                                                                        '');
+                                                            timer.cancel();
+                                                          }
+                                                        } else {
+                                                          if (context.mounted) {
+                                                            ref
+                                                                .read(buttonStateProvider(
+                                                                        budgetId)
+                                                                    .notifier)
+                                                                .update(
+                                                                    enabled:
+                                                                        false,
+                                                                    timerText:
+                                                                        remainingTime);
+                                                          }
+                                                        }
+                                                      });
+                                                    }
+                                                  : null,
+                                              alignment: Alignment.bottomCenter,
+                                              height: getVerticalSize(56),
+                                              text: timerText.isNotEmpty
+                                                  ? timerText
+                                                  : "Generate AI Insight",
+                                              enabled: buttonEnabled,
+                                            );
+                                          }),
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -1216,34 +1812,135 @@ class BudgetScreen extends HookConsumerWidget {
     };
   }
 }
- //
+//
 
-  // Color(0xFF0D47A1), // Light Blue 900
-      // Color(0xFF42A5F5), // Light Blue 400
-      // Color(0xFF8B1E9B), // Bright Purple
-      // Color(0xFF4A61DC), // Bright Indigo
-      // Color.fromARGB(255, 28, 89, 83), // Turquoise
-      // Color(0xFF3CB371), // Medium Sea Green
-      // Color(0xFF32CD32), // Lime Green
-      // Color(0xFF9ACD32), // Yellow Green
-      // Color(0xFFFFD700), // Gold
-      // Color(0xFFFFA500), // Orange
-      // Color(0xFF7B68EE), // Medium Slate Blue
-      // Color(0xFF4682B4), // Steel Blue
-      // Color(0xFF00CED1), // Dark Turquoise
-      // Color(0xFF20B2AA), // Light Sea Green
-      // Color(0xFFADFF2F), // Green Yellow
-      // Color(0xFFFFD54F), // Light Yellow
-      // Color(0xFF8BC34A), // Light Green
-      // Color(0xFFCDDC39), // Lime
-      // Color(0xFFFFC107), // Amber
-      // Color(0xFFBA68C8), // Medium Orchid
-      // Color(0xFF7E57C2), // Deep Lavender
-      // Color(0xFF5C6BC0), // Light Blue
-      // Color(0xFF26A69A), // Medium Aquamarine
-      // Color(0xFF66BB6A), // Soft Green
-      // Color(0xFFD4E157), // Light Lime
-      // Color(0xFFFFB74D), // Light Orange
-      // Color(0xFF9575CD), // Light Purple
-      // Color(0xFF7986CB), // Soft Blue
-      // Color(0xFF4DB6AC), // Soft Green
+// Color(0xFF0D47A1), // Light Blue 900
+// Color(0xFF42A5F5), // Light Blue 400
+// Color(0xFF8B1E9B), // Bright Purple
+// Color(0xFF4A61DC), // Bright Indigo
+// Color.fromARGB(255, 28, 89, 83), // Turquoise
+// Color(0xFF3CB371), // Medium Sea Green
+// Color(0xFF32CD32), // Lime Green
+// Color(0xFF9ACD32), // Yellow Green
+// Color(0xFFFFD700), // Gold
+// Color(0xFFFFA500), // Orange
+// Color(0xFF7B68EE), // Medium Slate Blue
+// Color(0xFF4682B4), // Steel Blue
+// Color(0xFF00CED1), // Dark Turquoise
+// Color(0xFF20B2AA), // Light Sea Green
+// Color(0xFFADFF2F), // Green Yellow
+// Color(0xFFFFD54F), // Light Yellow
+// Color(0xFF8BC34A), // Light Green
+// Color(0xFFCDDC39), // Lime
+// Color(0xFFFFC107), // Amber
+// Color(0xFFBA68C8), // Medium Orchid
+// Color(0xFF7E57C2), // Deep Lavender
+// Color(0xFF5C6BC0), // Light Blue
+// Color(0xFF26A69A), // Medium Aquamarine
+// Color(0xFF66BB6A), // Soft Green
+// Color(0xFFD4E157), // Light Lime
+// Color(0xFFFFB74D), // Light Orange
+// Color(0xFF9575CD), // Light Purple
+// Color(0xFF7986CB), // Soft Blue
+// Color(0xFF4DB6AC), // Soft Green
+
+class CustomListItem extends HookConsumerWidget {
+  final String iconPath;
+  final String text;
+  final Color backgroundColor;
+
+  CustomListItem(
+      {required this.iconPath,
+      required this.text,
+      required this.backgroundColor});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final _isExpanded = useState(false);
+    final isTruncated = useState(true);
+
+    useEffect(() {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final textPainter = TextPainter(
+          text: TextSpan(text: text),
+          textDirection: ui.TextDirection.ltr,
+          maxLines: 3,
+        );
+        textPainter.layout(maxWidth: context.size?.width ?? 0);
+        isTruncated.value = textPainter.didExceedMaxLines;
+      });
+      return;
+    }, const []);
+
+    return Neumorphic(
+      style: NeumorphicStyle(
+          shape: NeumorphicShape.convex,
+          boxShape: NeumorphicBoxShape.roundRect(BorderRadius.circular(12)),
+          depth: 0.5,
+          intensity: 0.1,
+          surfaceIntensity: 0.2,
+          lightSource: LightSource.bottom,
+          color: Colors.transparent),
+      child: Container(
+        margin: EdgeInsets.symmetric(vertical: 12),
+        padding: getPadding(left: 16, right: 8, top: 8, bottom: 12),
+        // decoration: BoxDecoration(
+        //   border: Border.all(color: Colors.grey, width: 1),
+        //   borderRadius: BorderRadius.circular(12),
+        // ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.end,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Center(
+                      child: Image.asset(iconPath, height: 32, width: 32),
+                    ),
+                    SizedBox(width: 24),
+                    Expanded(
+                      child: Text(
+                        text,
+                        textAlign: TextAlign.left,
+                        overflow: _isExpanded.value
+                            ? TextOverflow.visible
+                            : TextOverflow.ellipsis,
+                        maxLines: _isExpanded.value
+                            ? null
+                            : 4, // Change the number of lines here
+                        style: AppStyle.txtManropeRegular12.copyWith(
+                            color: ColorConstant.black900, letterSpacing: 0.2),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            if (!_isExpanded.value && isTruncated.value)
+              Container(
+                height: 32,
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: IconButton(
+                    onPressed: () {
+                      _isExpanded.value = true;
+                    },
+                    icon: CustomImageView(
+                      height: 32,
+                      width: 32,
+                      svgPath: ImageConstant.imgArrowDown,
+                      color: ColorConstant.blueA700,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}

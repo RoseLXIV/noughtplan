@@ -359,7 +359,9 @@ class CategoryNecessaryScreenEdit extends HookConsumerWidget {
 
     void initializeSelectedButtons(Map<String, double> necessaryExpense) {
       necessaryExpense.forEach((key, value) {
-        ref.read(buttonListStateProviderEdit.notifier).addCategory(key);
+        if (key != 'Surplus') {
+          ref.read(buttonListStateProviderEdit.notifier).addCategory(key);
+        }
       });
     }
 

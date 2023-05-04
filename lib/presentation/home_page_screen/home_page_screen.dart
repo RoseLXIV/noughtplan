@@ -45,9 +45,6 @@ class HomePageScreen extends HookConsumerWidget {
         // print('Fetched Budgets: $fetchedBudgets');
         _budgets.value = fetchedBudgets;
         // print('Budgets: ${_budgets.value}');
-        _budgets.value?.forEach((budget) {
-          print('Salary: ${budget?.salary}');
-        });
       }
 
       fetchBudgets();

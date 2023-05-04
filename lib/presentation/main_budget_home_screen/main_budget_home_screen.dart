@@ -3,6 +3,7 @@ import 'package:flutter_neumorphic/flutter_neumorphic.dart';
 import 'package:noughtplan/core/app_export.dart';
 import 'package:noughtplan/core/budget/providers/budget_state_provider.dart';
 import 'package:noughtplan/presentation/budget_screen/budget_screen.dart';
+import 'package:noughtplan/presentation/chat_bot_screen/chat_bot_screen.dart';
 import 'package:noughtplan/presentation/expense_tracking_screen/expense_tracking_screen.dart';
 import 'package:noughtplan/presentation/home_page_screen/home_page_screen.dart';
 
@@ -62,7 +63,7 @@ class _MainBudgetHomeScreenState extends State<MainBudgetHomeScreen> {
           });
         },
         children: [
-          // HomePageScreen(),
+          ChatBotScreen(),
           BudgetScreen(),
           ExpenseTrackingScreen(),
         ],

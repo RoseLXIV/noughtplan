@@ -56,26 +56,4 @@ class ExpenseTrackerController extends StateNotifier<ExpenseTrackerState> {
     return _budgetStateNotifier.addActualExpense(
         budgetId: budgetId, expenseData: expenseData, ref: ref);
   }
-
-  // Future<bool> saveExpense() async {
-  //   if (!state.status.isValidated) {
-  //     return false;
-  //   }
-  //   state = state.copyWith(status: FormzStatus.submissionInProgress);
-  //   try {
-  //     String amountWithoutCommas = state.amount.value.replaceAll(',', '');
-  //     double amount = double.parse(amountWithoutCommas);
-
-  //     print('Successfully saved expense');
-  //     state = state.copyWith(status: FormzStatus.submissionSuccess);
-  //     return true;
-  //   } catch (e) {
-  //     state = state.copyWith(
-  //         status: FormzStatus.submissionFailure, errorMessage: 'Error: $e');
-  //     print('Error: $e');
-  //     return false;
-  //   } finally {
-  //     state = state.copyWith(status: FormzStatus.pure);
-  //   }
-  // }
 }

@@ -20,7 +20,7 @@ class ExpenseListWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     String category = expenseData['category'] ?? '';
-    double amountValue = expenseData['amount'] ?? 0.0;
+    double amountValue = (expenseData['amount'] as num).toDouble();
     String amount = NumberFormat.currency(symbol: '\$', decimalDigits: 2)
         .format(amountValue);
     final List<Map<String, dynamic>> actualExpenses =

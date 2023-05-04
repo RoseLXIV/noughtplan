@@ -13,6 +13,8 @@ class ImageConstant {
 
   static String imgPlus1 = 'assets/images/plus.svg';
 
+  static String imgArrowDown = 'assets/images/chevron-down.svg';
+
   static String imgBudgetDetails = 'assets/images/businessplan.svg';
 
   static String imgBudgetDetails1 = 'assets/images/Group.svg';
