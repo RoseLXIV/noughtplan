@@ -10,6 +10,8 @@ import 'package:noughtplan/core/auth/providers/auth_state_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:noughtplan/core/app_export.dart';
 import 'package:noughtplan/core/budget/generate_salary/controller/generate_salary_controller.dart';
+import 'package:noughtplan/core/budget/generate_salary/controller/generate_salary_controller_edit.dart';
+import 'package:noughtplan/core/budget/providers/banner_ads_class_provider.dart';
 import 'package:noughtplan/core/constants/budgets.dart';
 import 'package:noughtplan/core/forms/form_validators.dart';
 import 'package:noughtplan/widgets/app_bar/appbar_image.dart';
@@ -74,9 +76,6 @@ class DataModel extends ChangeNotifier {
 class DataModelTypes extends ChangeNotifier {
   List<BudgetTypes> _budgetList = [
     BudgetTypes(types: "Zero-Based Budgeting"),
-    BudgetTypes(types: "Pay Yourself First"),
-    BudgetTypes(types: "Envelope Budgeting"),
-    BudgetTypes(types: "Activity-Based Budgeting"),
   ];
 
   List<BudgetTypes> get budgetList => _budgetList;
@@ -134,11 +133,12 @@ class GeneratorSalaryScreenEdit extends HookConsumerWidget {
     final selectedBudgetTypeState = useState<BudgetTypes>(selectedBudgetType);
     final currencyList = data.currencyList;
     final budgetList = dataBudgets.budgetList;
-    final generateSalaryState = ref.watch(generateSalaryProvider);
+    final generateSalaryState = ref.watch(generateSalaryProviderEdit);
     final showErrorSalary = generateSalaryState.salary.error;
     final showErrorCurrency = generateSalaryState.currency.error;
     final showErrorBudgetType = generateSalaryState.budgetType.error;
-    final generateSalaryController = ref.watch(generateSalaryProvider.notifier);
+    final generateSalaryController =
+        ref.watch(generateSalaryProviderEdit.notifier);
     final bool isValidated = generateSalaryState.status.isValidated;
 
     // generateSalaryController.initializeSalary(selectedBudget.salary);
@@ -164,452 +164,445 @@ class GeneratorSalaryScreenEdit extends HookConsumerWidget {
         child: Scaffold(
           resizeToAvoidBottomInset: false,
           backgroundColor: ColorConstant.whiteA700,
-          body: Container(
-            height: getVerticalSize(812),
-            width: double.maxFinite,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                CustomImageView(
-                    imagePath: ImageConstant.imgTopographic5,
-                    height: getVerticalSize(290),
-                    width: getHorizontalSize(375),
-                    alignment: Alignment.topCenter),
-                Align(
-                    alignment: Alignment.center,
-                    child: Padding(
-                        padding: getPadding(left: 24, right: 24),
-                        child: Column(
-                            // mainAxisSize: MainAxisSize.min,
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            children: [
-                              CustomAppBar(
-                                height: getVerticalSize(100),
-                                leadingWidth: 25,
-                                leading: AppbarImage(
-                                  onTap: () {
-                                    Navigator.pushNamed(
-                                        context, '/home_page_screen');
-                                  },
-                                  height: getSize(24),
-                                  width: getSize(24),
-                                  svgPath: ImageConstant.imgArrowleft,
-                                  margin: getMargin(bottom: 1),
+          body: SingleChildScrollView(
+            physics: BouncingScrollPhysics(),
+            child: Container(
+              width: double.maxFinite,
+              child: Stack(
+                children: [
+                  CustomImageView(
+                      imagePath: ImageConstant.imgTopographic5,
+                      height: getVerticalSize(290),
+                      width: getHorizontalSize(375),
+                      alignment: Alignment.topCenter),
+                  Padding(
+                      padding: getPadding(left: 24, right: 24),
+                      child: Column(
+                          // mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+                            CustomAppBar(
+                              height: getVerticalSize(100),
+                              leadingWidth: 25,
+                              leading: AppbarImage(
+                                onTap: () {
+                                  Navigator.pushNamed(
+                                      context, '/home_page_screen');
+                                },
+                                height: getSize(24),
+                                width: getSize(24),
+                                svgPath: ImageConstant.imgArrowleft,
+                                margin: getMargin(bottom: 1),
+                              ),
+                              centerTitle: true,
+                              title:
+                                  AppbarTitle(text: "Salary and Budget Type"),
+                              actions: [
+                                Row(
+                                  children: [
+                                    InkWell(
+                                      onTap: () {
+                                        Navigator.pushNamed(
+                                            context, '/home_page_screen');
+                                      },
+                                      child: Container(
+                                        width: 70,
+                                        child: SvgPicture.asset(
+                                          ImageConstant.imgHome2,
+                                          height: 24,
+                                          width: 24,
+                                        ),
+                                      ),
+                                    ),
+                                    GestureDetector(
+                                      onTap: () {
+                                        showDialog(
+                                          context: context,
+                                          builder: (BuildContext context) {
+                                            return AlertDialog(
+                                              title: Text(
+                                                'Welcome to The Nought Plan',
+                                                textAlign: TextAlign.center,
+                                                style: AppStyle
+                                                    .txtHelveticaNowTextBold16,
+                                              ),
+                                              content: Text(
+                                                'To get started, please enter your monthly salary and select your preferred currency from the dropdown menu below. Our smart algorithms will take care of the rest, providing you with a personalized budget plan to help you save and manage your finances.',
+                                                textAlign: TextAlign.center,
+                                                style: AppStyle
+                                                    .txtManropeRegular14,
+                                              ),
+                                              actions: [
+                                                TextButton(
+                                                  onPressed: () =>
+                                                      Navigator.pop(context),
+                                                  child: Text('Close'),
+                                                ),
+                                              ],
+                                            );
+                                          },
+                                        );
+                                      },
+                                      // height: getSize(24),
+                                      //     width: getSize(24),
+                                      //     svgPath: ImageConstant.imgQuestion,
+                                      //     margin: getMargin(bottom: 1)
+                                      child: Container(
+                                        child: SvgPicture.asset(
+                                          ImageConstant.imgQuestion,
+                                          height: 24,
+                                          width: 24,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                centerTitle: true,
-                                title:
-                                    AppbarTitle(text: "Salary and Budget Type"),
-                                actions: [
-                                  Row(
-                                    children: [
-                                      InkWell(
-                                        onTap: () {
-                                          Navigator.pushNamed(
-                                              context, '/home_page_screen');
-                                        },
-                                        child: Container(
-                                          width: 70,
-                                          child: SvgPicture.asset(
-                                            ImageConstant.imgHome2,
-                                            height: 24,
-                                            width: 24,
+                              ],
+                            ),
+                            Column(
+                              children: [
+                                Align(
+                                  alignment: Alignment.topCenter,
+                                  child: Padding(
+                                    padding: getPadding(
+                                        top: 30, right: 30, left: 30),
+                                    child: Stack(
+                                      alignment: Alignment.centerLeft,
+                                      children: [
+                                        Padding(
+                                          padding: const EdgeInsets.only(
+                                              left: 12.0, bottom: 24),
+                                          child: Text(
+                                            '\$',
+                                            style: AppStyle
+                                                .txtHelveticaNowTextBold40,
                                           ),
                                         ),
-                                      ),
-                                      GestureDetector(
-                                        onTap: () {
-                                          showDialog(
-                                            context: context,
-                                            builder: (BuildContext context) {
-                                              return AlertDialog(
-                                                title: Text(
-                                                  'Welcome to The Nought Plan',
-                                                  textAlign: TextAlign.center,
-                                                  style: AppStyle
-                                                      .txtHelveticaNowTextBold16,
-                                                ),
-                                                content: Text(
-                                                  'To get started, please enter your monthly salary and select your preferred currency from the dropdown menu below. Our smart algorithms will take care of the rest, providing you with a personalized budget plan to help you save and manage your finances.',
-                                                  textAlign: TextAlign.center,
-                                                  style: AppStyle
-                                                      .txtManropeRegular14,
-                                                ),
-                                                actions: [
-                                                  TextButton(
-                                                    onPressed: () =>
-                                                        Navigator.pop(context),
-                                                    child: Text('Close'),
-                                                  ),
-                                                ],
-                                              );
+                                        TextField(
+                                            // controller: salaryController,
+                                            focusNode: salaryFocusNode,
+                                            maxLength: 12,
+                                            keyboardType:
+                                                TextInputType.numberWithOptions(
+                                                    decimal: true),
+                                            inputFormatters: [
+                                              ThousandsFormatter(),
+                                            ],
+                                            onChanged: (salary) {
+                                              generateSalaryController
+                                                  .onSalaryChange(salary);
+                                              print(salary);
+                                              print(salary);
+                                              if (salary.isEmpty) {
+                                                generateSalaryController
+                                                    .initializeSalary(
+                                                        selectedBudget
+                                                                ?.salary ??
+                                                            0);
+                                              }
                                             },
-                                          );
-                                        },
-                                        // height: getSize(24),
-                                        //     width: getSize(24),
-                                        //     svgPath: ImageConstant.imgQuestion,
-                                        //     margin: getMargin(bottom: 1)
-                                        child: Container(
-                                          child: SvgPicture.asset(
-                                            ImageConstant.imgQuestion,
-                                            height: 24,
-                                            width: 24,
+                                            decoration: InputDecoration(
+                                              errorText: generateSalaryState
+                                                          .salary.error !=
+                                                      null
+                                                  // && salaryFocusNode.hasFocus
+                                                  ? Salary.showSalaryErrorMessage(
+                                                          showErrorSalary)
+                                                      .toString()
+                                                  : null,
+                                              errorStyle: AppStyle
+                                                  .txtManropeRegular12
+                                                  .copyWith(
+                                                      color: ColorConstant
+                                                          .redA700),
+                                              prefix: Text('\$'),
+                                              prefixStyle: AppStyle
+                                                  .txtHelveticaNowTextBold40,
+                                              hintText: NumberFormat('#,##0.00')
+                                                  .format(
+                                                      selectedBudget?.salary),
+                                              hintStyle: AppStyle
+                                                  .txtHelveticaNowTextBold40
+                                                  .copyWith(
+                                                color:
+                                                    ColorConstant.blueGray300,
+                                              ),
+                                              labelText:
+                                                  'Please enter a new salary amount',
+                                              labelStyle: AppStyle
+                                                  .txtHelveticaNowTextBold16,
+                                              floatingLabelBehavior:
+                                                  FloatingLabelBehavior.always,
+                                              border: OutlineInputBorder(
+                                                borderSide: BorderSide.none,
+                                                borderRadius:
+                                                    BorderRadius.circular(8.0),
+                                              ),
+                                              filled: true,
+                                            ),
+                                            textAlign: TextAlign.center,
+                                            style: AppStyle
+                                                .txtHelveticaNowTextBold40),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                Container(
+                                  // padding: const EdgeInsets.all(8.0),
+                                  // height: getVerticalSize(42),
+                                  // margin: getMargin(top: 132),
+                                  alignment: Alignment.center,
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceEvenly,
+                                    children: [
+                                      Text("Currency",
+                                          textAlign: TextAlign.left,
+                                          style: AppStyle
+                                              .txtHelveticaNowTextBold16
+                                              .copyWith(
+                                                  letterSpacing:
+                                                      getHorizontalSize(0.5))),
+                                      Column(
+                                        children: [
+                                          DropdownButton<CurrencyTypes>(
+                                            alignment: Alignment.center,
+                                            value: selectedCurrencyState.value,
+                                            onChanged:
+                                                (CurrencyTypes? currency) {
+                                              selectedCurrencyState.value =
+                                                  currency!;
+                                              generateSalaryController
+                                                  .onCurrencyChange(
+                                                      currency.name);
+                                              print(
+                                                  'Selected currency: ${currency.name}');
+                                            },
+                                            items: currencyList
+                                                .map<
+                                                    DropdownMenuItem<
+                                                        CurrencyTypes>>(
+                                                  (currency) =>
+                                                      DropdownMenuItem<
+                                                          CurrencyTypes>(
+                                                    value: currency,
+                                                    child: Row(
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .center,
+                                                      children: [
+                                                        Image.asset(
+                                                            currency.flag,
+                                                            height: 20,
+                                                            width: 30),
+                                                        SizedBox(width: 5),
+                                                        Text(currency.name,
+                                                            style: AppStyle
+                                                                .txtHelveticaNowTextBold16),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                )
+                                                .toList(),
                                           ),
-                                        ),
+                                          if (generateSalaryState
+                                                  .currency.error !=
+                                              null)
+                                            Text(
+                                              Currency.showCurrencyErrorMessage(
+                                                      showErrorCurrency)
+                                                  .toString(),
+                                              style: AppStyle
+                                                  .txtManropeRegular12
+                                                  .copyWith(
+                                                      color: ColorConstant
+                                                          .lightBlueA200),
+                                            ),
+                                        ],
                                       ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Container(
+                              // padding: const EdgeInsets.all(8.0),
+                              // height: getVerticalSize(42),
+                              margin: getMargin(top: 0),
+                              alignment: Alignment.center,
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceEvenly,
+                                children: [
+                                  Text("Budget Type",
+                                      textAlign: TextAlign.left,
+                                      style: AppStyle.txtHelveticaNowTextBold16
+                                          .copyWith(
+                                              letterSpacing:
+                                                  getHorizontalSize(0.5))),
+                                  Column(
+                                    children: [
+                                      DropdownButton<BudgetTypes>(
+                                        alignment: Alignment.center,
+                                        value: selectedBudgetTypeState.value,
+                                        onChanged: (BudgetTypes? budgettypes) {
+                                          selectedBudgetTypeState.value =
+                                              budgettypes!;
+                                          generateSalaryController
+                                              .onBudgetTypeChange(
+                                                  budgettypes.types);
+                                          print(
+                                              'Selected Budget Type: ${budgettypes.types}');
+                                        },
+                                        items: budgetList
+                                            .map<DropdownMenuItem<BudgetTypes>>(
+                                              (budgetTypes) =>
+                                                  DropdownMenuItem<BudgetTypes>(
+                                                value: budgetTypes,
+                                                child: Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.center,
+                                                  children: [
+                                                    SizedBox(width: 5),
+                                                    Text(budgetTypes.types,
+                                                        style: AppStyle
+                                                            .txtHelveticaNowTextBold16),
+                                                  ],
+                                                ),
+                                              ),
+                                            )
+                                            .toList(),
+                                      ),
+                                      if (generateSalaryState
+                                              .budgetType.error !=
+                                          null)
+                                        Text(
+                                          BudgetType.showBudgetTypeErrorMessage(
+                                                  showErrorBudgetType)
+                                              .toString(),
+                                          style: AppStyle.txtManropeRegular12
+                                              .copyWith(
+                                                  color: ColorConstant
+                                                      .lightBlueA200),
+                                        ),
                                     ],
                                   ),
                                 ],
                               ),
-                              Column(
-                                children: [
-                                  Align(
-                                    alignment: Alignment.topCenter,
-                                    child: Padding(
-                                      padding: getPadding(
-                                          top: 60, right: 30, left: 30),
-                                      child: Stack(
-                                        alignment: Alignment.centerLeft,
-                                        children: [
-                                          Padding(
-                                            padding: const EdgeInsets.only(
-                                                left: 12.0, bottom: 24),
-                                            child: Text(
-                                              '\$',
-                                              style: AppStyle
-                                                  .txtHelveticaNowTextBold40,
-                                            ),
-                                          ),
-                                          TextField(
-                                              // controller: salaryController,
-                                              focusNode: salaryFocusNode,
-                                              maxLength: 12,
-                                              keyboardType: TextInputType
-                                                  .numberWithOptions(
-                                                      decimal: true),
-                                              inputFormatters: [
-                                                ThousandsFormatter(),
-                                              ],
-                                              onChanged: (salary) {
-                                                generateSalaryController
-                                                    .onSalaryChange(salary);
-                                                print(salary);
-                                                print(salary);
-                                                if (salary.isEmpty) {
-                                                  generateSalaryController
-                                                      .initializeSalary(
-                                                          selectedBudget
-                                                                  ?.salary ??
-                                                              0);
-                                                }
-                                              },
-                                              decoration: InputDecoration(
-                                                errorText: generateSalaryState
-                                                            .salary.error !=
-                                                        null
-                                                    // && salaryFocusNode.hasFocus
-                                                    ? Salary.showSalaryErrorMessage(
-                                                            showErrorSalary)
-                                                        .toString()
-                                                    : null,
-                                                errorStyle: AppStyle
-                                                    .txtManropeRegular12
-                                                    .copyWith(
-                                                        color: ColorConstant
-                                                            .redA700),
-                                                prefix: Text('\$'),
-                                                prefixStyle: AppStyle
-                                                    .txtHelveticaNowTextBold40,
-                                                hintText: NumberFormat(
-                                                        '#,##0.00')
-                                                    .format(
-                                                        selectedBudget?.salary),
-                                                hintStyle: AppStyle
-                                                    .txtHelveticaNowTextBold40
-                                                    .copyWith(
-                                                  color:
-                                                      ColorConstant.blueGray300,
-                                                ),
-                                                labelText:
-                                                    'Please enter a new salary amount',
-                                                labelStyle: AppStyle
-                                                    .txtHelveticaNowTextBold16,
-                                                floatingLabelBehavior:
-                                                    FloatingLabelBehavior
-                                                        .always,
-                                                border: OutlineInputBorder(
-                                                  borderSide: BorderSide.none,
-                                                  borderRadius:
-                                                      BorderRadius.circular(
-                                                          8.0),
-                                                ),
-                                                filled: true,
-                                              ),
-                                              textAlign: TextAlign.center,
-                                              style: AppStyle
-                                                  .txtHelveticaNowTextBold40),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                  Container(
-                                    // padding: const EdgeInsets.all(8.0),
-                                    // height: getVerticalSize(42),
-                                    // margin: getMargin(top: 132),
-                                    alignment: Alignment.center,
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceEvenly,
-                                      children: [
-                                        Text("Currency",
-                                            textAlign: TextAlign.left,
-                                            style: AppStyle
-                                                .txtHelveticaNowTextBold16
-                                                .copyWith(
-                                                    letterSpacing:
-                                                        getHorizontalSize(
-                                                            0.5))),
-                                        Column(
-                                          children: [
-                                            DropdownButton<CurrencyTypes>(
-                                              alignment: Alignment.center,
-                                              value:
-                                                  selectedCurrencyState.value,
-                                              onChanged:
-                                                  (CurrencyTypes? currency) {
-                                                selectedCurrencyState.value =
-                                                    currency!;
-                                                generateSalaryController
-                                                    .onCurrencyChange(
-                                                        currency.name);
-                                                print(
-                                                    'Selected currency: ${currency.name}');
-                                              },
-                                              items: currencyList
-                                                  .map<
-                                                      DropdownMenuItem<
-                                                          CurrencyTypes>>(
-                                                    (currency) =>
-                                                        DropdownMenuItem<
-                                                            CurrencyTypes>(
-                                                      value: currency,
-                                                      child: Row(
-                                                        mainAxisAlignment:
-                                                            MainAxisAlignment
-                                                                .center,
-                                                        children: [
-                                                          Image.asset(
-                                                              currency.flag,
-                                                              height: 20,
-                                                              width: 30),
-                                                          SizedBox(width: 5),
-                                                          Text(currency.name,
-                                                              style: AppStyle
-                                                                  .txtHelveticaNowTextBold16),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                  )
-                                                  .toList(),
-                                            ),
-                                            if (generateSalaryState
-                                                    .currency.error !=
-                                                null)
-                                              Text(
-                                                Currency.showCurrencyErrorMessage(
-                                                        showErrorCurrency)
-                                                    .toString(),
-                                                style: AppStyle
-                                                    .txtManropeRegular12
-                                                    .copyWith(
-                                                        color: ColorConstant
-                                                            .lightBlueA200),
-                                              ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              Container(
-                                // padding: const EdgeInsets.all(8.0),
-                                // height: getVerticalSize(42),
-                                margin: getMargin(top: 0),
-                                alignment: Alignment.center,
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceEvenly,
-                                  children: [
-                                    Text("Budget Type",
-                                        textAlign: TextAlign.left,
-                                        style: AppStyle
-                                            .txtHelveticaNowTextBold16
-                                            .copyWith(
-                                                letterSpacing:
-                                                    getHorizontalSize(0.5))),
-                                    Column(
-                                      children: [
-                                        DropdownButton<BudgetTypes>(
-                                          alignment: Alignment.center,
-                                          value: selectedBudgetTypeState.value,
-                                          onChanged:
-                                              (BudgetTypes? budgettypes) {
-                                            selectedBudgetTypeState.value =
-                                                budgettypes!;
-                                            generateSalaryController
-                                                .onBudgetTypeChange(
-                                                    budgettypes.types);
-                                            print(
-                                                'Selected Budget Type: ${budgettypes.types}');
-                                          },
-                                          items: budgetList
-                                              .map<
-                                                  DropdownMenuItem<
-                                                      BudgetTypes>>(
-                                                (budgetTypes) =>
-                                                    DropdownMenuItem<
-                                                        BudgetTypes>(
-                                                  value: budgetTypes,
-                                                  child: Row(
-                                                    mainAxisAlignment:
-                                                        MainAxisAlignment
-                                                            .center,
-                                                    children: [
-                                                      SizedBox(width: 5),
-                                                      Text(budgetTypes.types,
-                                                          style: AppStyle
-                                                              .txtHelveticaNowTextBold16),
-                                                    ],
-                                                  ),
-                                                ),
-                                              )
-                                              .toList(),
-                                        ),
-                                        if (generateSalaryState
-                                                .budgetType.error !=
-                                            null)
-                                          Text(
-                                            BudgetType
-                                                    .showBudgetTypeErrorMessage(
-                                                        showErrorBudgetType)
-                                                .toString(),
-                                            style: AppStyle.txtManropeRegular12
-                                                .copyWith(
-                                                    color: ColorConstant
-                                                        .lightBlueA200),
-                                          ),
-                                      ],
-                                    ),
-                                  ],
+                            ),
+                            Padding(
+                                padding: getPadding(top: 20),
+                                child: Text("Enter New Salary Details",
+                                    overflow: TextOverflow.ellipsis,
+                                    textAlign: TextAlign.left,
+                                    style: AppStyle.txtHelveticaNowTextBold24)),
+                            Container(
+                                width: getHorizontalSize(327),
+                                margin: getMargin(
+                                  left: 10,
+                                  top: 15,
+                                  right: 10,
                                 ),
-                              ),
-                              Padding(
-                                  padding: getPadding(top: 20),
-                                  child: Text("Enter New Salary Details",
-                                      overflow: TextOverflow.ellipsis,
-                                      textAlign: TextAlign.left,
-                                      style:
-                                          AppStyle.txtHelveticaNowTextBold24)),
-                              Container(
-                                  width: getHorizontalSize(327),
-                                  margin: getMargin(
-                                    left: 10,
-                                    top: 15,
-                                    right: 10,
-                                  ),
-                                  child: Text(
-                                      "\"Please enter a new amount for your budget plan. If you'd like to keep the current amount, simply leave the field unchanged. Your previous amount will automatically be used for your updated budget.\"",
-                                      maxLines: null,
-                                      textAlign: TextAlign.center,
-                                      style: AppStyle
-                                          .txtManropeRegular12Bluegray500
-                                          .copyWith(
-                                              letterSpacing:
-                                                  getHorizontalSize(0.3)))),
-                              CustomImageView(
-                                  svgPath: ImageConstant.imgArrowdown,
-                                  height: getSize(24),
-                                  width: getSize(24),
-                                  margin: getMargin(top: 15, bottom: 15)),
-                              Column(
-                                children: [
-                                  CustomImageView(
-                                    svgPath: ImageConstant.imgCarousel1,
-                                    margin: getMargin(top: 10, bottom: 10),
-                                  ),
-                                  Container(
-                                    margin: EdgeInsets.only(
-                                        bottom: MediaQuery.of(context)
-                                            .viewInsets
-                                            .bottom),
-                                    child: CustomButtonForm(
-                                      alignment: Alignment.bottomCenter,
-                                      height: getVerticalSize(56),
-                                      text: "Next",
-                                      onTap: isValidated
-                                          ? () async {
-                                              final budgetId =
-                                                  selectedBudget?.budgetId;
-                                              final result =
-                                                  await generateSalaryController
-                                                      .saveBudgetInfoUpdate(
-                                                budgetId ?? '',
-                                              );
-                                              if (result == true) {
-                                                Navigator.pushNamed(context,
-                                                    '/category_necessary_screen_edit',
-                                                    arguments: selectedBudget);
-                                                ScaffoldMessenger.of(context)
-                                                    .showSnackBar(
-                                                  SnackBar(
-                                                    content: Text(
-                                                      'Information saved successfully!',
-                                                      textAlign:
-                                                          TextAlign.center,
-                                                      style: AppStyle
-                                                          .txtHelveticaNowTextBold16WhiteA700
-                                                          .copyWith(
-                                                        letterSpacing:
-                                                            getHorizontalSize(
-                                                                0.3),
-                                                      ),
-                                                    ),
-                                                    backgroundColor:
-                                                        ColorConstant.blue900,
-                                                  ),
-                                                );
-                                              } else {
-                                                ScaffoldMessenger.of(context)
-                                                    .showSnackBar(
-                                                  SnackBar(
-                                                    content: Text(
-                                                      'Please fill in all the fields!',
-                                                      textAlign:
-                                                          TextAlign.center,
-                                                      style: AppStyle
-                                                          .txtHelveticaNowTextBold16WhiteA700
-                                                          .copyWith(
-                                                        letterSpacing:
-                                                            getHorizontalSize(
-                                                                0.3),
-                                                      ),
-                                                    ),
-                                                    backgroundColor:
-                                                        ColorConstant.redA700,
-                                                  ),
-                                                );
-                                              }
-                                              print(result);
-                                            }
-                                          : null,
-                                      enabled: isValidated,
+                                child: Text(
+                                    "\"Please enter a new amount for your budget plan. If you'd like to keep the current amount, simply leave the field unchanged. Your previous amount will automatically be used for your updated budget.\"",
+                                    maxLines: null,
+                                    textAlign: TextAlign.center,
+                                    style: AppStyle
+                                        .txtManropeRegular12Bluegray500
+                                        .copyWith(
+                                            letterSpacing:
+                                                getHorizontalSize(0.3)))),
+                            CustomImageView(
+                                svgPath: ImageConstant.imgArrowdown,
+                                height: getSize(24),
+                                width: getSize(24),
+                                margin: getMargin(top: 15, bottom: 15)),
+                            Column(
+                              children: [
+                                Padding(
+                                  padding: getPadding(bottom: 10),
+                                  child: Container(
+                                    color: Colors.white,
+                                    child: Center(
+                                      child: BannerAdWidget(),
                                     ),
                                   ),
-                                ],
-                              ),
-                            ]))),
-              ],
+                                ),
+                                CustomImageView(
+                                  svgPath: ImageConstant.imgCarousel1,
+                                  margin: getMargin(top: 10, bottom: 10),
+                                ),
+                                Container(
+                                  margin: EdgeInsets.only(
+                                      bottom: MediaQuery.of(context)
+                                          .viewInsets
+                                          .bottom),
+                                  child: CustomButtonForm(
+                                    alignment: Alignment.bottomCenter,
+                                    height: getVerticalSize(56),
+                                    text: "Next",
+                                    onTap: isValidated
+                                        ? () async {
+                                            final budgetId =
+                                                selectedBudget?.budgetId;
+                                            final result =
+                                                await generateSalaryController
+                                                    .saveBudgetInfoUpdate(
+                                              budgetId ?? '',
+                                            );
+                                            if (result == true) {
+                                              Navigator.pushNamed(context,
+                                                  '/category_necessary_screen_edit',
+                                                  arguments: selectedBudget);
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(
+                                                SnackBar(
+                                                  content: Text(
+                                                    'Information saved successfully!',
+                                                    textAlign: TextAlign.center,
+                                                    style: AppStyle
+                                                        .txtHelveticaNowTextBold16WhiteA700
+                                                        .copyWith(
+                                                      letterSpacing:
+                                                          getHorizontalSize(
+                                                              0.3),
+                                                    ),
+                                                  ),
+                                                  backgroundColor:
+                                                      ColorConstant.blue900,
+                                                ),
+                                              );
+                                            } else {
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(
+                                                SnackBar(
+                                                  content: Text(
+                                                    'Please fill in all the fields!',
+                                                    textAlign: TextAlign.center,
+                                                    style: AppStyle
+                                                        .txtHelveticaNowTextBold16WhiteA700
+                                                        .copyWith(
+                                                      letterSpacing:
+                                                          getHorizontalSize(
+                                                              0.3),
+                                                    ),
+                                                  ),
+                                                  backgroundColor:
+                                                      ColorConstant.redA700,
+                                                ),
+                                              );
+                                            }
+                                            print(result);
+                                          }
+                                        : null,
+                                    enabled: isValidated,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ])),
+                ],
+              ),
             ),
           ),
         ),

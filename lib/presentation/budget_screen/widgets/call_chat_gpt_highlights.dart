@@ -68,7 +68,11 @@ Future<String> callChatGPTBot(
 
   // Prepare the conversation history for the API request
   List<Map<String, dynamic>> messages = [
-    {"role": "system", "content": "You are a Financial Advisor and Coach."},
+    {
+      "role": "system",
+      "content":
+          "You are a Financial Advisor and Financial Coach for TheNoughtPlan. Please provide concise, easy-to-understand responses with proper spacing, and use lists where appropriate. Keep responses under 250 words. Organize your responses into clear paragraphs to make them more readable."
+    },
     {"role": "user", "content": budgetDetailsMessage},
   ];
 
@@ -87,10 +91,9 @@ Future<String> callChatGPTBot(
   final body = json.encode({
     'model': 'gpt-3.5-turbo',
     'messages': messages,
-    'max_tokens': 1000,
+    'max_tokens': 500,
     'n': 1,
-    'stop': null,
-    'temperature': 0.7,
+    'temperature': 0.5,
   });
 
   final response = await http.post(

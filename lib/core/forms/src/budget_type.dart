@@ -11,9 +11,6 @@ class BudgetType extends FormzInput<String, BudgetTypeValidationError> {
     // Update the list of supported budget types.
     List<String> supportedBudgetTypes = [
       'Zero-Based Budgeting',
-      'Pay Yourself First',
-      'Envelope Budgeting',
-      'Activity-Based Budgeting',
     ];
 
     return supportedBudgetTypes.contains(value)

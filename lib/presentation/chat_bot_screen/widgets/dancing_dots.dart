@@ -42,7 +42,12 @@ class _DancingDotsState extends State<DancingDots>
   void _startAnimations() async {
     for (final controller in _controllers) {
       await Future.delayed(const Duration(milliseconds: 200));
-      controller.repeat(reverse: true);
+      if (mounted) {
+        // Add this check
+        controller.repeat(reverse: true);
+      } else {
+        break; // Exit the loop if the widget is no longer mounted
+      }
     }
   }
 

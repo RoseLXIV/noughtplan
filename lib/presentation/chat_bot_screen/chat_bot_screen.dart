@@ -2,9 +2,11 @@ import 'dart:convert';
 
 import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_neumorphic/flutter_neumorphic.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import 'package:noughtplan/core/app_export.dart';
 import 'package:noughtplan/core/constants/budgets.dart';
@@ -12,6 +14,7 @@ import 'package:noughtplan/presentation/budget_screen/widgets/call_chat_gpt_high
 import 'package:noughtplan/presentation/budget_screen/widgets/selected_budget_id.dart';
 import 'package:noughtplan/presentation/chat_bot_screen/widgets/dancing_dots.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:async/async.dart';
 
 class Message {
   final String text;
@@ -45,6 +48,14 @@ void _scrollToBottom() {
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeOut,
       );
+    }
+  });
+}
+
+void _initialScrollToBottom() {
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    if (_scrollController.hasClients) {
+      _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
     }
   });
 }
@@ -93,6 +104,35 @@ class ChatBotNotifier extends StateNotifier<List<Message>> {
     await saveMessages(conversationHistory, budgetId);
   }
 
+  Future<void> simulateTyping(String chatbotResponse) async {
+    final delayDuration = Duration(milliseconds: 10); // Adjust typing speed
+    String currentMessage = '';
+
+    CancelableOperation? debounceScroll;
+
+    for (int i = 0; i < chatbotResponse.length; i++) {
+      currentMessage = chatbotResponse.substring(0, i + 1);
+      state = [
+        ...state.sublist(0, state.length - 1),
+        Message(text: currentMessage, isUser: false),
+      ];
+      await Future.delayed(delayDuration);
+
+      // Cancel the previous scroll operation if it hasn't started yet
+      debounceScroll?.cancel();
+
+      // Schedule a new scroll operation after a short delay
+      debounceScroll = CancelableOperation.fromFuture(
+        Future.delayed(Duration(milliseconds: 100), _scrollToBottom),
+      );
+    }
+
+    // Make sure the last scroll operation is executed
+    if (!debounceScroll!.isCompleted) {
+      await debounceScroll.value;
+    }
+  }
+
   // Update the sendMessage method accordingly
   Future<void> sendMessage(
       String message, String firstName, Budget selectedBudget,
@@ -100,27 +140,35 @@ class ChatBotNotifier extends StateNotifier<List<Message>> {
     // Add user message to the list
     state = [...state, Message(text: message, isUser: true)];
 
-    // Add a loading message
-    state = [...state, Message(text: '', isUser: false, isLoading: true)];
-
-    onBotResponse();
-
     // Add user message to the conversation history
     conversationHistory.add(Message(text: message, isUser: true));
 
-    // Save messages
+    // Save messages after adding user message
     await saveMessages(conversationHistory, selectedBudget.budgetId);
 
-    // Simulate a delay before getting the response
-    await Future.delayed(Duration(seconds: 1));
+    // Add a loading message
+    state = [...state, Message(text: '', isUser: false, isLoading: true)];
+
+    // Add loading message to the conversation history
+    conversationHistory.add(Message(text: '', isUser: false, isLoading: true));
+
+    // Save messages after adding loading message
+    await saveMessages(conversationHistory, selectedBudget.budgetId);
+
+    onBotResponse();
 
     // Get chatbot response
     try {
       final chatbotResponse = await callChatGPTBot(
           message, firstName, selectedBudget, conversationHistory);
 
+      await simulateTyping(chatbotResponse);
+
       // Remove the loading message
       state.removeLast();
+
+      // Remove the loading message from the conversation history
+      conversationHistory.removeLast();
 
       // Add chatbot message to the list
       state = [...state, Message(text: chatbotResponse, isUser: false)];
@@ -128,7 +176,7 @@ class ChatBotNotifier extends StateNotifier<List<Message>> {
       // Add chatbot message to the conversation history
       conversationHistory.add(Message(text: chatbotResponse, isUser: false));
 
-      // Save messages
+      // Save messages after receiving the bot response
       await saveMessages(conversationHistory, selectedBudget.budgetId);
 
       // Call the callback function after receiving the bot response
@@ -138,19 +186,18 @@ class ChatBotNotifier extends StateNotifier<List<Message>> {
       _scrollToBottom();
     } catch (e) {
       // Handle error in fetching response
-      print("Error: $e");
+      print("Chat Message Failed: $e");
     }
   }
 }
 
 final chatBotProvider = StateNotifierProvider<ChatBotNotifier, List<Message>>(
   (ref) {
-    final budgetId = ref.watch(selectedBudgetIdProvider);
-    return ChatBotNotifier(budgetId: budgetId);
+    return ChatBotNotifier(budgetId: null);
   },
 );
 
-class ChatBotScreen extends ConsumerWidget {
+class ChatBotScreen extends HookConsumerWidget {
   const ChatBotScreen({super.key});
 
   @override
@@ -164,6 +211,12 @@ class ChatBotScreen extends ConsumerWidget {
     final TextEditingController _controller = TextEditingController();
 
     FocusNode _textFieldFocusNode = FocusNode();
+
+    useEffect(() {
+      ref.read(chatBotProvider.notifier)._loadMessages(selectedBudget.budgetId);
+
+      return null;
+    }, []);
 
     return SafeArea(
       child: Scaffold(
@@ -193,144 +246,150 @@ class ChatBotScreen extends ConsumerWidget {
               Container(
                 child: Column(
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        CustomImageView(
-                          imagePath: ImageConstant.imgGroup183001,
-                          height: getVerticalSize(
-                            53,
+                    Container(
+                      height: getVerticalSize(
+                        75,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          CustomImageView(
+                            imagePath: ImageConstant.imgGroup183001,
+                            height: getVerticalSize(
+                              53,
+                            ),
+                            width: getHorizontalSize(
+                              161,
+                            ),
+                            margin: getMargin(
+                              left: 17,
+                              top: 0,
+                            ),
                           ),
-                          width: getHorizontalSize(
-                            161,
-                          ),
-                          alignment: Alignment.topLeft,
-                          margin: getMargin(
-                            left: 17,
-                            top: 25,
-                          ),
-                        ),
-                        Align(
-                          alignment: Alignment.topRight,
-                          child: Row(
-                            children: [
-                              Padding(
-                                padding: getPadding(
-                                  right: 17,
-                                  top: 28,
-                                ),
-                                child: IconButton(
-                                  icon: CustomImageView(
-                                    svgPath: ImageConstant.imgTrashNew,
-                                    color: ColorConstant.redA700,
-                                    height: getSize(
-                                      24,
-                                    ),
-                                    width: getSize(
-                                      24,
-                                    ),
-                                  ), // Replace with your desired icon
-                                  onPressed: () async {
-                                    showDialog(
-                                      context: context,
-                                      builder: (BuildContext context) {
-                                        return AlertDialog(
-                                          title: Text(
-                                            'Clear chat',
-                                            style: AppStyle
-                                                .txtHelveticaNowTextBold18
-                                                .copyWith(letterSpacing: 0.2),
-                                          ),
-                                          content: Text(
-                                            'Are you sure you want to clear the chat?',
-                                            style: AppStyle.txtManropeRegular14
-                                                .copyWith(letterSpacing: 0.2),
-                                          ),
-                                          actions: [
-                                            TextButton(
-                                              child: Text('Cancel',
-                                                  style: AppStyle
-                                                      .txtHelveticaNowTextBold14
-                                                      .copyWith(
-                                                          letterSpacing: 0.2)),
-                                              onPressed: () {
-                                                Navigator.of(context).pop();
-                                              },
+                          Align(
+                            alignment: Alignment.center,
+                            child: Row(
+                              children: [
+                                Padding(
+                                  padding: getPadding(
+                                    right: 17,
+                                    top: 0,
+                                  ),
+                                  child: IconButton(
+                                    icon: CustomImageView(
+                                      svgPath: ImageConstant.imgTrashNew,
+                                      color: ColorConstant.redA700,
+                                      height: getSize(
+                                        24,
+                                      ),
+                                      width: getSize(
+                                        24,
+                                      ),
+                                    ), // Replace with your desired icon
+                                    onPressed: () async {
+                                      showDialog(
+                                        context: context,
+                                        builder: (BuildContext context) {
+                                          return AlertDialog(
+                                            title: Text(
+                                              'Clear chat',
+                                              style: AppStyle
+                                                  .txtHelveticaNowTextBold18
+                                                  .copyWith(letterSpacing: 0.2),
                                             ),
-                                            TextButton(
-                                              child: Text('Clear',
-                                                  style: AppStyle
-                                                      .txtHelveticaNowTextBold14
-                                                      .copyWith(
-                                                          letterSpacing: 0.2,
-                                                          color: ColorConstant
-                                                              .redA700)),
-                                              onPressed: () async {
-                                                await ref
-                                                    .read(chatBotProvider
-                                                        .notifier)
-                                                    .clearChat(selectedBudget
-                                                        .budgetId);
-                                                Navigator.of(context).pop();
-                                              },
+                                            content: Text(
+                                              'Are you sure you want to clear the chat?',
+                                              style: AppStyle
+                                                  .txtManropeRegular14
+                                                  .copyWith(letterSpacing: 0.2),
                                             ),
-                                          ],
-                                        );
-                                      },
-                                    );
-                                  },
+                                            actions: [
+                                              TextButton(
+                                                child: Text('Cancel',
+                                                    style: AppStyle
+                                                        .txtHelveticaNowTextBold14
+                                                        .copyWith(
+                                                            letterSpacing:
+                                                                0.2)),
+                                                onPressed: () {
+                                                  Navigator.of(context).pop();
+                                                },
+                                              ),
+                                              TextButton(
+                                                child: Text('Clear',
+                                                    style: AppStyle
+                                                        .txtHelveticaNowTextBold14
+                                                        .copyWith(
+                                                            letterSpacing: 0.2,
+                                                            color: ColorConstant
+                                                                .redA700)),
+                                                onPressed: () async {
+                                                  await ref
+                                                      .read(chatBotProvider
+                                                          .notifier)
+                                                      .clearChat(selectedBudget
+                                                          .budgetId);
+                                                  Navigator.of(context).pop();
+                                                },
+                                              ),
+                                            ],
+                                          );
+                                        },
+                                      );
+                                    },
+                                  ),
                                 ),
-                              ),
-                              Padding(
-                                padding: getPadding(
-                                  right: 17,
-                                  top: 34,
-                                ),
-                                child: GestureDetector(
-                                  onTap: () {
-                                    showDialog(
-                                      context: context,
-                                      builder: (BuildContext context) {
-                                        return AlertDialog(
-                                          title: Text(
-                                            'Please read the instructions below',
-                                            textAlign: TextAlign.center,
-                                            style: AppStyle
-                                                .txtHelveticaNowTextBold16,
-                                          ),
-                                          content: Text(
-                                            "In this step, you'll be able to add discretionary categories to your budget. Follow the instructions below:\n\n"
-                                            "1. Browse through the available categories or use the search bar to find specific ones that match your interests and lifestyle.\n"
-                                            "2. Tap on a category to add it to your chosen categories list. You can always tap again to remove it if needed.\n"
-                                            "3. Once you've added all the discretionary categories you want, press the 'Next' button to move on to reviewing your budget.\n\n"
-                                            "Remember, these discretionary categories represent your non-essential expenses, such as entertainment, hobbies, and dining out. Adding them thoughtfully will help you create a balanced budget, allowing for personal enjoyment while still managing your finances effectively.",
-                                            textAlign: TextAlign.center,
-                                            style: AppStyle.txtManropeRegular14,
-                                          ),
-                                          actions: [
-                                            TextButton(
-                                              onPressed: () =>
-                                                  Navigator.pop(context),
-                                              child: Text('Close'),
+                                Padding(
+                                  padding: getPadding(
+                                    right: 17,
+                                    top: 0,
+                                  ),
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      showDialog(
+                                        context: context,
+                                        builder: (BuildContext context) {
+                                          return AlertDialog(
+                                            title: Text(
+                                              'Please read the instructions below',
+                                              textAlign: TextAlign.center,
+                                              style: AppStyle
+                                                  .txtHelveticaNowTextBold16,
                                             ),
-                                          ],
-                                        );
-                                      },
-                                    );
-                                  },
-                                  child: Container(
-                                    margin: EdgeInsets.only(bottom: 7),
-                                    child: SvgPicture.asset(
-                                      ImageConstant.imgQuestion,
+                                            content: Text(
+                                              "In this step, you'll be able to add discretionary categories to your budget. Follow the instructions below:\n\n"
+                                              "1. Browse through the available categories or use the search bar to find specific ones that match your interests and lifestyle.\n"
+                                              "2. Tap on a category to add it to your chosen categories list. You can always tap again to remove it if needed.\n"
+                                              "3. Once you've added all the discretionary categories you want, press the 'Next' button to move on to reviewing your budget.\n\n"
+                                              "Remember, these discretionary categories represent your non-essential expenses, such as entertainment, hobbies, and dining out. Adding them thoughtfully will help you create a balanced budget, allowing for personal enjoyment while still managing your finances effectively.",
+                                              textAlign: TextAlign.center,
+                                              style:
+                                                  AppStyle.txtManropeRegular14,
+                                            ),
+                                            actions: [
+                                              TextButton(
+                                                onPressed: () =>
+                                                    Navigator.pop(context),
+                                                child: Text('Close'),
+                                              ),
+                                            ],
+                                          );
+                                        },
+                                      );
+                                    },
+                                    child: Container(
+                                      child: SvgPicture.asset(
+                                        ImageConstant.imgQuestion,
+                                      ),
                                     ),
                                   ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                     Flexible(
                       child: ListView.builder(
@@ -343,14 +402,17 @@ class ChatBotScreen extends ConsumerWidget {
                         ),
                         itemBuilder: (context, index) {
                           final message = messages[index];
-
+                          _initialScrollToBottom();
                           if (message.isLoading) {
                             _scrollToBottom();
                             return Padding(
-                              padding: getPadding(top: 8),
-                              child: Center(
-                                  child: DancingDots(
-                                      color: ColorConstant.blueA700)),
+                              padding: getPadding(top: 8, left: 32),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                children: [
+                                  DancingDots(color: ColorConstant.blueA700),
+                                ],
+                              ),
                             );
                           } else {
                             bool isUser = message.isUser;
@@ -406,22 +468,6 @@ class ChatBotScreen extends ConsumerWidget {
                                       padding: isUser
                                           ? EdgeInsets.only(right: 24.0)
                                           : EdgeInsets.only(left: 24.0),
-                                      // child: Text(
-                                      //   isUser
-                                      //       ? 'You'
-                                      //       : 'A.I. Financial Advisor',
-                                      //   style: isUser
-                                      //       ? AppStyle.txtHelveticaNowTextBold12
-                                      //           .copyWith(
-                                      //               color:
-                                      //                   ColorConstant.blueA700,
-                                      //               letterSpacing: 0.3)
-                                      //       : AppStyle.txtHelveticaNowTextBold12
-                                      //           .copyWith(
-                                      //               color:
-                                      //                   ColorConstant.gray900,
-                                      //               letterSpacing: 0.3),
-                                      // ),
                                     ),
                                   ),
                                 ],

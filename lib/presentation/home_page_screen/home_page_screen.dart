@@ -3,9 +3,11 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_neumorphic/flutter_neumorphic.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:noughtplan/core/auth/providers/auth_state_provider.dart';
 import 'package:noughtplan/core/budget/models/budget_status.dart';
+import 'package:noughtplan/core/budget/providers/banner_ads_class_provider.dart';
 import 'package:noughtplan/core/budget/providers/budget_state_provider.dart';
 import 'package:noughtplan/core/constants/budgets.dart';
 import 'package:noughtplan/widgets/custom_text_form_field.dart';
@@ -48,6 +50,14 @@ class HomePageScreen extends HookConsumerWidget {
       }
 
       fetchBudgets();
+
+//       ref.listen<BannerAd?>(adProvider, (oldAd, newAd) {
+//   if (newAd != null) {
+//     print('Ad is ready to be displayed');
+//     ref.read(currentAdProvider.notifier).state = newAd;
+//   }
+// });
+//       ref.read(adProvider.notifier).loadAd();
       return () {}; // Clean-up function
     }, []);
 
@@ -85,7 +95,7 @@ class HomePageScreen extends HookConsumerWidget {
                 left: 0,
                 right: 0,
                 child: Container(
-                  height: MediaQuery.of(context).size.height * 0.31,
+                  height: MediaQuery.of(context).size.height * 0.30,
                   decoration: BoxDecoration(
                     image: DecorationImage(
                       image: AssetImage('assets/images/gradient (3).png'),
@@ -104,8 +114,8 @@ class HomePageScreen extends HookConsumerWidget {
                           margin: getMargin(
                               left: 24, top: 15, bottom: 10, right: 0),
                           onTap: () async {
-                            // await ref.read(authStateProvider.notifier).logOut();
-                            Navigator.pop(context);
+                            await ref.read(authStateProvider.notifier).logOut();
+                            // Navigator.pop(context);
 
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
@@ -153,16 +163,16 @@ class HomePageScreen extends HookConsumerWidget {
                 ),
               ),
               Positioned(
-                bottom: 0,
+                bottom: 10,
                 left: 0,
                 right: 0,
                 child: Transform(
-                  transform: Matrix4.identity()..scale(1.0, -1.0, 0.1),
+                  transform: Matrix4.identity()..scale(-1.0, 1.0, 0.1),
                   alignment: Alignment.center,
                   child: CustomImageView(
                     imagePath: ImageConstant.imgTopographic8309x375,
                     height: MediaQuery.of(context).size.height *
-                        0.4, // Set the height to 50% of the screen height
+                        0.6, // Set the height to 50% of the screen height
                     width: MediaQuery.of(context)
                         .size
                         .width, // Set the width to the full screen width
@@ -172,225 +182,239 @@ class HomePageScreen extends HookConsumerWidget {
               ),
               Container(
                 width: double.maxFinite,
-                padding: getPadding(left: 30, right: 30, bottom: 11, top: 175),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: getPadding(left: 0, bottom: 10),
-                      child: Text(
-                        "Welcome back, ${firstName}",
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.right,
-                        style: AppStyle.txtHelveticaNowTextBold20.copyWith(
-                          color: ColorConstant.gray200,
-                          letterSpacing: getHorizontalSize(1),
-                          shadows: [
-                            Shadow(
-                              color: Colors.black.withOpacity(0.5),
-                              offset: Offset(0, 2),
-                              blurRadius: 4,
-                            ),
-                          ],
+                padding: getPadding(left: 30, right: 30, bottom: 11, top: 165),
+                child: SingleChildScrollView(
+                  physics: BouncingScrollPhysics(),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: getPadding(left: 0, bottom: 10),
+                        child: Text(
+                          "Welcome back, ${firstName}",
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.right,
+                          style: AppStyle.txtHelveticaNowTextBold20.copyWith(
+                            color: ColorConstant.gray200,
+                            letterSpacing: getHorizontalSize(1),
+                            shadows: [
+                              Shadow(
+                                color: Colors.black.withOpacity(0.5),
+                                offset: Offset(0, 2),
+                                blurRadius: 4,
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                    // Padding(
-                    //   padding: getPadding(bottom: 50),
-                    // ),
-                    Column(
-                      children: [
-                        Container(
-                          height: MediaQuery.of(context).size.height * 0.65,
-                          padding: EdgeInsets.only(top: 8),
-                          child: Consumer(
-                            builder: (context, ref, child) {
-                              // final budgetState =
-                              //     ref.watch(budgetStateProvider);
-                              // final userBudgets = budgetState.budgets;
-                              if (_budgets.value == null) {
-                                return Center(
-                                    child: CircularProgressIndicator());
-                              } else if (_budgets.value!.isEmpty) {
-                                return Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Expanded(
-                                      child: Neumorphic(
-                                        style: NeumorphicStyle(
-                                          shape: NeumorphicShape.convex,
-                                          boxShape:
-                                              NeumorphicBoxShape.roundRect(
-                                                  BorderRadius.circular(12)),
-                                          depth: 0.1,
-                                          intensity: 1,
-                                          surfaceIntensity: 0.5,
-                                          lightSource: LightSource.top,
-                                          color: ColorConstant.gray50,
-                                        ),
-                                        child: Container(
-                                          height: getVerticalSize(95),
-                                          decoration: BoxDecoration(
-                                            color: ColorConstant.gray100,
-                                            borderRadius:
-                                                BorderRadius.circular(12),
+                      // Padding(
+                      //   padding: getPadding(bottom: 50),
+                      // ),
+                      Column(
+                        children: [
+                          Container(
+                            height: MediaQuery.of(context).size.height * 0.60,
+                            padding: EdgeInsets.only(top: 8),
+                            child: Consumer(
+                              builder: (context, ref, child) {
+                                // final budgetState =
+                                //     ref.watch(budgetStateProvider);
+                                // final userBudgets = budgetState.budgets;
+                                if (_budgets.value == null) {
+                                  return Center(
+                                      child: CircularProgressIndicator());
+                                } else if (_budgets.value!.isEmpty) {
+                                  return Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Expanded(
+                                        child: Neumorphic(
+                                          style: NeumorphicStyle(
+                                            shape: NeumorphicShape.convex,
+                                            boxShape:
+                                                NeumorphicBoxShape.roundRect(
+                                                    BorderRadius.circular(12)),
+                                            depth: 0.1,
+                                            intensity: 1,
+                                            surfaceIntensity: 0.5,
+                                            lightSource: LightSource.top,
+                                            color: ColorConstant.gray50,
                                           ),
-                                          child: Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: [
-                                              Text(
-                                                  "Press the plus (+) button to add a Budget",
-                                                  style: AppStyle
-                                                      .txtManropeBold12
-                                                      .copyWith(
-                                                    color: ColorConstant
-                                                        .blueGray500,
-                                                    letterSpacing:
-                                                        getHorizontalSize(1),
-                                                  )),
-                                            ],
+                                          child: Container(
+                                            height: getVerticalSize(95),
+                                            decoration: BoxDecoration(
+                                              color: ColorConstant.gray100,
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                            ),
+                                            child: Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: [
+                                                Text(
+                                                    "Press the plus (+) button to add a Budget",
+                                                    style: AppStyle
+                                                        .txtManropeBold12
+                                                        .copyWith(
+                                                      color: ColorConstant
+                                                          .blueGray500,
+                                                      letterSpacing:
+                                                          getHorizontalSize(1),
+                                                    )),
+                                              ],
+                                            ),
                                           ),
                                         ),
                                       ),
-                                    ),
-                                  ],
-                                );
-                              } else {
-                                final userBudgets = _budgets.value!;
-                                return RefreshIndicator(
-                                  onRefresh: () async {
-                                    await budgetNotifier.fetchUserBudgets();
-                                  },
-                                  child: ListView.separated(
-                                    physics: BouncingScrollPhysics(),
-                                    padding: getPadding(top: 5, bottom: 25),
-                                    // scrollDirection: Axis.horizontal,
-                                    separatorBuilder: (context, index) {
-                                      return SizedBox(
-                                          height: getVerticalSize(16));
+                                    ],
+                                  );
+                                } else {
+                                  final userBudgets = _budgets.value!;
+                                  return RefreshIndicator(
+                                    onRefresh: () async {
+                                      await budgetNotifier.fetchUserBudgets();
                                     },
-                                    itemCount: userBudgets.length,
-                                    itemBuilder: (context, index) {
-                                      final budget = userBudgets[index];
-                                      return Dismissible(
-                                        key: Key(budget!.budgetId),
-                                        background: Column(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Stack(
-                                              children: [
-                                                Container(
-                                                  height: getVerticalSize(95),
-                                                  decoration: BoxDecoration(
-                                                    color:
-                                                        ColorConstant.redA700,
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            12),
-                                                  ),
-                                                  child: Row(
-                                                    mainAxisAlignment:
-                                                        MainAxisAlignment.end,
-                                                    children: [
-                                                      // SizedBox(width: 25),
-                                                      Padding(
-                                                        padding: getPadding(
-                                                            right: 16),
-                                                        child: CustomImageView(
-                                                          svgPath: ImageConstant
-                                                              .imgTrashNew,
-                                                          height: getSize(32),
-                                                          width: getSize(32),
-                                                          color: ColorConstant
-                                                              .whiteA700,
+                                    child: ListView.separated(
+                                      physics: BouncingScrollPhysics(),
+                                      padding: getPadding(top: 5, bottom: 25),
+                                      // scrollDirection: Axis.horizontal,
+                                      separatorBuilder: (context, index) {
+                                        return SizedBox(
+                                            height: getVerticalSize(16));
+                                      },
+                                      itemCount: userBudgets.length,
+                                      itemBuilder: (context, index) {
+                                        final budget = userBudgets[index];
+                                        return Dismissible(
+                                          key: Key(budget!.budgetId),
+                                          background: Column(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              Stack(
+                                                children: [
+                                                  Container(
+                                                    height: getVerticalSize(95),
+                                                    decoration: BoxDecoration(
+                                                      color:
+                                                          ColorConstant.redA700,
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              12),
+                                                    ),
+                                                    child: Row(
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment.end,
+                                                      children: [
+                                                        // SizedBox(width: 25),
+                                                        Padding(
+                                                          padding: getPadding(
+                                                              right: 16),
+                                                          child:
+                                                              CustomImageView(
+                                                            svgPath:
+                                                                ImageConstant
+                                                                    .imgTrashNew,
+                                                            height: getSize(32),
+                                                            width: getSize(32),
+                                                            color: ColorConstant
+                                                                .whiteA700,
+                                                          ),
                                                         ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ],
-                                        ),
-                                        direction: DismissDirection.endToStart,
-                                        confirmDismiss: (direction) async {
-                                          // Show confirmation dialog
-                                          return await showDialog<bool>(
-                                            context: context,
-                                            builder: (BuildContext context) {
-                                              return AlertDialog(
-                                                title: Text('Confirm Deletion',
-                                                    style: AppStyle
-                                                        .txtHelveticaNowTextBold18),
-                                                content: Text(
-                                                    'Are you sure you want to delete this budget?',
-                                                    style: AppStyle
-                                                        .txtManropeRegular14),
-                                                actions: <Widget>[
-                                                  TextButton(
-                                                    onPressed: () =>
-                                                        Navigator.of(context)
-                                                            .pop(false),
-                                                    child: Text('Cancel',
-                                                        style: AppStyle
-                                                            .txtHelveticaNowTextBold14),
-                                                  ),
-                                                  TextButton(
-                                                    onPressed: () =>
-                                                        Navigator.of(context)
-                                                            .pop(true),
-                                                    child: Text('Delete',
-                                                        style: AppStyle
-                                                            .txtHelveticaNowTextBold14
-                                                            .copyWith(
-                                                          color: ColorConstant
-                                                              .redA700,
-                                                        )),
+                                                      ],
+                                                    ),
                                                   ),
                                                 ],
-                                              );
-                                            },
-                                          );
-                                        },
-                                        onDismissed: (direction) {
-                                          budgetNotifier
-                                              .deleteBudget(budget.budgetId);
-                                        },
-                                        child: InkWell(
-                                          onTap: () {
-                                            Navigator.pushNamed(
-                                              context,
-                                              '/main_budget_home_screen',
-                                              arguments: {
-                                                'budget': budget,
-                                                'firstName': firstName,
+                                              ),
+                                            ],
+                                          ),
+                                          direction:
+                                              DismissDirection.endToStart,
+                                          confirmDismiss: (direction) async {
+                                            // Show confirmation dialog
+                                            return await showDialog<bool>(
+                                              context: context,
+                                              builder: (BuildContext context) {
+                                                return AlertDialog(
+                                                  title: Text(
+                                                      'Confirm Deletion',
+                                                      style: AppStyle
+                                                          .txtHelveticaNowTextBold18),
+                                                  content: Text(
+                                                      'Are you sure you want to delete this budget?',
+                                                      style: AppStyle
+                                                          .txtManropeRegular14),
+                                                  actions: <Widget>[
+                                                    TextButton(
+                                                      onPressed: () =>
+                                                          Navigator.of(context)
+                                                              .pop(false),
+                                                      child: Text('Cancel',
+                                                          style: AppStyle
+                                                              .txtHelveticaNowTextBold14),
+                                                    ),
+                                                    TextButton(
+                                                      onPressed: () =>
+                                                          Navigator.of(context)
+                                                              .pop(true),
+                                                      child: Text('Delete',
+                                                          style: AppStyle
+                                                              .txtHelveticaNowTextBold14
+                                                              .copyWith(
+                                                            color: ColorConstant
+                                                                .redA700,
+                                                          )),
+                                                    ),
+                                                  ],
+                                                );
                                               },
                                             );
                                           },
-                                          child: ListItemWidget(
-                                            budgetName: budget.budgetName,
-                                            budgetType: budget.budgetType,
-                                            totalExpenses: budget.salary,
-                                            spendingType: budget.spendingType,
-                                            savingType: budget.savingType,
-                                            debtType: budget.debtType,
+                                          onDismissed: (direction) {
+                                            budgetNotifier
+                                                .deleteBudget(budget.budgetId);
+                                          },
+                                          child: InkWell(
+                                            onTap: () {
+                                              Navigator.pushNamed(
+                                                context,
+                                                '/main_budget_home_screen',
+                                                arguments: {
+                                                  'budget': budget,
+                                                  'firstName': firstName,
+                                                },
+                                              );
+                                            },
+                                            child: ListItemWidget(
+                                              budgetName: budget.budgetName,
+                                              budgetType: budget.budgetType,
+                                              totalExpenses: budget.salary,
+                                              spendingType: budget.spendingType,
+                                              savingType: budget.savingType,
+                                              debtType: budget.debtType,
+                                            ),
                                           ),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                );
-                              }
-                            },
+                                        );
+                                      },
+                                    ),
+                                  );
+                                }
+                              },
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                          Container(
+                            color: Colors.white,
+                            child: Center(
+                              child: BannerAdWidget(),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],

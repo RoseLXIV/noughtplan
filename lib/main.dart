@@ -13,6 +13,7 @@ import 'package:noughtplan/views/components/constants/loading/loading_screen.dar
 import 'firebase_options.dart';
 import 'presentation/category_discretionary_screen/category_discretionary_screen.dart';
 import 'presentation/home_page_screen/home_page_screen.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,6 +23,7 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  await MobileAds.instance.initialize();
   runApp(ProviderScope(child: MyApp()));
 }
 

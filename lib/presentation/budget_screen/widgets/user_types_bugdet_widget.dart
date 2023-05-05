@@ -43,7 +43,7 @@ Color getColorForSpendingType(String type) {
     case 'Balanced Spender':
       return Colors.green;
     case 'Impulsive Spender':
-      return Colors.red;
+      return Colors.red.shade400;
     case 'Necessary Spender':
       return Colors.blue.shade400;
     default:
@@ -62,7 +62,7 @@ Color getColorForSavingType(String type) {
     case 'Cautious':
       return Colors.orange;
     case 'Frugal':
-      return Colors.green;
+      return Colors.green.shade700;
     case 'Prudent Saver':
       return ColorConstant.blue90001;
     case 'Limited Saver':
@@ -83,11 +83,11 @@ Color getColorForDebtType(String type) {
     case 'Minimal Debt':
       return Colors.greenAccent;
     case 'Moderate Debt':
-      return Colors.blue.shade700;
+      return Colors.yellow.shade700;
     case 'Danger Zone':
-      return Colors.orange;
+      return Colors.orange.shade700;
     case 'High Debt':
-      return Colors.red;
+      return Colors.red.shade700;
     default:
       return Colors.grey;
   }

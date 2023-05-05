@@ -519,6 +519,9 @@ class ExpenseTrackingScreen extends HookConsumerWidget {
                 ),
               ),
               Container(
+                height: getVerticalSize(
+                  75,
+                ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -531,133 +534,125 @@ class ExpenseTrackingScreen extends HookConsumerWidget {
                       width: getHorizontalSize(
                         161,
                       ),
-                      alignment: Alignment.topLeft,
+                      alignment: Alignment.center,
                       margin: getMargin(
                         left: 17,
-                        top: 25,
+                        top: 0,
                       ),
                     ),
-                    Row(
-                      children: [
-                        Align(
-                          alignment: Alignment.topRight,
-                          child: Row(
-                            children: [
-                              Padding(
-                                padding: getPadding(
-                                  right: 17,
-                                  top: 28,
+                    Align(
+                      alignment: Alignment.center,
+                      child: Row(
+                        children: [
+                          Padding(
+                            padding: getPadding(
+                              right: 17,
+                              top: 0,
+                            ),
+                            child: IconButton(
+                              icon: CustomImageView(
+                                svgPath: ImageConstant.imgBudgetDetails1,
+                                height: getSize(
+                                  48,
                                 ),
-                                child: IconButton(
-                                  icon: CustomImageView(
-                                    svgPath: ImageConstant.imgBudgetDetails1,
-                                    height: getSize(
-                                      48,
-                                    ),
-                                    width: getSize(
-                                      48,
-                                    ),
-                                    color: ColorConstant.blueA700,
-                                  ), // Replace with your desired icon
-                                  onPressed: () async {
-                                    if (_budgets.value != null) {
-                                      // Future.microtask(() async {
-                                      final fetchedBudgets =
-                                          await budgetNotifier
-                                              .fetchUserBudgets();
-                                      _budgets.value = fetchedBudgets;
-                                      final updatedSelectedBudget =
-                                          _budgets.value!.firstWhere(
-                                        (budget) =>
-                                            budget?.budgetId ==
-                                            selectedBudget!.budgetId,
-                                        orElse: () => null,
-                                      );
-
-                                      // print(
-                                      // 'Modal updatedSelectedBudget: $updatedSelectedBudget');
-
-                                      if (updatedSelectedBudget != null) {
-                                        final actualExpensesNotifier = ref.read(
-                                            actualExpensesProvider.notifier);
-                                        actualExpensesNotifier
-                                            .updateActualExpenses(
-                                                updatedSelectedBudget
-                                                    .actualExpenses);
-
-                                        // Update the totalAmounts
-                                        totalAmounts = calculateTotalAmounts(
-                                            updatedSelectedBudget);
-                                      }
-                                      // });
-                                    }
-                                    showModalBottomSheet(
-                                      context: context,
-                                      isScrollControlled: true,
-                                      backgroundColor: Colors.transparent,
-                                      clipBehavior: Clip.none,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.only(
-                                          topLeft: Radius.circular(32),
-                                          topRight: Radius.circular(32),
-                                        ),
-                                      ),
-                                      builder: (BuildContext context) {
-                                        return buildDetailsSheet(context);
-                                      },
-                                    );
-                                  },
+                                width: getSize(
+                                  48,
                                 ),
-                              ),
-                              Padding(
-                                padding: getPadding(
-                                  right: 17,
-                                  top: 34,
-                                ),
-                                child: GestureDetector(
-                                  onTap: () {
-                                    showDialog(
-                                      context: context,
-                                      builder: (BuildContext context) {
-                                        return AlertDialog(
-                                          title: Text(
-                                            'Please read the instructions below',
-                                            textAlign: TextAlign.center,
-                                            style: AppStyle
-                                                .txtHelveticaNowTextBold16,
-                                          ),
-                                          content: Text(
-                                            "In this step, you'll be able to add discretionary categories to your budget. Follow the instructions below:\n\n"
-                                            "1. Browse through the available categories or use the search bar to find specific ones that match your interests and lifestyle.\n"
-                                            "2. Tap on a category to add it to your chosen categories list. You can always tap again to remove it if needed.\n"
-                                            "3. Once you've added all the discretionary categories you want, press the 'Next' button to move on to reviewing your budget.\n\n"
-                                            "Remember, these discretionary categories represent your non-essential expenses, such as entertainment, hobbies, and dining out. Adding them thoughtfully will help you create a balanced budget, allowing for personal enjoyment while still managing your finances effectively.",
-                                            textAlign: TextAlign.center,
-                                            style: AppStyle.txtManropeRegular14,
-                                          ),
-                                          actions: [
-                                            TextButton(
-                                              onPressed: () =>
-                                                  Navigator.pop(context),
-                                              child: Text('Close'),
-                                            ),
-                                          ],
-                                        );
-                                      },
-                                    );
-                                  },
-                                  child: Container(
-                                    margin: EdgeInsets.only(bottom: 7),
-                                    child: SvgPicture.asset(
-                                      ImageConstant.imgQuestion,
+                                color: ColorConstant.blueA700,
+                              ), // Replace with your desired icon
+                              onPressed: () async {
+                                if (_budgets.value != null) {
+                                  // Future.microtask(() async {
+                                  final fetchedBudgets =
+                                      await budgetNotifier.fetchUserBudgets();
+                                  _budgets.value = fetchedBudgets;
+                                  final updatedSelectedBudget =
+                                      _budgets.value!.firstWhere(
+                                    (budget) =>
+                                        budget?.budgetId ==
+                                        selectedBudget!.budgetId,
+                                    orElse: () => null,
+                                  );
+
+                                  // print(
+                                  // 'Modal updatedSelectedBudget: $updatedSelectedBudget');
+
+                                  if (updatedSelectedBudget != null) {
+                                    final actualExpensesNotifier = ref
+                                        .read(actualExpensesProvider.notifier);
+                                    actualExpensesNotifier.updateActualExpenses(
+                                        updatedSelectedBudget.actualExpenses);
+
+                                    // Update the totalAmounts
+                                    totalAmounts = calculateTotalAmounts(
+                                        updatedSelectedBudget);
+                                  }
+                                  // });
+                                }
+                                showModalBottomSheet(
+                                  context: context,
+                                  isScrollControlled: true,
+                                  backgroundColor: Colors.transparent,
+                                  clipBehavior: Clip.none,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.only(
+                                      topLeft: Radius.circular(32),
+                                      topRight: Radius.circular(32),
                                     ),
                                   ),
+                                  builder: (BuildContext context) {
+                                    return buildDetailsSheet(context);
+                                  },
+                                );
+                              },
+                            ),
+                          ),
+                          Padding(
+                            padding: getPadding(
+                              right: 17,
+                              top: 0,
+                            ),
+                            child: GestureDetector(
+                              onTap: () {
+                                showDialog(
+                                  context: context,
+                                  builder: (BuildContext context) {
+                                    return AlertDialog(
+                                      title: Text(
+                                        'Please read the instructions below',
+                                        textAlign: TextAlign.center,
+                                        style:
+                                            AppStyle.txtHelveticaNowTextBold16,
+                                      ),
+                                      content: Text(
+                                        "In this step, you'll be able to add discretionary categories to your budget. Follow the instructions below:\n\n"
+                                        "1. Browse through the available categories or use the search bar to find specific ones that match your interests and lifestyle.\n"
+                                        "2. Tap on a category to add it to your chosen categories list. You can always tap again to remove it if needed.\n"
+                                        "3. Once you've added all the discretionary categories you want, press the 'Next' button to move on to reviewing your budget.\n\n"
+                                        "Remember, these discretionary categories represent your non-essential expenses, such as entertainment, hobbies, and dining out. Adding them thoughtfully will help you create a balanced budget, allowing for personal enjoyment while still managing your finances effectively.",
+                                        textAlign: TextAlign.center,
+                                        style: AppStyle.txtManropeRegular14,
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () =>
+                                              Navigator.pop(context),
+                                          child: Text('Close'),
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                );
+                              },
+                              child: Container(
+                                child: SvgPicture.asset(
+                                  ImageConstant.imgQuestion,
                                 ),
                               ),
-                            ],
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -665,7 +660,7 @@ class ExpenseTrackingScreen extends HookConsumerWidget {
               Align(
                 alignment: Alignment.topCenter,
                 child: Container(
-                  padding: getPadding(top: 95, left: 12, right: 12),
+                  padding: getPadding(top: 70, left: 12, right: 12),
                   child: SingleChildScrollView(
                     physics: BouncingScrollPhysics(),
                     child: Padding(
