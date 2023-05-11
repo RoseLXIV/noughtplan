@@ -132,7 +132,11 @@ class BudgetScreen extends HookConsumerWidget {
     Budget? _updatedSelectedBudget;
 
     final String budgetId = selectedBudget.budgetId;
-    // print('Budget Id: $budgetId');
+    print('Budget Id: $budgetId');
+
+    final totalExpenses = selectedBudget.salary;
+
+    final numberFormat = NumberFormat.currency(symbol: '\$', decimalDigits: 2);
 
     Map<String, double> getTotalAmountPerCategory(
         List<Map<String, dynamic>> actualExpenses) {
@@ -188,6 +192,16 @@ class BudgetScreen extends HookConsumerWidget {
       // });
     }
 
+    Map<String, double> totalAmountsWithIncome =
+        getTotalAmountPerCategory(_updatedSelectedBudget?.actualExpenses ?? []);
+
+    double totalIncome = 0;
+    if (totalAmountsWithIncome.containsKey('Income')) {
+      totalIncome = totalAmountsWithIncome['Income']!;
+    }
+
+    print('totalAmountsWithIncome $totalAmountsWithIncome');
+
     String totalRemainingFundsFormatted = '';
 
     double getTotalAmountsSum(Map<String, double> totalAmounts) {
@@ -197,6 +211,11 @@ class BudgetScreen extends HookConsumerWidget {
       });
       return sum;
     }
+
+    double totalExpensesSum =
+        getTotalAmountsSum(totalAmountsWithIncome) - totalIncome;
+    double totalRemainingFunds = totalExpenses + totalIncome - totalExpensesSum;
+    totalRemainingFundsFormatted = numberFormat.format(totalRemainingFunds);
 
     // print('Total Amounts: $totalAmounts');
     // print('Updated Selected Budget: $_updatedSelectedBudget');
@@ -432,6 +451,7 @@ class BudgetScreen extends HookConsumerWidget {
           updateTimerText(remainingDuration);
         }
       });
+
       return () {}; // Clean-up function
     }, []);
 
@@ -486,10 +506,6 @@ class BudgetScreen extends HookConsumerWidget {
       };
     }
 
-    final totalExpenses = selectedBudget.salary;
-
-    final numberFormat = NumberFormat.currency(symbol: '\$', decimalDigits: 2);
-
     final String necessaryTotalFormatted = numberFormat.format(necessaryTotal);
     final String discretionaryTotalFormatted =
         numberFormat.format(discretionaryTotal);
@@ -525,10 +541,6 @@ class BudgetScreen extends HookConsumerWidget {
         'amount': numberFormat.format(value),
       });
     });
-
-    double totalExpensesSum = getTotalAmountsSum(totalAmounts);
-    double totalRemainingFunds = totalExpenses - totalExpensesSum;
-    totalRemainingFundsFormatted = numberFormat.format(totalRemainingFunds);
 
     // print('Total Remaining Funds: $totalRemainingFundsFormatted');
 
@@ -2125,6 +2137,8 @@ class BudgetScreen extends HookConsumerWidget {
                                           ),
                                           Padding(padding: getPadding(top: 8)),
                                           Consumer(builder: (context, ref, _) {
+                                            print(buttonStateProvider(budgetId)
+                                                .runtimeType);
                                             final buttonState = ref.watch(
                                                 buttonStateProvider(budgetId));
                                             final buttonEnabled =
@@ -2386,7 +2400,7 @@ class BudgetScreen extends HookConsumerWidget {
       'pieChartData': PieChartData(
         sections: sections,
         sectionsSpace: 0,
-        centerSpaceRadius: 94,
+        centerSpaceRadius: 104,
         borderData: FlBorderData(show: true),
       ),
       'percentages': {

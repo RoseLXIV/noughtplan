@@ -38,6 +38,14 @@ class SignInController extends StateNotifier<SignInState> {
     );
   }
 
+  void resetValidation() {
+    state = state.copyWith(
+      email: Email.pure(),
+      password: PasswordSignIn.pure(),
+      status: FormzStatus.pure,
+    );
+  }
+
   Future<AuthResult> signInWithEmailAndPassword() async {
     if (!state.status.isValidated)
       state = state.copyWith(status: FormzStatus.submissionInProgress);
@@ -56,9 +64,8 @@ class SignInController extends StateNotifier<SignInState> {
       state = state.copyWith(
           status: FormzStatus.submissionFailure, errorMessage: 'Error: $e');
       return AuthResult.failure;
+    } finally {
+      state = state.copyWith(status: FormzStatus.pure);
     }
-    // finally {
-    //   state = state.copyWith(status: FormzStatus.pure);
-    // }
   }
 }

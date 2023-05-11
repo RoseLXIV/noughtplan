@@ -183,7 +183,7 @@ List<Map<String, dynamic>> gridItems = [
     'iconPath': ImageConstant.imgTrash,
   },
   {
-    'text': 'Personal Spending',
+    'text': 'Spending',
     'iconPath': ImageConstant.imgVideocameraBlueA70048x48,
   },
   {
@@ -210,7 +210,7 @@ Map<int, String> getButtonTextsForGridItem(String gridItemText) {
       return restaurantButtonTexts;
     case 'Technology':
       return technologyButtonTexts;
-    case 'Personal Spending':
+    case 'Spending':
       return personalSpendingButtonTexts;
     case 'Other':
       return otherButtonTexts;
@@ -289,6 +289,11 @@ class ButtonListStateDiscretionary extends ChangeNotifier {
     }
     notifyListeners();
   }
+
+  void clearSelectedCategories() {
+    selectedCategories.clear();
+    notifyListeners();
+  }
 }
 
 class CategorySearchNotifierDiscretionary extends StateNotifier<List<String>> {
@@ -343,6 +348,23 @@ class CategoryDiscretionaryScreen extends HookConsumerWidget {
         parentCategory != null ? selectedCategories[parentCategory] ?? [] : [];
     List<Widget> selectedButtons = [];
 
+    void initializeSelectedButtons(Map<String, double> discretionaryExpense) {
+      discretionaryExpense.forEach((key, value) {
+        ref
+            .read(buttonListStateProviderDiscretionary.notifier)
+            .addCategory(key);
+      });
+    }
+
+    useEffect(() {
+      Future.microtask(() {
+        ref
+            .read(buttonListStateProviderDiscretionary.notifier)
+            .clearSelectedCategories();
+      });
+      return () {}; // Cleanup function
+    }, []);
+
     selectedCategories.forEach((parentCategory, buttonTexts) {
       buttonTexts.forEach((buttonText) {
         selectedButtons.add(
@@ -374,6 +396,113 @@ class CategoryDiscretionaryScreen extends HookConsumerWidget {
         );
       });
     });
+
+    void showAddCategoryModal(BuildContext context, WidgetRef ref) {
+      TextEditingController customCategoryController = TextEditingController();
+
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (BuildContext context) {
+          void submitForm() async {
+            final customCategory = customCategoryController.text;
+            if (customCategory.isNotEmpty) {
+              ref
+                  .read(buttonListStateProviderDiscretionary.notifier)
+                  .addCategory(customCategory);
+              customCategoryController.clear();
+            }
+          }
+
+          return Stack(
+            children: [
+              BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 1, sigmaY: 1),
+                child: Container(),
+              ),
+              DraggableScrollableSheet(
+                initialChildSize: 0.65,
+                minChildSize: 0.65,
+                maxChildSize: 0.8,
+                builder:
+                    (BuildContext context, ScrollController scrollController) {
+                  return Padding(
+                    padding: EdgeInsets.only(
+                      bottom: MediaQuery.of(context).viewInsets.bottom,
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Container(
+                          padding: EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.only(
+                              topLeft: Radius.circular(32),
+                              topRight: Radius.circular(32),
+                            ),
+                            color: Colors.white,
+                          ),
+                          child: SingleChildScrollView(
+                            controller: scrollController,
+                            child: Column(
+                              // mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: TextField(
+                                    onSubmitted: (_) => submitForm(),
+                                    controller: customCategoryController,
+                                    textAlign: TextAlign.center,
+                                    style: AppStyle.txtManropeRegular16
+                                        .copyWith(
+                                            color: ColorConstant.blueGray800),
+                                    decoration: InputDecoration(
+                                      labelText: "Custom Category",
+                                      labelStyle: AppStyle
+                                          .txtHelveticaNowTextBold14
+                                          .copyWith(
+                                        color: ColorConstant.blueGray300,
+                                      ),
+                                      floatingLabelBehavior:
+                                          FloatingLabelBehavior.always,
+                                      hintText:
+                                          "Enter a custom category name...",
+                                      hintStyle: AppStyle.txtManropeSemiBold14
+                                          .copyWith(
+                                              color: ColorConstant.blueGray300,
+                                              letterSpacing: 0.0),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadiusStyle
+                                            .txtRoundedBorder10,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(height: 16),
+                                CustomButton(
+                                  onTap: () {
+                                    submitForm();
+                                    Navigator.pop(context);
+                                  },
+                                  alignment: Alignment.bottomCenter,
+                                  height: getVerticalSize(56),
+                                  text: "Save",
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ],
+          );
+        },
+      );
+    }
 
     return SafeArea(
       child: Scaffold(
@@ -430,46 +559,62 @@ class CategoryDiscretionaryScreen extends HookConsumerWidget {
                               title:
                                   AppbarTitle(text: "Discretionary Categories"),
                               actions: [
-                                GestureDetector(
-                                  onTap: () {
-                                    showDialog(
-                                      context: context,
-                                      builder: (BuildContext context) {
-                                        return AlertDialog(
-                                          title: Text(
-                                            'Please read the instructions below',
-                                            textAlign: TextAlign.center,
-                                            style: AppStyle
-                                                .txtHelveticaNowTextBold16,
-                                          ),
-                                          content: Text(
-                                            "In this step, you'll be able to add discretionary categories to your budget. Follow the instructions below:\n\n"
-                                            "1. Browse through the available categories or use the search bar to find specific ones that match your interests and lifestyle.\n"
-                                            "2. Tap on a category to add it to your chosen categories list. You can always tap again to remove it if needed.\n"
-                                            "3. Once you've added all the discretionary categories you want, press the 'Next' button to move on to reviewing your budget.\n\n"
-                                            "Remember, these discretionary categories represent your non-essential expenses, such as entertainment, hobbies, and dining out. Adding them thoughtfully will help you create a balanced budget, allowing for personal enjoyment while still managing your finances effectively.",
-                                            textAlign: TextAlign.center,
-                                            style: AppStyle.txtManropeRegular14,
-                                          ),
-                                          actions: [
-                                            TextButton(
-                                              onPressed: () =>
-                                                  Navigator.pop(context),
-                                              child: Text('Close'),
-                                            ),
-                                          ],
+                                Row(
+                                  children: [
+                                    GestureDetector(
+                                      onTap: () =>
+                                          showAddCategoryModal(context, ref),
+                                      child: Container(
+                                        width: 70,
+                                        child: SvgPicture.asset(
+                                          ImageConstant.imgPlus,
+                                          height: 24,
+                                          width: 24,
+                                        ),
+                                      ),
+                                    ),
+                                    GestureDetector(
+                                      onTap: () {
+                                        showDialog(
+                                          context: context,
+                                          builder: (BuildContext context) {
+                                            return AlertDialog(
+                                              title: Text(
+                                                'Please read the instructions below',
+                                                textAlign: TextAlign.center,
+                                                style: AppStyle
+                                                    .txtHelveticaNowTextBold16,
+                                              ),
+                                              content: Text(
+                                                "In this step, you'll be able to add discretionary categories to your budget. Follow the instructions below:\n\n"
+                                                "1. Browse through the available categories or use the search bar to find specific ones that match your interests and lifestyle.\n"
+                                                "2. Tap on a category to add it to your chosen categories list. You can always tap again to remove it if needed.\n"
+                                                "3. Once you've added all the discretionary categories you want, press the 'Next' button to move on to reviewing your budget.\n\n"
+                                                "Remember, these discretionary categories represent your non-essential expenses, such as entertainment, hobbies, and dining out. Adding them thoughtfully will help you create a balanced budget, allowing for personal enjoyment while still managing your finances effectively.",
+                                                textAlign: TextAlign.center,
+                                                style: AppStyle
+                                                    .txtManropeRegular14,
+                                              ),
+                                              actions: [
+                                                TextButton(
+                                                  onPressed: () =>
+                                                      Navigator.pop(context),
+                                                  child: Text('Close'),
+                                                ),
+                                              ],
+                                            );
+                                          },
                                         );
                                       },
-                                    );
-                                  },
-                                  child: Container(
-                                    margin: EdgeInsets.only(bottom: 7),
-                                    child: SvgPicture.asset(
-                                      ImageConstant.imgQuestion,
-                                      height: 24,
-                                      width: 24,
+                                      child: Container(
+                                        child: SvgPicture.asset(
+                                          ImageConstant.imgQuestion,
+                                          height: 24,
+                                          width: 24,
+                                        ),
+                                      ),
                                     ),
-                                  ),
+                                  ],
                                 ),
                               ],
                             ),
@@ -477,7 +622,6 @@ class CategoryDiscretionaryScreen extends HookConsumerWidget {
                               focusNode: FocusNode(),
                               controller: searchController,
                               hintText: "Search...",
-                              margin: getMargin(top: 14),
                               prefix: Container(
                                   margin: getMargin(
                                       left: 16, top: 18, right: 12, bottom: 18),
@@ -500,6 +644,7 @@ class CategoryDiscretionaryScreen extends HookConsumerWidget {
                             Visibility(
                               visible: filteredCategories.isNotEmpty,
                               child: SingleChildScrollView(
+                                physics: BouncingScrollPhysics(),
                                 child: Container(
                                   height: 100,
                                   child: GridView.builder(
@@ -605,6 +750,7 @@ class CategoryDiscretionaryScreen extends HookConsumerWidget {
                                   maxHeight: getVerticalSize(105),
                                 ),
                                 child: SingleChildScrollView(
+                                  physics: BouncingScrollPhysics(),
                                   child: Container(
                                     width: double.maxFinite,
                                     child: Padding(
@@ -671,15 +817,16 @@ class CategoryDiscretionaryScreen extends HookConsumerWidget {
                               child: Padding(
                                 padding: getPadding(top: 10),
                                 child: SingleChildScrollView(
+                                  physics: BouncingScrollPhysics(),
                                   child: GridView.builder(
                                     shrinkWrap: true,
-                                    physics: ScrollPhysics(),
+                                    physics: BouncingScrollPhysics(),
                                     gridDelegate:
                                         SliverGridDelegateWithFixedCrossAxisCount(
-                                      mainAxisExtent: getVerticalSize(109),
+                                      mainAxisExtent: getVerticalSize(105),
                                       crossAxisCount: 3,
-                                      mainAxisSpacing: getHorizontalSize(16),
-                                      crossAxisSpacing: getHorizontalSize(16),
+                                      mainAxisSpacing: getHorizontalSize(8),
+                                      crossAxisSpacing: getHorizontalSize(8),
                                     ),
                                     itemCount: gridItems.length,
                                     itemBuilder: (context, index) {
@@ -845,8 +992,8 @@ void _showModalBottomSheet(
                 ),
           ),
           DraggableScrollableSheet(
-            initialChildSize: 0.4, // Set the initial height of the modal
-            minChildSize: 0.4, // Set the minimum height of the modal
+            initialChildSize: 0.42, // Set the initial height of the modal
+            minChildSize: 0.42, // Set the minimum height of the modal
             maxChildSize: 0.6, // Set the maximum height of the modal
             builder: (BuildContext context, ScrollController scrollController) {
               return ClipRRect(
@@ -856,23 +1003,48 @@ void _showModalBottomSheet(
                 ),
                 child: Container(
                   color: Colors.white,
-                  padding: EdgeInsets.all(16),
-                  child: GridView.builder(
-                    padding: EdgeInsets.zero,
-                    itemCount: buttonTexts.length,
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 3,
-                      mainAxisSpacing: 8,
-                      crossAxisSpacing: 8,
-                      childAspectRatio: 2,
-                    ),
-                    itemBuilder: (BuildContext context, int index) {
-                      final entry = buttonTexts.entries.elementAt(index);
-                      return CategoryButtonDiscretionary(
-                        index: entry.key,
-                        text: entry.value,
-                      );
-                    },
+                  padding: EdgeInsets.all(8),
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(30),
+                          color: Colors.grey[400],
+                        ),
+                        padding: getPadding(top: 50),
+                      ),
+                      Expanded(
+                        child: Container(
+                          color: Colors.white,
+                          padding: EdgeInsets.all(16),
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(maxHeight: 200),
+                            child: GridView.builder(
+                              physics: BouncingScrollPhysics(),
+                              padding: EdgeInsets.zero,
+                              itemCount: buttonTexts.length,
+                              gridDelegate:
+                                  SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 3,
+                                mainAxisSpacing: 8,
+                                crossAxisSpacing: 8,
+                                childAspectRatio: 1.7,
+                              ),
+                              itemBuilder: (BuildContext context, int index) {
+                                final entry =
+                                    buttonTexts.entries.elementAt(index);
+                                return CategoryButtonDiscretionary(
+                                  index: entry.key,
+                                  text: entry.value,
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               );

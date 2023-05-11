@@ -101,7 +101,7 @@ class ListDebtItemWidget extends ConsumerWidget {
         enteredAmounts[category] != null && enteredAmounts[category]! > 0;
 
     final CustomTextEditingControllerDebt _controller =
-        ref.watch(textEditingDebtControllerProvider(category).notifier).state;
+        ref.watch(textEditingDebtControllerProvider(category));
 
     final FocusNode focusNode =
         ref.watch(focusNodeProviderDebt(category).notifier).state;

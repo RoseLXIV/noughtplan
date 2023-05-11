@@ -9,9 +9,17 @@ class ImageConstant {
 
   static String imgCar = 'assets/images/img_car.svg';
 
+  static String imgTick = 'assets/images/tickcircle.svg';
+
   static String imgHome2 = 'assets/images/home.svg';
 
   static String imgPlus1 = 'assets/images/plus.svg';
+
+  static String imgStar = 'assets/images/star.svg';
+
+  static String imgStar1 = 'assets/images/star1.svg';
+
+  static String imgStar2 = 'assets/images/magicstar.svg';
 
   static String imgArrowDown = 'assets/images/chevron-down.svg';
 
@@ -30,6 +38,12 @@ class ImageConstant {
   static String imgCarousel4 = 'assets/images/Carousel4.svg';
 
   static String imgMessage = 'assets/images/message.svg';
+
+  static String imgMessage1 = 'assets/images/devicemessage.svg';
+
+  static String imgArchive = 'assets/images/moneyarchive.svg';
+
+  static String imgVideoSlash = 'assets/images/videoslash.svg';
 
   static String imgGradient = 'assets/images/gradient.svg';
 
@@ -84,6 +98,10 @@ class ImageConstant {
   static String imgChart33x34 = 'assets/images/img_chart_33x34.png';
 
   static String imgTopographic5 = 'assets/images/img_topographic5.png';
+
+  static String imgTopographic2 = 'assets/images/Topographic2.png';
+
+  static String imgTopographic1 = 'assets/images/Topographic1.png';
 
   static String imgClose = 'assets/images/img_close.svg';
 

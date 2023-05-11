@@ -75,15 +75,43 @@ class GetStartedScreen extends ConsumerWidget {
                 padding: getPadding(
                   top: 7,
                 ),
-                child: Text(
-                  "The Nought Plan - A.I. Powered Budgeting App",
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.left,
-                  style: AppStyle.txtManropeRegular14.copyWith(
-                    letterSpacing: getHorizontalSize(
-                      0.3,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      "The Nought Plan - Where Budgeting Meets ",
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.left,
+                      style: AppStyle.txtManropeRegular14.copyWith(
+                        letterSpacing: getHorizontalSize(
+                          0.3,
+                        ),
+                      ),
                     ),
-                  ),
+                    ShaderMask(
+                      shaderCallback: (bounds) => LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.blue.shade800,
+                          Colors.lightBlueAccent,
+                        ],
+                        tileMode: TileMode.mirror,
+                      ).createShader(bounds),
+                      child: Text(
+                        "Simplicity",
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.left,
+                        style: AppStyle.txtManropeBold14.copyWith(
+                          color: Colors
+                              .white, // This color will be replaced by the gradient.
+                          letterSpacing: getHorizontalSize(
+                            0.3,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               CustomButton(

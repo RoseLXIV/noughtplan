@@ -231,6 +231,28 @@ class BudgetInfoStorage {
     }
   }
 
+  Future<void> deleteBudgetsWithNoName(String userId) async {
+    try {
+      // Query for all budgets for the provided userId
+      final budgetInfo = await FirebaseFirestore.instance
+          .collection(FirebaseCollectionName.budgets)
+          .where(FirebaseFieldName.id, isEqualTo: userId)
+          .get();
+
+      // If any budget documents are found, check if they have a budget_name
+      for (final doc in budgetInfo.docs) {
+        // If the document doesn't have a budget_name, delete it
+        if (!doc.data().containsKey(FirebaseFieldName.budget_name) ||
+            doc.get(FirebaseFieldName.budget_name) == null) {
+          await doc.reference.delete();
+        }
+      }
+    } catch (e) {
+      // Handle any errors that might occur during the deletion
+      print(e);
+    }
+  }
+
   Future<bool> deleteExpense(String budgetId, int index) async {
     try {
       // Find the budget document using the budgetId

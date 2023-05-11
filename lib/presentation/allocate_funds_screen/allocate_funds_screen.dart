@@ -422,6 +422,7 @@ class AllocateFundsScreen extends ConsumerWidget {
                         right: 0,
                         bottom: getVerticalSize(0),
                         child: SingleChildScrollView(
+                          physics: BouncingScrollPhysics(),
                           padding: getPadding(left: 22, right: 24, bottom: 150),
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
@@ -793,7 +794,8 @@ class AllocateFundsScreen extends ConsumerWidget {
                                 ),
                               ),
                               Padding(
-                                padding: getPadding(top: 14, right: 2),
+                                padding:
+                                    getPadding(top: 14, right: 2, bottom: 50),
                                 child: ListView.separated(
                                   physics: NeverScrollableScrollPhysics(),
                                   shrinkWrap: true,
@@ -869,6 +871,10 @@ class AllocateFundsScreen extends ConsumerWidget {
                                           TextField(
                                             textAlign: TextAlign.center,
                                             controller: budgetNameController,
+                                            style: AppStyle.txtManropeRegular16
+                                                .copyWith(
+                                                    color: ColorConstant
+                                                        .blueGray800),
                                             decoration: InputDecoration(
                                               border: OutlineInputBorder(),
                                               labelText:
@@ -965,11 +971,35 @@ class AllocateFundsScreen extends ConsumerWidget {
                                                       getIndividualAmounts(
                                                           ref, allCategories);
 
+                                                  Map<String, double>
+                                                      individualAmountsDiscretionary =
+                                                      getIndividualAmountsDiscretionary(
+                                                          ref,
+                                                          allCategoriesDiscretionary);
+
                                                   double totalSavings = 0;
 
                                                   individualAmountsNecessary
                                                       .forEach((key, value) {
-                                                    if (savingsCategories
+                                                    RegExp regex = RegExp(
+                                                        r'savings|saving|investment',
+                                                        caseSensitive: false);
+                                                    if (regex.hasMatch(key)) {
+                                                      totalSavings += value;
+                                                    } else if (savingsCategories
+                                                        .containsKey(key)) {
+                                                      totalSavings += value;
+                                                    }
+                                                  });
+
+                                                  individualAmountsDiscretionary
+                                                      .forEach((key, value) {
+                                                    RegExp regex = RegExp(
+                                                        r'savings|saving|investment',
+                                                        caseSensitive: false);
+                                                    if (regex.hasMatch(key)) {
+                                                      totalSavings += value;
+                                                    } else if (savingsCategories
                                                         .containsKey(key)) {
                                                       totalSavings += value;
                                                     }
@@ -982,12 +1012,6 @@ class AllocateFundsScreen extends ConsumerWidget {
 
                                                   print(
                                                       'Total Savings: $totalSavingsAndSurplus');
-
-                                                  Map<String, double>
-                                                      individualAmountsDiscretionary =
-                                                      getIndividualAmountsDiscretionary(
-                                                          ref,
-                                                          allCategoriesDiscretionary);
 
                                                   Map<String, double>
                                                       individualAmountsDebt =
@@ -1175,6 +1199,9 @@ class AllocateFundsScreen extends ConsumerWidget {
                                                     budgetId: budgetId,
                                                   );
 
+                                                  await budgetState
+                                                      .deleteBudgetsWithNoName();
+
                                                   if (budgetState
                                                           .state.status ==
                                                       BudgetStatus.success) {
@@ -1184,6 +1211,7 @@ class AllocateFundsScreen extends ConsumerWidget {
                                                     //     budgetId: newBudgetId);
 
                                                     // Show SnackBar with success message
+
                                                     ScaffoldMessenger.of(
                                                             context)
                                                         .showSnackBar(
@@ -1204,6 +1232,10 @@ class AllocateFundsScreen extends ConsumerWidget {
                                                             ColorConstant
                                                                 .greenA700,
                                                       ),
+                                                    );
+                                                    Navigator.pushNamed(
+                                                      context,
+                                                      '/home_page_screen',
                                                     );
                                                   } else {
                                                     // Show SnackBar with failure message
@@ -1229,11 +1261,6 @@ class AllocateFundsScreen extends ConsumerWidget {
                                                       ),
                                                     );
                                                   }
-
-                                                  Navigator.pushNamed(
-                                                    context,
-                                                    '/home_page_screen',
-                                                  );
                                                 }
                                               : null,
                                           child: Text('Confirm',

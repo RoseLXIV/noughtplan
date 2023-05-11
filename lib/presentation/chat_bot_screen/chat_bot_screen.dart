@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_neumorphic/flutter_neumorphic.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -214,6 +215,7 @@ class ChatBotScreen extends HookConsumerWidget {
 
     useEffect(() {
       ref.read(chatBotProvider.notifier)._loadMessages(selectedBudget.budgetId);
+      _initialScrollToBottom();
 
       return null;
     }, []);
@@ -402,9 +404,8 @@ class ChatBotScreen extends HookConsumerWidget {
                         ),
                         itemBuilder: (context, index) {
                           final message = messages[index];
-                          _initialScrollToBottom();
+
                           if (message.isLoading) {
-                            _scrollToBottom();
                             return Padding(
                               padding: getPadding(top: 8, left: 32),
                               child: Row(

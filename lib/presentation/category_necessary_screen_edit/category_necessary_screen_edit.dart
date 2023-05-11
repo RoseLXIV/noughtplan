@@ -301,6 +301,11 @@ class ButtonListStateEdit extends ChangeNotifier {
     }
     notifyListeners();
   }
+
+  void clearSelectedCategories() {
+    selectedCategories.clear();
+    notifyListeners();
+  }
 }
 
 class CategorySearchNotifierEdit extends StateNotifier<List<String>> {
@@ -373,8 +378,12 @@ class CategoryNecessaryScreenEdit extends HookConsumerWidget {
 
     useEffect(() {
       Future.microtask(() {
+        ref
+            .read(buttonListStateProviderEdit.notifier)
+            .clearSelectedCategories();
         initializeSelectedButtons(selectedBudget.necessaryExpense ?? {});
         initializeSelectedButtonsDebt(selectedBudget.debtExpense ?? {});
+        print('selectedBudget $selectedBudget');
       });
       return () {}; // Cleanup function
     }, []);
@@ -430,8 +439,8 @@ class CategoryNecessaryScreenEdit extends HookConsumerWidget {
                     ),
               ),
               DraggableScrollableSheet(
-                initialChildSize: 0.4, // Set the initial height of the modal
-                minChildSize: 0.4, // Set the minimum height of the modal
+                initialChildSize: 0.42, // Set the initial height of the modal
+                minChildSize: 0.42, // Set the minimum height of the modal
                 maxChildSize: 0.6, // Set the maximum height of the modal
                 builder:
                     (BuildContext context, ScrollController scrollController) {
@@ -442,25 +451,51 @@ class CategoryNecessaryScreenEdit extends HookConsumerWidget {
                     ),
                     child: Container(
                       color: Colors.white,
-                      padding: EdgeInsets.all(16),
-                      child: GridView.builder(
-                        padding: EdgeInsets.zero,
-                        itemCount: buttonTexts.length,
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3,
-                          mainAxisSpacing: 8,
-                          crossAxisSpacing: 8,
-                          childAspectRatio: 2,
-                        ),
-                        itemBuilder: (BuildContext context, int index) {
-                          final entry = buttonTexts.entries.elementAt(index);
-                          return CategoryButtonEdit(
-                            index: entry.key,
-                            text: entry.value,
-                            // selectedCategories:
-                            //     buttonListState.selectedCategories,
-                          );
-                        },
+                      padding: EdgeInsets.all(8),
+                      child: Column(
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 6,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(30),
+                              color: Colors.grey[400],
+                            ),
+                            padding: getPadding(top: 50),
+                          ),
+                          Expanded(
+                            child: Container(
+                              color: Colors.white,
+                              padding: EdgeInsets.all(16),
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(maxHeight: 200),
+                                child: GridView.builder(
+                                  physics: BouncingScrollPhysics(),
+                                  padding: EdgeInsets.zero,
+                                  itemCount: buttonTexts.length,
+                                  gridDelegate:
+                                      SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 3,
+                                    mainAxisSpacing: 8,
+                                    crossAxisSpacing: 8,
+                                    childAspectRatio: 1.7,
+                                  ),
+                                  itemBuilder:
+                                      (BuildContext context, int index) {
+                                    final entry =
+                                        buttonTexts.entries.elementAt(index);
+                                    return CategoryButtonEdit(
+                                      index: entry.key,
+                                      text: entry.value,
+                                      // selectedCategories:
+                                      //     buttonListState.selectedCategories,
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   );
@@ -496,8 +531,8 @@ class CategoryNecessaryScreenEdit extends HookConsumerWidget {
                 child: Container(),
               ),
               DraggableScrollableSheet(
-                initialChildSize: 0.6,
-                minChildSize: 0.6,
+                initialChildSize: 0.65,
+                minChildSize: 0.65,
                 maxChildSize: 0.8,
                 builder:
                     (BuildContext context, ScrollController scrollController) {
@@ -518,6 +553,7 @@ class CategoryNecessaryScreenEdit extends HookConsumerWidget {
                             color: Colors.white,
                           ),
                           child: SingleChildScrollView(
+                            physics: BouncingScrollPhysics(),
                             controller: scrollController,
                             child: Column(
                               // mainAxisSize: MainAxisSize.min,
@@ -528,6 +564,9 @@ class CategoryNecessaryScreenEdit extends HookConsumerWidget {
                                     onSubmitted: (_) => submitForm(),
                                     controller: customCategoryController,
                                     textAlign: TextAlign.center,
+                                    style: AppStyle.txtManropeRegular16
+                                        .copyWith(
+                                            color: ColorConstant.blueGray800),
                                     decoration: InputDecoration(
                                       labelText: "Custom Category",
                                       labelStyle: AppStyle
@@ -698,7 +737,6 @@ class CategoryNecessaryScreenEdit extends HookConsumerWidget {
                               focusNode: FocusNode(),
                               controller: searchController,
                               hintText: "Search...",
-                              margin: getMargin(top: 14),
                               prefix: Container(
                                   margin: getMargin(
                                       left: 16, top: 18, right: 12, bottom: 18),
@@ -720,6 +758,7 @@ class CategoryNecessaryScreenEdit extends HookConsumerWidget {
                             Visibility(
                               visible: filteredCategories.isNotEmpty,
                               child: SingleChildScrollView(
+                                physics: BouncingScrollPhysics(),
                                 child: Container(
                                   height: 100,
                                   child: GridView.builder(
@@ -831,6 +870,7 @@ class CategoryNecessaryScreenEdit extends HookConsumerWidget {
                                   maxHeight: getVerticalSize(105),
                                 ),
                                 child: SingleChildScrollView(
+                                  physics: BouncingScrollPhysics(),
                                   child: Container(
                                     width: double.maxFinite,
                                     child: Padding(
@@ -891,15 +931,16 @@ class CategoryNecessaryScreenEdit extends HookConsumerWidget {
                               child: Padding(
                                 padding: getPadding(top: 10),
                                 child: SingleChildScrollView(
+                                  physics: BouncingScrollPhysics(),
                                   child: GridView.builder(
                                     shrinkWrap: true,
-                                    physics: ScrollPhysics(),
+                                    physics: BouncingScrollPhysics(),
                                     gridDelegate:
                                         SliverGridDelegateWithFixedCrossAxisCount(
                                       mainAxisExtent: getVerticalSize(109),
                                       crossAxisCount: 3,
-                                      mainAxisSpacing: getHorizontalSize(16),
-                                      crossAxisSpacing: getHorizontalSize(16),
+                                      mainAxisSpacing: getHorizontalSize(8),
+                                      crossAxisSpacing: getHorizontalSize(8),
                                     ),
                                     itemCount: gridItems.length,
                                     itemBuilder: (context, index) {

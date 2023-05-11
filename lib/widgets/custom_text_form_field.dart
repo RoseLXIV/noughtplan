@@ -26,6 +26,7 @@ class CustomTextFormField extends StatelessWidget {
     this.errorText,
     this.onChanged,
     this.suffixIcon,
+    this.onSubmitted,
   });
 
   IconButton? suffixIcon;
@@ -74,6 +75,8 @@ class CustomTextFormField extends StatelessWidget {
 
   Text? errorText;
 
+  final ValueChanged<String>? onSubmitted;
+
   @override
   Widget build(BuildContext context) {
     return alignment != null
@@ -91,6 +94,7 @@ class CustomTextFormField extends StatelessWidget {
       child: TextFormField(
         controller: controller,
         focusNode: focusNode,
+        onFieldSubmitted: onSubmitted,
         style: _setFontStyle(),
         obscureText: isObscureText!,
         textInputAction: textInputAction,

@@ -14,6 +14,7 @@ class ListItemWidget extends ConsumerWidget {
   final String spendingType;
   final String savingType;
   final String debtType;
+  final String currency;
 
   ListItemWidget({
     required this.budgetName,
@@ -22,6 +23,7 @@ class ListItemWidget extends ConsumerWidget {
     required this.spendingType,
     required this.savingType,
     required this.debtType,
+    required this.currency,
   });
 
   @override
@@ -124,7 +126,7 @@ class ListItemWidget extends ConsumerWidget {
               children: [
                 Spacer(),
                 Text(
-                  "\$$totalExpensesFormatted",
+                  "\$$totalExpensesFormatted $currency",
                   overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.left,
                   style: AppStyle.txtHelveticaNowTextBold20.copyWith(

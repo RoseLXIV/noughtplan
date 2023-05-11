@@ -439,6 +439,7 @@ class AllocateFundsScreenEdit extends ConsumerWidget {
                         right: 0,
                         bottom: getVerticalSize(0),
                         child: SingleChildScrollView(
+                          physics: BouncingScrollPhysics(),
                           padding: getPadding(left: 22, right: 24, bottom: 150),
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
@@ -812,7 +813,8 @@ class AllocateFundsScreenEdit extends ConsumerWidget {
                                 ),
                               ),
                               Padding(
-                                padding: getPadding(top: 14, right: 2),
+                                padding:
+                                    getPadding(top: 14, right: 2, bottom: 50),
                                 child: ListView.separated(
                                   physics: NeverScrollableScrollPhysics(),
                                   shrinkWrap: true,

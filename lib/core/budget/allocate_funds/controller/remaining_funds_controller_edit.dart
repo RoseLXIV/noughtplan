@@ -1,18 +1,21 @@
 // remaining_funds_controller.dart
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:noughtplan/core/budget/generate_salary/controller/generate_salary_controller.dart';
+import 'package:noughtplan/core/budget/generate_salary/controller/generate_salary_controller_edit.dart';
 import 'package:noughtplan/presentation/allocate_funds_screen/widgets/listdiscretionary_item_widget.dart';
+import 'package:noughtplan/presentation/allocate_funds_screen_edit/widgets/listdiscretionary_item_widget_edit.dart';
 
 class RemainingFundsControllerEdit extends StateNotifier<double> {
   double _previousFunds;
   double _initialValue;
   double _initialRemainingFunds;
 
-  final EditedCategoriesDiscretionaryController editedCategoriesController;
+  final EditedCategoriesDiscretionaryControllerEdit
+      editedCategoriesControllerEdit;
 
   RemainingFundsControllerEdit({
     required double initialValue,
-    required this.editedCategoriesController,
+    required this.editedCategoriesControllerEdit,
   })  : _previousFunds = initialValue,
         _initialValue = initialValue,
         _initialRemainingFunds = initialValue,
@@ -57,11 +60,11 @@ class RemainingFundsControllerEdit extends StateNotifier<double> {
 
   void resetEditedFlagsDiscretionary() {
     // Get the discretionary category keys
-    final categoryKeys = editedCategoriesController.state.keys.toList();
+    final categoryKeys = editedCategoriesControllerEdit.state.keys.toList();
 
     // Set the 'edited' flag for all categories to false
     categoryKeys.forEach((category) {
-      editedCategoriesController.setEdited(category, false);
+      editedCategoriesControllerEdit.setEdited(category, false);
     });
   }
 
@@ -70,8 +73,10 @@ class RemainingFundsControllerEdit extends StateNotifier<double> {
   }
 
   Future<void> updateInitialValue(double value) async {
-    await Future.delayed(Duration.zero);
-    state = value;
+    if (mounted) {
+      await Future.delayed(Duration.zero);
+      state = value;
+    }
   }
 
   double get initialValue => _initialValue;
@@ -80,15 +85,16 @@ class RemainingFundsControllerEdit extends StateNotifier<double> {
 final remainingFundsProviderEdit =
     StateNotifierProvider.autoDispose<RemainingFundsControllerEdit, double>(
         (ref) {
-  final generateSalaryState = ref.watch(generateSalaryProvider);
+  final generateSalaryState = ref.watch(generateSalaryProviderEdit);
   final salary = generateSalaryState.salary.value;
   final salaryDouble = double.tryParse(salary) ?? 0.0;
+  print('salaryDouble: $salaryDouble');
 
-  final editedCategoriesController =
-      ref.watch(editedCategoriesDiscretionaryProvider.notifier);
+  final editedCategoriesControllerEdit =
+      ref.watch(editedCategoriesDiscretionaryProviderEdit.notifier);
 
   return RemainingFundsControllerEdit(
     initialValue: salaryDouble,
-    editedCategoriesController: editedCategoriesController,
+    editedCategoriesControllerEdit: editedCategoriesControllerEdit,
   );
 });

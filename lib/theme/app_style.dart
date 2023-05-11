@@ -156,6 +156,15 @@ class AppStyle {
     fontStyle: FontStyle.italic,
   );
 
+  static TextStyle txtHelveticaNowTextLight18 = TextStyle(
+    color: ColorConstant.gray900,
+    fontSize: getFontSize(
+      18,
+    ),
+    fontFamily: 'Manrope',
+    fontWeight: FontWeight.w300,
+  );
+
   static TextStyle txtManropeRegular12Bluegray300 = TextStyle(
     color: ColorConstant.blueGray300,
     fontSize: getFontSize(

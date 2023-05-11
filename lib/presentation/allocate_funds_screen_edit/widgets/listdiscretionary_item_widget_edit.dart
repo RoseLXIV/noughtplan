@@ -507,22 +507,11 @@ class ThousandsFormatterDiscretionary extends TextInputFormatter {
       // recombine the integer and decimal parts
       String result = parts.join('.');
 
-      // calculate the new selection range
-      int offset =
-          newValue.selection.start + result.length - oldValue.text.length;
-
-      // Clamp the offset to avoid index out of bounds error
-      offset = _clampOffset(offset, 0, result.length);
-
       // return the updated TextEditingValue
       return newValue.copyWith(
         text: result,
-        selection: TextSelection.collapsed(offset: offset),
+        selection: TextSelection.collapsed(offset: result.length),
       );
     }
-  }
-
-  int _clampOffset(int offset, int min, int max) {
-    return offset.clamp(min, max);
   }
 }

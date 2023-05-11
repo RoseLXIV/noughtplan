@@ -586,6 +586,42 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
     }
   }
 
+  Future<void> deleteBudgetsWithNoName() async {
+    try {
+      // Get the userId from _authenticator
+      final userId = _authenticator.userId;
+      if (userId == null) {
+        state = BudgetState(
+          status: BudgetStatus.failure,
+          isLoading: false,
+          userId: null,
+          budgets: [],
+        );
+        return;
+      }
+
+      // Call the deleteBudgetsWithNoName function from BudgetInfoStorage
+      await _budgetInfoStorage.deleteBudgetsWithNoName(userId);
+
+      // Update the state to reflect successful deletion
+      state = BudgetState(
+        status: BudgetStatus.success,
+        isLoading: false,
+        userId: userId,
+        budgets: [], // Update this to remove the deleted budget from the list
+      );
+    } catch (e) {
+      // Handle any errors that might occur during the deletion
+      print(e);
+      state = BudgetState(
+        status: BudgetStatus.failure,
+        isLoading: false,
+        userId: _authenticator.userId,
+        budgets: [], // Update this to keep the current list of budgets
+      );
+    }
+  }
+
   Future<void> deleteExpense(String budgetId, int index, WidgetRef ref) async {
     try {
       // Call the deleteExpense function from BudgetInfoStorage

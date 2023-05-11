@@ -146,7 +146,7 @@ class ListDebtChartItemWidgetSave extends HookWidget {
                     formattedRemainingAmount,
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.left,
-                    style: AppStyle.txtHelveticaNowTextBold20.copyWith(
+                    style: AppStyle.txtHelveticaNowTextBold18.copyWith(
                       letterSpacing: getHorizontalSize(
                         0.2,
                       ),

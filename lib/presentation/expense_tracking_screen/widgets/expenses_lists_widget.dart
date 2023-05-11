@@ -25,13 +25,19 @@ class ExpenseListWidget extends StatelessWidget {
         .format(amountValue);
     final List<Map<String, dynamic>> actualExpenses =
         budget?.actualExpenses ?? [];
+
+    bool isIncome = category.toLowerCase() == 'income';
     // print('actualExpenses from Expense list Wodget: $expenseData');
 
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 20, vertical: 9),
-      decoration: AppDecoration.outlineIndigo501.copyWith(
-        borderRadius: BorderRadiusStyle.roundedBorder12,
-      ),
+      decoration: isIncome
+          ? AppDecoration.outlineGreenA700.copyWith(
+              borderRadius: BorderRadiusStyle.roundedBorder12,
+            )
+          : AppDecoration.outlineIndigo501.copyWith(
+              borderRadius: BorderRadiusStyle.roundedBorder12,
+            ),
       child: Column(
         children: [
           Row(
@@ -84,13 +90,18 @@ class ExpenseListWidget extends StatelessWidget {
                     Padding(
                       padding: EdgeInsets.only(top: 1),
                       child: Text(
-                        amount,
+                        (isIncome ? "+" : "") +
+                            amount, // Add '+' sign if it's 'Income'
                         overflow: TextOverflow.ellipsis,
                         textAlign: TextAlign.left,
                         style: AppStyle.txtHelveticaNowTextBold18.copyWith(
                           letterSpacing: getHorizontalSize(
                             0.2,
                           ),
+                          color: isIncome
+                              ? Colors.green
+                              : ColorConstant
+                                  .black900, // Change the color to green if it's 'Income'
                         ),
                       ),
                     ),

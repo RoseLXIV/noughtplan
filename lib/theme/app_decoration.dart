@@ -138,6 +138,15 @@ class AppDecoration {
           ),
         ),
       );
+  static BoxDecoration get outlineGreenA700 => BoxDecoration(
+        color: ColorConstant.whiteA700,
+        border: Border.all(
+          color: ColorConstant.greenA700,
+          width: getHorizontalSize(
+            2,
+          ),
+        ),
+      );
   static BoxDecoration get outlineIndigo504 => BoxDecoration(
         border: Border.all(
           color: ColorConstant.indigo50,

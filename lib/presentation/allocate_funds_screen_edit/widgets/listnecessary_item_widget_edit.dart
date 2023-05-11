@@ -115,7 +115,7 @@ class ListNecessaryItemWidgetEdit extends HookConsumerWidget {
 
     // add this line
     final CustomTextEditingControllerEdit _controller =
-        ref.watch(textEditingControllerProviderEdit(category).notifier).state;
+        ref.watch(textEditingControllerProviderEdit(category));
 
     final FocusNode focusNode =
         ref.watch(focusNodeProvider(category).notifier).state;

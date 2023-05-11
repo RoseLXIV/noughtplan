@@ -102,7 +102,7 @@ class ListNecessaryItemWidget extends ConsumerWidget {
 
     // add this line
     final CustomTextEditingController _controller =
-        ref.watch(textEditingControllerProvider(category).notifier).state;
+        ref.watch(textEditingControllerProvider(category));
 
     final FocusNode focusNode =
         ref.watch(focusNodeProvider(category).notifier).state;

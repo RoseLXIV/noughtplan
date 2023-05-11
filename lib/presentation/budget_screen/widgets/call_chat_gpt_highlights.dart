@@ -17,7 +17,7 @@ Future<String> callChatGPT(String prompt) async {
     'max_tokens': 1000,
     'n': 1,
     'stop': null,
-    'temperature': 0.7,
+    'temperature': 1,
   });
 
   final response = await http.post(

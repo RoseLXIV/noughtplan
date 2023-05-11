@@ -44,6 +44,47 @@ class LoginPageScreen extends ConsumerWidget {
     final signInController = ref.read(signInProvider.notifier);
     final passwordVisibility = ref.watch(passwordVisibilityProviderSignIn);
     final bool isValidated = signInState.status.isValidated;
+
+    void submitForm() async {
+      await signInController.signInWithEmailAndPassword();
+      final authState = ref.watch(authStateProvider);
+      FocusScope.of(context).unfocus();
+      if (authState.result == AuthResult.failure) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Invalid Email or Password!',
+              textAlign: TextAlign.center,
+              style: AppStyle.txtHelveticaNowTextBold16WhiteA700.copyWith(
+                letterSpacing: getHorizontalSize(0.3),
+              ),
+            ),
+            backgroundColor: ColorConstant.redA700,
+          ),
+        );
+        inputEmailController.clear();
+        inputPasswordController.clear();
+        signInController.resetValidation();
+      } else if (authState.result == AuthResult.success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Sign In Successful!',
+              textAlign: TextAlign.center,
+              style: AppStyle.txtHelveticaNowTextBold16WhiteA700.copyWith(
+                letterSpacing: getHorizontalSize(0.3),
+              ),
+            ),
+            backgroundColor: ColorConstant.greenA70001,
+          ),
+        );
+        inputEmailController.clear();
+        inputPasswordController.clear();
+        signInController.resetValidation();
+      }
+      print('Auth State: ${authState.result}');
+    }
+
     // final authenticationState = ref.watch(authProvider);
     if (isLoggedIn) {
       return HomePageScreen();
@@ -135,6 +176,7 @@ class LoginPageScreen extends ConsumerWidget {
                                         signInController.onEmailChange(email),
                                   ),
                                   CustomTextFormField(
+                                    onSubmitted: (_) => submitForm(),
                                     focusNode: passwordFocusNode,
                                     controller: inputPasswordController,
                                     hintText: "Password",
@@ -209,54 +251,7 @@ class LoginPageScreen extends ConsumerWidget {
                                   CustomButtonForm(
                                     onTap: isValidated
                                         ? () async {
-                                            await signInController
-                                                .signInWithEmailAndPassword();
-                                            final authState =
-                                                ref.watch(authStateProvider);
-                                            FocusScope.of(context).unfocus();
-                                            if (authState.result ==
-                                                AuthResult.failure) {
-                                              ScaffoldMessenger.of(context)
-                                                  .showSnackBar(
-                                                SnackBar(
-                                                  content: Text(
-                                                    'Invalid Email or Password!',
-                                                    textAlign: TextAlign.center,
-                                                    style: AppStyle
-                                                        .txtHelveticaNowTextBold16WhiteA700
-                                                        .copyWith(
-                                                      letterSpacing:
-                                                          getHorizontalSize(
-                                                              0.3),
-                                                    ),
-                                                  ),
-                                                  backgroundColor:
-                                                      ColorConstant.redA700,
-                                                ),
-                                              );
-                                            } else if (authState.result ==
-                                                AuthResult.success) {
-                                              ScaffoldMessenger.of(context)
-                                                  .showSnackBar(
-                                                SnackBar(
-                                                  content: Text(
-                                                    'Sign In Successful!',
-                                                    textAlign: TextAlign.center,
-                                                    style: AppStyle
-                                                        .txtHelveticaNowTextBold16WhiteA700
-                                                        .copyWith(
-                                                      letterSpacing:
-                                                          getHorizontalSize(
-                                                              0.3),
-                                                    ),
-                                                  ),
-                                                  backgroundColor:
-                                                      ColorConstant.greenA70001,
-                                                ),
-                                              );
-                                            }
-                                            print(
-                                                'Auth State: ${authState.result}');
+                                            submitForm();
                                           }
                                         : null,
                                     height: getVerticalSize(56),
