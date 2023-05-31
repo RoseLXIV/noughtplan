@@ -330,7 +330,7 @@ class AllocateFundsScreenEdit extends ConsumerWidget {
                               CustomAppBar(
                                   height: getVerticalSize(70),
                                   leadingWidth: 25,
-                                  leading: AppbarImage(
+                                  leading: CustomImageView(
                                     onTap: () {
                                       Navigator.pop(context);
                                     },

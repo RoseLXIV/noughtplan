@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -9,11 +11,14 @@ import 'package:noughtplan/presentation/generator_salary_screen/generator_salary
 import 'package:noughtplan/presentation/get_started_screen/get_started_screen.dart';
 import 'package:noughtplan/routes/app_routes.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:noughtplan/store_config.dart' as myStoreConfig;
+import 'package:noughtplan/core/constant.dart';
 import 'package:noughtplan/views/components/constants/loading/loading_screen.dart';
 import 'firebase_options.dart';
 import 'presentation/category_discretionary_screen/category_discretionary_screen.dart';
 import 'presentation/home_page_screen/home_page_screen.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:purchases_flutter/purchases_flutter.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,6 +29,18 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
   await MobileAds.instance.initialize();
+
+  // ignore: deprecated_member_use
+  await Purchases.setDebugLogsEnabled(true);
+
+  if (Platform.isIOS || Platform.isMacOS) {
+    await Purchases.setDebugLogsEnabled(true);
+    await Purchases.setup("");
+  } else if (Platform.isAndroid) {
+    await Purchases.setDebugLogsEnabled(true);
+    await Purchases.setup("goog_WNqIbnoSnknuWlqySENzrOKiubP");
+  }
+
   runApp(ProviderScope(child: MyApp()));
 }
 

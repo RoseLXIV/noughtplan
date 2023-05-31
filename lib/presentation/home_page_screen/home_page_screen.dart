@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
@@ -6,6 +7,7 @@ import 'package:flutter_neumorphic/flutter_neumorphic.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:noughtplan/core/auth/providers/auth_state_provider.dart';
 import 'package:noughtplan/core/budget/models/budget_status.dart';
 import 'package:noughtplan/core/budget/providers/banner_ads_class_provider.dart';
@@ -13,6 +15,7 @@ import 'package:noughtplan/core/budget/providers/budget_state_provider.dart';
 import 'package:noughtplan/core/constants/budgets.dart';
 import 'package:noughtplan/widgets/custom_text_form_field.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../home_page_screen/widgets/list_item_widget.dart';
 import 'package:flutter/material.dart';
@@ -45,32 +48,124 @@ class HomePageScreen extends HookConsumerWidget {
 
     final _budgets = useState<List<Budget?>?>(null);
 
-    useEffect(() {
-      Future<void> fetchBudgets() async {
-        final fetchedBudgets = await budgetNotifier.fetchUserBudgets();
-        // print('Fetched Budgets: $fetchedBudgets');
-        _budgets.value = fetchedBudgets;
-        SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
-          statusBarColor: Colors.black, // Set status bar color
-          statusBarIconBrightness: Brightness.light, // Status bar icons' color
-        ));
-        // print('Budgets: ${_budgets.value}');
+    final authState = ref.watch(authStateProvider);
+    final deviceId = authState.deviceId;
+
+    void linkUser() async {
+      final firebaseUser = FirebaseAuth.instance.currentUser;
+      // print('Firebase User: $firebaseUser');
+
+      if (firebaseUser != null) {
+        try {
+          // Firebase User ID is used to identify the user in RevenueCat
+          await Purchases.logIn(firebaseUser.uid);
+          print(
+              'User successfully logged in to RevenueCat with ID: ${firebaseUser.uid}');
+        } catch (e) {
+          print('Failed to log in user to RevenueCat: $e');
+        }
       }
+    }
 
-      fetchBudgets();
+    Future<bool> makePurchase() async {
+      try {
+        Offerings offerings = await Purchases.getOfferings();
 
-//       ref.listen<BannerAd?>(adProvider, (oldAd, newAd) {
-//   if (newAd != null) {
-//     print('Ad is ready to be displayed');
-//     ref.read(currentAdProvider.notifier).state = newAd;
-//   }
-// });
-//       ref.read(adProvider.notifier).loadAd();
-      return () {}; // Clean-up function
+        if (offerings.current != null) {
+          Package package = offerings.current!.availablePackages[0];
+          await Purchases.purchasePackage(package);
+          return true;
+        }
+      } on PlatformException catch (e) {
+        var errorCode = PurchasesErrorHelper.getErrorCode(e);
+        if (errorCode != PurchasesErrorCode.purchaseCancelledError) {
+          print('Error: ${e.code} - ${e.message}');
+        }
+      }
+      return false;
+    }
+
+    Future<bool> checkIsSubscribed() async {
+      final firebaseUser = FirebaseAuth.instance.currentUser;
+
+      if (firebaseUser != null) {
+        try {
+          CustomerInfo customerInfo = await Purchases.getCustomerInfo();
+          print('Customer Info: $customerInfo');
+          return customerInfo.entitlements.all['pro_features']?.isActive ??
+              false;
+        } catch (e) {
+          print('Failed to log in and get purchaser info: $e');
+        }
+      }
+      return false;
+    }
+
+    Future<Map<String, dynamic>> getSubscriptionInfo() async {
+      final firebaseUser = FirebaseAuth.instance.currentUser;
+      Map<String, dynamic> subscriptionInfo = {
+        'isSubscribed': false,
+        'expiryDate': null
+      };
+
+      if (firebaseUser != null) {
+        try {
+          CustomerInfo customerInfo = await Purchases.getCustomerInfo();
+          bool isSubscribed =
+              customerInfo.entitlements.all['pro_features']?.isActive ?? false;
+
+          // parse the String into a DateTime
+          String? expiryDateString =
+              customerInfo.entitlements.all['pro_features']?.expirationDate;
+
+          String? managementUrl = customerInfo.managementURL;
+          DateTime? expiryDate;
+          if (expiryDateString != null) {
+            expiryDate = DateTime.parse(expiryDateString);
+          }
+
+          subscriptionInfo['isSubscribed'] = isSubscribed;
+          subscriptionInfo['expiryDate'] = expiryDate;
+          subscriptionInfo['managementUrl'] = managementUrl;
+        } catch (e) {
+          print('Failed to get customer info: $e');
+        }
+      }
+      return subscriptionInfo;
+    }
+
+    useEffect(() {
+      Future.microtask(() async {
+        await budgetNotifier.fetchBudgetCount();
+        Future<void> fetchBudgets() async {
+          final fetchedBudgets = await budgetNotifier.fetchUserBudgets();
+          _budgets.value = fetchedBudgets;
+          SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+            statusBarColor: Colors.black,
+            statusBarIconBrightness: Brightness.light,
+          ));
+        }
+
+        linkUser();
+        checkIsSubscribed();
+
+        await fetchBudgets();
+
+        checkIsSubscribed().then((value) {
+          print('User is ${value ? 'Subscribed' : 'Not Subscribed'}');
+        });
+      });
+      return () {};
     }, []);
+
+    final budgetCount =
+        useValueListenable(budgetNotifier.budgetCountValueNotifier);
+    print('Budget Count HomePage: $budgetCount');
+    final isSubscriber = checkIsSubscribed();
 
     final userBudgets = budgetNotifier.state.budgets;
     String? displayName = FirebaseAuth.instance.currentUser?.displayName;
+
     String? firstName = displayName?.split(' ')[0];
 
     final List<String> greetings = [
@@ -84,12 +179,22 @@ class HomePageScreen extends HookConsumerWidget {
     ];
 
     final randomGreeting = (greetings..shuffle()).first;
+    ScrollController _scrollController = ScrollController();
+
+    Future<void> refreshData() async {
+      await Future.wait([
+        budgetNotifier.fetchBudgetCount(),
+        checkIsSubscribed(), // This function will re-fetch subscription status
+      ]);
+    }
 
     // print(budgets);
     return SafeArea(
       child: WillPopScope(
         onWillPop: () async {
+          // await Purchases.logOut();
           await ref.read(authStateProvider.notifier).logOut();
+
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
@@ -102,6 +207,7 @@ class HomePageScreen extends HookConsumerWidget {
               backgroundColor: ColorConstant.blue900,
             ),
           );
+          // Navigator.pop(context);
           return false;
         },
         child: Scaffold(
@@ -110,825 +216,1025 @@ class HomePageScreen extends HookConsumerWidget {
           body: Stack(
             children: [
               Positioned(
-                bottom: 90,
-                left: -20,
-                right: 0,
-                child: Transform(
-                  transform: Matrix4.identity()..scale(-1.0, 1.0, 0.1),
-                  alignment: Alignment.center,
-                  child: CustomImageView(
-                    imagePath: ImageConstant.imgTopographic5,
-                    height: MediaQuery.of(context).size.height *
-                        0.5, // Set the height to 50% of the screen height
-                    width: MediaQuery.of(context)
-                        .size
-                        .width, // Set the width to the full screen width
-                    // alignment: Alignment.,
-                  ),
-                ),
-              ),
-              Positioned(
                 top: 0,
                 left: 0,
                 right: 0,
-                child: Container(
-                  height: MediaQuery.of(context).size.height * 0.6,
-                  decoration: BoxDecoration(
-                    image: DecorationImage(
-                      image: AssetImage('assets/images/gradient_official.png'),
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                  child: Column(
-                    children: [
-                      CustomAppBar(
-                        height: getVerticalSize(100),
-                        leadingWidth: 48,
-                        leading: AppbarImage(
-                          height: getSize(24),
-                          width: getSize(24),
-                          svgPath: ImageConstant.imgArrowleft,
-                          margin: getMargin(
-                              left: 24, top: 15, bottom: 10, right: 0),
-                          onTap: () async {
-                            await ref.read(authStateProvider.notifier).logOut();
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  'Logged out successfully!',
-                                  textAlign: TextAlign.center,
-                                  style: AppStyle
-                                      .txtHelveticaNowTextBold16WhiteA700
-                                      .copyWith(
-                                    letterSpacing: getHorizontalSize(0.3),
+                child: FutureBuilder(
+                  future: checkIsSubscribed(),
+                  builder:
+                      (BuildContext context, AsyncSnapshot<bool> snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return LinearProgressIndicator(); // Or any other loading indicator you like
+                    } else if (snapshot.hasError) {
+                      // Handle the error here
+                      return Text('Error: ${snapshot.error}');
+                    } else {
+                      return Container(
+                        height: MediaQuery.of(context).size.height * 0.6,
+                        decoration: BoxDecoration(
+                          image: DecorationImage(
+                            image: AssetImage(snapshot.data!
+                                ? 'assets/images/gradient_sub.png'
+                                : 'assets/images/gradient_official.png'),
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            CustomAppBar(
+                              height: getVerticalSize(100),
+                              leadingWidth: 48,
+                              leading: Container(
+                                padding: getPadding(left: 24, top: 8),
+                                child: CustomImageView(
+                                  height: getSize(24),
+                                  width: getSize(24),
+                                  svgPath: ImageConstant.imgArrowleft,
+                                  onTap: () async {
+                                    // await Purchases.logOut();
+                                    await ref
+                                        .read(authStateProvider.notifier)
+                                        .logOut();
+
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          'Logged out successfully!',
+                                          textAlign: TextAlign.center,
+                                          style: AppStyle
+                                              .txtHelveticaNowTextBold16WhiteA700
+                                              .copyWith(
+                                            letterSpacing:
+                                                getHorizontalSize(0.3),
+                                          ),
+                                        ),
+                                        backgroundColor: ColorConstant.blue900,
+                                      ),
+                                    );
+                                    // Navigator.pop(context);
+                                  },
+                                ),
+                              ),
+                              centerTitle: true,
+                              title: AppbarImage(
+                                height: getSize(200),
+                                width: getSize(200),
+                                imagePath: ImageConstant.imgGroup18301,
+                                margin: getMargin(bottom: 1),
+                              ),
+                              actions: [
+                                Container(
+                                  padding: getPadding(right: 24, top: 8),
+                                  child: CustomImageView(
+                                    height: getSize(24),
+                                    width: getSize(24),
+                                    svgPath: ImageConstant.imgSettings,
+                                    onTap: () async {
+                                      Navigator.pushNamed(
+                                        context,
+                                        '/my_account_screen',
+                                      );
+                                    },
                                   ),
                                 ),
-                                backgroundColor: ColorConstant.blue900,
-                              ),
-                            );
-                          },
+                              ],
+                            ),
+                          ],
                         ),
-                        centerTitle: true,
-                        title: AppbarImage(
-                          height: getSize(200),
-                          width: getSize(200),
-                          imagePath: ImageConstant.imgGroup18301,
-                          margin: getMargin(bottom: 1),
-                        ),
-                        actions: [
-                          // AppbarImage(
-                          //     height: getSize(24),
-                          //     width: getSize(24),
-                          //     svgPath: ImageConstant.imgPlus,
-                          //     margin: getMargin(left: 0, bottom: 2, right: 25),
-                          //     onTap: () {
-                          //       Navigator.pushNamed(
-                          //           context, '/generator_salary_screen');
-                          //     }),
-                          AppbarImage(
-                            height: getSize(24),
-                            width: getSize(24),
-                            svgPath: ImageConstant.imgSettings,
-                            margin: getMargin(left: 0, bottom: 1, right: 25),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+                      );
+                    }
+                  },
                 ),
+              ),
+              FutureBuilder<Map<String, dynamic>>(
+                future: getSubscriptionInfo(),
+                builder: (BuildContext context,
+                    AsyncSnapshot<Map<String, dynamic>> snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    // Display loading indicator while waiting for response
+                    return CircularProgressIndicator();
+                  } else if (snapshot.hasError) {
+                    // Handle error if any
+                    return Text('Error: ${snapshot.error}');
+                  } else {
+                    // Conditionally display the image based on subscription status
+                    return Positioned(
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      child: Transform(
+                        transform: Matrix4.identity()..scale(-1.0, -1.0, 0.1),
+                        alignment: Alignment.center,
+                        child: CustomImageView(
+                          imagePath: snapshot.data!['isSubscribed']
+                              ? ImageConstant.imgTopographic5_sub
+                              : ImageConstant.imgTopographic5_nonsub,
+                          height: MediaQuery.of(context).size.height * 0.5,
+                          width: MediaQuery.of(context).size.width,
+                        ),
+                      ),
+                    );
+                  }
+                },
               ),
               Container(
                 width: double.maxFinite,
                 padding: getPadding(left: 30, right: 30, bottom: 11, top: 150),
-                child: SingleChildScrollView(
-                  physics: BouncingScrollPhysics(),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: [
-                      Padding(
-                        padding: getPadding(left: 0, bottom: 4),
-                        child: Text(
-                          "$randomGreeting",
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.right,
-                          style: AppStyle.txtHelveticaNowTextBold20.copyWith(
-                            color: ColorConstant.black900,
-                            letterSpacing: getHorizontalSize(1),
-                            // shadows: [
-                            //   Shadow(
-                            //     color: Colors.black.withOpacity(0.5),
-                            //     offset: Offset(0, 2),
-                            //     blurRadius: 4,
-                            //   ),
-                            // ],
+                child: RefreshIndicator(
+                  onRefresh: refreshData,
+                  child: SingleChildScrollView(
+                    controller: _scrollController,
+                    physics: BouncingScrollPhysics(),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: getPadding(left: 0, bottom: 4),
+                          child: Text(
+                            "$randomGreeting",
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.right,
+                            style: AppStyle.txtHelveticaNowTextBold20.copyWith(
+                              color: ColorConstant.black900,
+                              letterSpacing: getHorizontalSize(1),
+                              // shadows: [
+                              //   Shadow(
+                              //     color: Colors.black.withOpacity(0.5),
+                              //     offset: Offset(0, 2),
+                              //     blurRadius: 4,
+                              //   ),
+                              // ],
+                            ),
                           ),
                         ),
-                      ),
-                      // Padding(
-                      //   padding: getPadding(bottom: 50),
-                      // ),
-                      Column(
-                        children: [
-                          StatefulBuilder(
-                              builder: (context, StateSetter setState) {
-                            void _onDismissed(int index) {
-                              setState(() {
-                                _budgets.value!.removeAt(index);
-                              });
-                            }
+                        // Padding(
+                        //   padding: getPadding(bottom: 50),
+                        // ),
+                        Column(
+                          children: [
+                            StatefulBuilder(
+                                builder: (context, StateSetter setState) {
+                              void _onDismissed(int index) {
+                                setState(() {
+                                  _budgets.value!.removeAt(index);
+                                });
+                              }
 
-                            return Container(
-                              height:
-                                  MediaQuery.of(context).size.height * 0.533,
-                              padding: EdgeInsets.only(top: 8),
-                              child: Consumer(
-                                builder: (context, ref, _) {
-                                  final refresh = ref.watch(refreshKey);
-                                  // final budgetState =
-                                  //     ref.watch(budgetStateProvider);
-                                  // final userBudgets = budgetState.budgets;
-                                  if (_budgets.value == null) {
-                                    return Center(
-                                        child: CircularProgressIndicator());
-                                  } else if (_budgets.value!.isEmpty) {
-                                    return Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Expanded(
-                                          child: Neumorphic(
-                                            style: NeumorphicStyle(
-                                              shape: NeumorphicShape.convex,
-                                              boxShape:
-                                                  NeumorphicBoxShape.roundRect(
-                                                      BorderRadius.circular(
-                                                          12)),
-                                              depth: 0.1,
-                                              intensity: 1,
-                                              surfaceIntensity: 0.5,
-                                              lightSource: LightSource.top,
-                                              color: ColorConstant.gray50,
-                                            ),
-                                            child: Container(
-                                              height: getVerticalSize(95),
-                                              decoration: BoxDecoration(
-                                                color: ColorConstant.gray100,
-                                                borderRadius:
-                                                    BorderRadius.circular(12),
+                              return Container(
+                                height:
+                                    MediaQuery.of(context).size.height * 0.533,
+                                padding: EdgeInsets.only(top: 8),
+                                child: Consumer(
+                                  builder: (context, ref, _) {
+                                    final refresh = ref.watch(refreshKey);
+                                    // final budgetState =
+                                    //     ref.watch(budgetStateProvider);
+                                    // final userBudgets = budgetState.budgets;
+                                    if (_budgets.value == null) {
+                                      return Center(
+                                          child: CircularProgressIndicator());
+                                    } else if (_budgets.value!.isEmpty) {
+                                      return Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Expanded(
+                                            child: Neumorphic(
+                                              style: NeumorphicStyle(
+                                                shape: NeumorphicShape.convex,
+                                                boxShape: NeumorphicBoxShape
+                                                    .roundRect(
+                                                        BorderRadius.circular(
+                                                            12)),
+                                                depth: 0.1,
+                                                intensity: 1,
+                                                surfaceIntensity: 0.5,
+                                                lightSource: LightSource.top,
+                                                color: ColorConstant.gray50,
                                               ),
-                                              child: Row(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment.center,
-                                                children: [
-                                                  Text(
-                                                      "Press the plus (+) button to add a Budget",
-                                                      style: AppStyle
-                                                          .txtManropeBold12
-                                                          .copyWith(
-                                                        color: ColorConstant
-                                                            .blueGray500,
-                                                        letterSpacing:
-                                                            getHorizontalSize(
-                                                                1),
-                                                      )),
-                                                ],
+                                              child: Container(
+                                                height: getVerticalSize(95),
+                                                decoration: BoxDecoration(
+                                                  color: ColorConstant.gray100,
+                                                  borderRadius:
+                                                      BorderRadius.circular(12),
+                                                ),
+                                                child: Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.center,
+                                                  children: [
+                                                    Text(
+                                                        "Press the plus (+) button to add a Budget",
+                                                        style: AppStyle
+                                                            .txtManropeBold12
+                                                            .copyWith(
+                                                          color: ColorConstant
+                                                              .blueGray500,
+                                                          letterSpacing:
+                                                              getHorizontalSize(
+                                                                  1),
+                                                        )),
+                                                  ],
+                                                ),
                                               ),
                                             ),
                                           ),
-                                        ),
-                                      ],
-                                    );
-                                  } else {
-                                    final userBudgets = _budgets.value!;
-                                    return RefreshIndicator(
-                                      onRefresh: () async {
-                                        await budgetNotifier.fetchUserBudgets();
-                                      },
-                                      child: ListView.separated(
-                                        physics: BouncingScrollPhysics(),
-                                        padding: getPadding(top: 5, bottom: 25),
-                                        // scrollDirection: Axis.horizontal,
-                                        separatorBuilder: (context, index) {
-                                          return SizedBox(
-                                              height: getVerticalSize(16));
+                                        ],
+                                      );
+                                    } else {
+                                      final userBudgets = _budgets.value!;
+                                      return RefreshIndicator(
+                                        onRefresh: () async {
+                                          await budgetNotifier
+                                              .fetchUserBudgets();
                                         },
-                                        itemCount: userBudgets.length,
-                                        itemBuilder: (context, index) {
-                                          final budget = userBudgets[index];
-                                          return Dismissible(
-                                            key: Key(budget!.budgetId),
-                                            background: Column(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.center,
-                                              children: [
-                                                Stack(
-                                                  children: [
-                                                    Container(
-                                                      height:
-                                                          getVerticalSize(95),
-                                                      decoration: BoxDecoration(
-                                                        color: ColorConstant
-                                                            .redA700,
-                                                        borderRadius:
-                                                            BorderRadius
-                                                                .circular(12),
-                                                      ),
-                                                      child: Row(
-                                                        mainAxisAlignment:
-                                                            MainAxisAlignment
-                                                                .end,
-                                                        children: [
-                                                          // SizedBox(width: 25),
-                                                          Padding(
-                                                            padding: getPadding(
-                                                                right: 16),
-                                                            child:
-                                                                CustomImageView(
-                                                              svgPath:
-                                                                  ImageConstant
-                                                                      .imgTrashNew,
-                                                              height:
-                                                                  getSize(32),
-                                                              width:
-                                                                  getSize(32),
-                                                              color:
-                                                                  ColorConstant
-                                                                      .whiteA700,
+                                        child: ListView.separated(
+                                          physics: BouncingScrollPhysics(),
+                                          padding:
+                                              getPadding(top: 5, bottom: 25),
+                                          // scrollDirection: Axis.horizontal,
+                                          separatorBuilder: (context, index) {
+                                            return SizedBox(
+                                                height: getVerticalSize(16));
+                                          },
+                                          itemCount: userBudgets.length,
+                                          itemBuilder: (context, index) {
+                                            final budget = userBudgets[index];
+                                            return Dismissible(
+                                              key: Key(budget!.budgetId),
+                                              background: Column(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: [
+                                                  Stack(
+                                                    children: [
+                                                      Container(
+                                                        height:
+                                                            getVerticalSize(95),
+                                                        decoration:
+                                                            BoxDecoration(
+                                                          color: ColorConstant
+                                                              .redA700,
+                                                          borderRadius:
+                                                              BorderRadius
+                                                                  .circular(12),
+                                                        ),
+                                                        child: Row(
+                                                          mainAxisAlignment:
+                                                              MainAxisAlignment
+                                                                  .end,
+                                                          children: [
+                                                            // SizedBox(width: 25),
+                                                            Padding(
+                                                              padding:
+                                                                  getPadding(
+                                                                      right:
+                                                                          16),
+                                                              child:
+                                                                  CustomImageView(
+                                                                svgPath:
+                                                                    ImageConstant
+                                                                        .imgTrashNew,
+                                                                height:
+                                                                    getSize(32),
+                                                                width:
+                                                                    getSize(32),
+                                                                color: ColorConstant
+                                                                    .whiteA700,
+                                                              ),
                                                             ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ],
-                                            ),
-                                            direction:
-                                                DismissDirection.endToStart,
-                                            confirmDismiss: (direction) async {
-                                              // Show confirmation dialog
-                                              return await showDialog<bool>(
-                                                context: context,
-                                                builder:
-                                                    (BuildContext context) {
-                                                  return AlertDialog(
-                                                    title: Text(
-                                                        'Confirm Deletion',
-                                                        style: AppStyle
-                                                            .txtHelveticaNowTextBold18),
-                                                    content: Text(
-                                                        'Are you sure you want to delete this budget?',
-                                                        style: AppStyle
-                                                            .txtManropeRegular14),
-                                                    actions: <Widget>[
-                                                      TextButton(
-                                                        onPressed: () =>
-                                                            Navigator.of(
-                                                                    context)
-                                                                .pop(false),
-                                                        child: Text('Cancel',
-                                                            style: AppStyle
-                                                                .txtHelveticaNowTextBold14),
-                                                      ),
-                                                      TextButton(
-                                                        onPressed: () =>
-                                                            Navigator.of(
-                                                                    context)
-                                                                .pop(true),
-                                                        child: Text('Delete',
-                                                            style: AppStyle
-                                                                .txtHelveticaNowTextBold14
-                                                                .copyWith(
-                                                              color:
-                                                                  ColorConstant
-                                                                      .redA700,
-                                                            )),
+                                                          ],
+                                                        ),
                                                       ),
                                                     ],
-                                                  );
-                                                },
-                                              );
-                                            },
-                                            onDismissed: (direction) {
-                                              budgetNotifier.deleteBudget(
-                                                  budget.budgetId);
-                                              ref
-                                                      .read(refreshKey.notifier)
-                                                      .state =
-                                                  !ref
-                                                      .read(refreshKey.notifier)
-                                                      .state;
-                                              _onDismissed(index);
-                                            },
-                                            child: InkWell(
-                                              onTap: () {
-                                                Navigator.pushNamed(
-                                                  context,
-                                                  '/main_budget_home_screen',
-                                                  arguments: {
-                                                    'budget': budget,
-                                                    'firstName': firstName,
-                                                  },
-                                                );
-                                              },
-                                              child: ListItemWidget(
-                                                budgetName: budget.budgetName,
-                                                budgetType: budget.budgetType,
-                                                totalExpenses: budget.salary,
-                                                spendingType:
-                                                    budget.spendingType,
-                                                savingType: budget.savingType,
-                                                debtType: budget.debtType,
-                                                currency: budget.currency,
-                                              ),
-                                            ),
-                                          );
-                                        },
-                                      ),
-                                    );
-                                  }
-                                },
-                              ),
-                            );
-                          }),
-                          Padding(
-                            padding: getPadding(bottom: 10),
-                            child: GestureDetector(
-                              onTap: () {
-                                showDialog(
-                                  context: context,
-                                  builder: (BuildContext context) {
-                                    return Dialog(
-                                      child: ClipRRect(
-                                        borderRadius: BorderRadius.circular(4),
-                                        child: Stack(
-                                          children: [
-                                            Container(
-                                              height: MediaQuery.of(context)
-                                                      .size
-                                                      .height *
-                                                  0.75,
-                                              child: Column(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  Image.asset(
-                                                    'assets/images/gradient (3).png', // Replace with your image file name
-                                                    fit: BoxFit.cover,
                                                   ),
                                                 ],
                                               ),
-                                            ),
-                                            Positioned(
-                                              top: MediaQuery.of(context)
-                                                      .size
-                                                      .height *
-                                                  0.1, // Adjust this value to achieve the desired overlap
-                                              left: 0,
-                                              right: 0,
-                                              child: Container(
-                                                width: MediaQuery.of(context)
-                                                    .size
-                                                    .width,
-                                                decoration: BoxDecoration(
-                                                  color: Colors.white,
-                                                  borderRadius:
-                                                      BorderRadius.only(
-                                                    topLeft:
-                                                        Radius.circular(20),
-                                                    topRight:
-                                                        Radius.circular(20),
-                                                  ),
+                                              direction:
+                                                  DismissDirection.endToStart,
+                                              confirmDismiss:
+                                                  (direction) async {
+                                                // Show confirmation dialog
+                                                return await showDialog<bool>(
+                                                  context: context,
+                                                  builder:
+                                                      (BuildContext context) {
+                                                    return AlertDialog(
+                                                      title: Text(
+                                                          'Confirm Deletion',
+                                                          style: AppStyle
+                                                              .txtHelveticaNowTextBold18),
+                                                      content: Text(
+                                                          'Are you sure you want to delete this budget?',
+                                                          style: AppStyle
+                                                              .txtManropeRegular14),
+                                                      actions: <Widget>[
+                                                        TextButton(
+                                                          onPressed: () =>
+                                                              Navigator.of(
+                                                                      context)
+                                                                  .pop(false),
+                                                          child: Text('Cancel',
+                                                              style: AppStyle
+                                                                  .txtHelveticaNowTextBold14),
+                                                        ),
+                                                        TextButton(
+                                                          onPressed: () =>
+                                                              Navigator.of(
+                                                                      context)
+                                                                  .pop(true),
+                                                          child: Text('Delete',
+                                                              style: AppStyle
+                                                                  .txtHelveticaNowTextBold14
+                                                                  .copyWith(
+                                                                color:
+                                                                    ColorConstant
+                                                                        .redA700,
+                                                              )),
+                                                        ),
+                                                      ],
+                                                    );
+                                                  },
+                                                );
+                                              },
+                                              onDismissed: (direction) {
+                                                budgetNotifier.deleteBudget(
+                                                    budget.budgetId);
+                                                ref
+                                                        .read(refreshKey.notifier)
+                                                        .state =
+                                                    !ref
+                                                        .read(
+                                                            refreshKey.notifier)
+                                                        .state;
+                                                _onDismissed(index);
+                                              },
+                                              child: InkWell(
+                                                onTap: () {
+                                                  Navigator.pushNamed(
+                                                    context,
+                                                    '/main_budget_home_screen',
+                                                    arguments: {
+                                                      'budget': budget,
+                                                      'firstName': firstName,
+                                                    },
+                                                  );
+                                                },
+                                                child: ListItemWidget(
+                                                  budgetName: budget.budgetName,
+                                                  budgetType: budget.budgetType,
+                                                  totalExpenses: budget.salary,
+                                                  spendingType:
+                                                      budget.spendingType,
+                                                  savingType: budget.savingType,
+                                                  debtType: budget.debtType,
+                                                  currency: budget.currency,
                                                 ),
-                                                child: SingleChildScrollView(
-                                                  child: Padding(
-                                                    padding: EdgeInsets.all(16),
-                                                    child: Column(
-                                                      crossAxisAlignment:
-                                                          CrossAxisAlignment
-                                                              .start,
-                                                      mainAxisSize:
-                                                          MainAxisSize.min,
-                                                      children: [
-                                                        Text(
-                                                            'Monthly \nSubscription',
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      );
+                                    }
+                                  },
+                                ),
+                              );
+                            }),
+                            Padding(
+                              padding: getPadding(bottom: 10),
+                              child: GestureDetector(
+                                onTap: () {
+                                  showDialog(
+                                    context: context,
+                                    builder: (BuildContext context) {
+                                      return Dialog(
+                                        child: Stack(
+                                          children: [
+                                            Container(
+                                              width: MediaQuery.of(context)
+                                                  .size
+                                                  .width,
+                                              decoration: BoxDecoration(
+                                                image: DecorationImage(
+                                                  image: AssetImage(
+                                                      'assets/images/gradient_sub1.png'),
+                                                  fit: BoxFit.cover,
+                                                ),
+                                                color: Colors.white,
+                                                borderRadius: BorderRadius.all(
+                                                  Radius.circular(24),
+                                                ),
+                                              ),
+                                              child: SingleChildScrollView(
+                                                child: Padding(
+                                                  padding: EdgeInsets.all(16),
+                                                  child: Column(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
+                                                    children: [
+                                                      Text(
+                                                          'Monthly \nSubscription',
+                                                          style: AppStyle
+                                                              .txtHelveticaNowTextBold32
+                                                              .copyWith(
+                                                            color: ColorConstant
+                                                                .gray900,
+                                                          )),
+                                                      Padding(
+                                                        padding:
+                                                            getPadding(top: 4),
+                                                        child: Text(
+                                                            '\$4.99 /month',
                                                             style: AppStyle
-                                                                .txtHelveticaNowTextBold32
+                                                                .txtHelveticaNowTextLight18
                                                                 .copyWith(
                                                               color:
                                                                   ColorConstant
                                                                       .gray900,
                                                             )),
-                                                        Padding(
-                                                          padding: getPadding(
-                                                              top: 4),
-                                                          child: Text(
-                                                              '\$4.99 /month',
-                                                              style: AppStyle
-                                                                  .txtHelveticaNowTextLight18
-                                                                  .copyWith(
-                                                                color:
-                                                                    ColorConstant
-                                                                        .gray900,
-                                                              )),
-                                                        ),
-                                                        Divider(
-                                                          color: ColorConstant
-                                                              .blueGray300,
-                                                          thickness:
-                                                              0.5, // You can customize the thickness of the line
-                                                        ),
-                                                        Padding(
-                                                          padding:
-                                                              const EdgeInsets
-                                                                  .all(8.0),
-                                                          child: Row(
-                                                            mainAxisAlignment:
-                                                                MainAxisAlignment
-                                                                    .start,
-                                                            children: [
-                                                              Padding(
-                                                                padding:
-                                                                    getPadding(
-                                                                        right:
-                                                                            12),
-                                                                child: CustomImageView(
-                                                                    svgPath:
-                                                                        ImageConstant
-                                                                            .imgMessage1,
-                                                                    height:
-                                                                        getSize(
-                                                                            32),
-                                                                    width:
-                                                                        getSize(
-                                                                            32),
-                                                                    color: ColorConstant
-                                                                        .blueA700),
-                                                              ),
-                                                              Expanded(
-                                                                child: Column(
-                                                                  crossAxisAlignment:
-                                                                      CrossAxisAlignment
-                                                                          .start,
-                                                                  children: [
-                                                                    Text(
-                                                                        'A.I. Financial advisor',
-                                                                        style: AppStyle
-                                                                            .txtManropeSemiBold14
-                                                                            .copyWith(
-                                                                          color:
-                                                                              ColorConstant.gray900,
-                                                                        )),
-                                                                    Text(
-                                                                      'Get personalized financial advice from our A.I-powered advisor powered by ChatGPT.',
-                                                                      style: AppStyle
-                                                                          .txtManropeRegular12
-                                                                          .copyWith(
-                                                                        color: ColorConstant
-                                                                            .blueGray500,
-                                                                      ),
-                                                                      softWrap:
-                                                                          true,
-                                                                    ),
-                                                                  ],
-                                                                ),
-                                                              ),
-                                                            ],
-                                                          ),
-                                                        ),
-                                                        Padding(
-                                                          padding:
-                                                              const EdgeInsets
-                                                                  .all(8.0),
-                                                          child: Row(
-                                                            mainAxisAlignment:
-                                                                MainAxisAlignment
-                                                                    .end,
-                                                            children: [
-                                                              Padding(
-                                                                padding:
-                                                                    getPadding(
-                                                                        right:
-                                                                            12),
-                                                                child: CustomImageView(
-                                                                    svgPath:
-                                                                        ImageConstant
-                                                                            .imgPlus,
-                                                                    height:
-                                                                        getSize(
-                                                                            32),
-                                                                    width:
-                                                                        getSize(
-                                                                            32),
-                                                                    color: ColorConstant
-                                                                        .blueA700),
-                                                              ),
-                                                              Expanded(
-                                                                child: Column(
-                                                                  crossAxisAlignment:
-                                                                      CrossAxisAlignment
-                                                                          .start,
-                                                                  children: [
-                                                                    Text(
-                                                                        'Multiple budgets',
-                                                                        style: AppStyle
-                                                                            .txtManropeSemiBold14
-                                                                            .copyWith(
-                                                                          color:
-                                                                              ColorConstant.gray900,
-                                                                        )),
-                                                                    Text(
-                                                                      'Create and manage up to 5 custom budgets for greater control over your spending.',
-                                                                      style: AppStyle
-                                                                          .txtManropeRegular12
-                                                                          .copyWith(
-                                                                        color: ColorConstant
-                                                                            .blueGray500,
-                                                                      ),
-                                                                      softWrap:
-                                                                          true,
-                                                                    ),
-                                                                  ],
-                                                                ),
-                                                              ),
-                                                            ],
-                                                          ),
-                                                        ),
-                                                        Padding(
-                                                          padding:
-                                                              const EdgeInsets
-                                                                  .all(8.0),
-                                                          child: Row(
-                                                            mainAxisAlignment:
-                                                                MainAxisAlignment
-                                                                    .end,
-                                                            children: [
-                                                              Padding(
-                                                                padding:
-                                                                    getPadding(
-                                                                        right:
-                                                                            12),
-                                                                child: CustomImageView(
-                                                                    svgPath:
-                                                                        ImageConstant
-                                                                            .imgArchive,
-                                                                    height:
-                                                                        getSize(
-                                                                            32),
-                                                                    width:
-                                                                        getSize(
-                                                                            32),
-                                                                    color: ColorConstant
-                                                                        .blueA700),
-                                                              ),
-                                                              Expanded(
-                                                                child: Column(
-                                                                  crossAxisAlignment:
-                                                                      CrossAxisAlignment
-                                                                          .start,
-                                                                  children: [
-                                                                    Text(
-                                                                        'Weekly AI-generated Insights',
-                                                                        style: AppStyle
-                                                                            .txtManropeSemiBold14
-                                                                            .copyWith(
-                                                                          color:
-                                                                              ColorConstant.gray900,
-                                                                        )),
-                                                                    Text(
-                                                                      'Get weekly insights and recommendations to help you stay on track with your budget.',
-                                                                      style: AppStyle
-                                                                          .txtManropeRegular12
-                                                                          .copyWith(
-                                                                        color: ColorConstant
-                                                                            .blueGray500,
-                                                                      ),
-                                                                      softWrap:
-                                                                          true,
-                                                                    ),
-                                                                  ],
-                                                                ),
-                                                              ),
-                                                            ],
-                                                          ),
-                                                        ),
-                                                        Padding(
-                                                          padding:
-                                                              const EdgeInsets
-                                                                  .all(8.0),
-                                                          child: Row(
-                                                            mainAxisAlignment:
-                                                                MainAxisAlignment
-                                                                    .end,
-                                                            children: [
-                                                              Padding(
-                                                                padding:
-                                                                    getPadding(
-                                                                        right:
-                                                                            12),
-                                                                child: CustomImageView(
-                                                                    svgPath:
-                                                                        ImageConstant
-                                                                            .imgVideoSlash,
-                                                                    height:
-                                                                        getSize(
-                                                                            32),
-                                                                    width:
-                                                                        getSize(
-                                                                            32),
-                                                                    color: ColorConstant
-                                                                        .blueA700),
-                                                              ),
-                                                              Expanded(
-                                                                child: Column(
-                                                                  crossAxisAlignment:
-                                                                      CrossAxisAlignment
-                                                                          .start,
-                                                                  children: [
-                                                                    Text(
-                                                                        'Ad-free experience',
-                                                                        style: AppStyle
-                                                                            .txtManropeSemiBold14
-                                                                            .copyWith(
-                                                                          color:
-                                                                              ColorConstant.gray900,
-                                                                        )),
-                                                                    Text(
-                                                                      'Enjoy a more focused and streamlined experience without ads.',
-                                                                      style: AppStyle
-                                                                          .txtManropeRegular12
-                                                                          .copyWith(
-                                                                        color: ColorConstant
-                                                                            .blueGray500,
-                                                                      ),
-                                                                      softWrap:
-                                                                          true,
-                                                                    ),
-                                                                  ],
-                                                                ),
-                                                              ),
-                                                            ],
-                                                          ),
-                                                        ),
-                                                        Padding(
-                                                          padding: getPadding(
-                                                              top: 16),
-                                                          child: Row(
-                                                            mainAxisAlignment:
-                                                                MainAxisAlignment
-                                                                    .center,
-                                                            children: [
-                                                              InkWell(
-                                                                onTap: () {},
-                                                                child:
-                                                                    Container(
+                                                      ),
+                                                      Divider(
+                                                        color: ColorConstant
+                                                            .blueGray300,
+                                                        thickness:
+                                                            0.5, // You can customize the thickness of the line
+                                                      ),
+                                                      Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .all(8.0),
+                                                        child: Row(
+                                                          mainAxisAlignment:
+                                                              MainAxisAlignment
+                                                                  .start,
+                                                          children: [
+                                                            Padding(
+                                                              padding:
+                                                                  getPadding(
+                                                                      right:
+                                                                          12),
+                                                              child: CustomImageView(
+                                                                  svgPath:
+                                                                      ImageConstant
+                                                                          .imgMessage1,
                                                                   height:
-                                                                      getVerticalSize(
-                                                                          50),
+                                                                      getSize(
+                                                                          32),
                                                                   width:
-                                                                      getHorizontalSize(
-                                                                          100),
-                                                                  padding:
-                                                                      EdgeInsets
-                                                                          .symmetric(
-                                                                    horizontal:
-                                                                        8,
+                                                                      getSize(
+                                                                          32),
+                                                                  color: ColorConstant
+                                                                      .blueA700),
+                                                            ),
+                                                            Expanded(
+                                                              child: Column(
+                                                                crossAxisAlignment:
+                                                                    CrossAxisAlignment
+                                                                        .start,
+                                                                children: [
+                                                                  Text(
+                                                                      'A.I. Financial advisor',
+                                                                      style: AppStyle
+                                                                          .txtManropeSemiBold14
+                                                                          .copyWith(
+                                                                        color: ColorConstant
+                                                                            .gray900,
+                                                                      )),
+                                                                  Text(
+                                                                    'Get personalized financial advice from our A.I-powered advisor powered by ChatGPT.',
+                                                                    style: AppStyle
+                                                                        .txtManropeRegular12
+                                                                        .copyWith(
+                                                                      color: ColorConstant
+                                                                          .blueGray500,
+                                                                    ),
+                                                                    softWrap:
+                                                                        true,
                                                                   ),
-                                                                  decoration:
-                                                                      BoxDecoration(
-                                                                    color: ColorConstant
-                                                                        .blueA700,
-                                                                    borderRadius:
-                                                                        BorderRadius.circular(
-                                                                            80),
+                                                                ],
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                      Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .all(8.0),
+                                                        child: Row(
+                                                          mainAxisAlignment:
+                                                              MainAxisAlignment
+                                                                  .end,
+                                                          children: [
+                                                            Padding(
+                                                              padding:
+                                                                  getPadding(
+                                                                      right:
+                                                                          12),
+                                                              child: CustomImageView(
+                                                                  svgPath:
+                                                                      ImageConstant
+                                                                          .imgPlus,
+                                                                  height:
+                                                                      getSize(
+                                                                          32),
+                                                                  width:
+                                                                      getSize(
+                                                                          32),
+                                                                  color: ColorConstant
+                                                                      .blueA700),
+                                                            ),
+                                                            Expanded(
+                                                              child: Column(
+                                                                crossAxisAlignment:
+                                                                    CrossAxisAlignment
+                                                                        .start,
+                                                                children: [
+                                                                  Text(
+                                                                      'Multiple budgets',
+                                                                      style: AppStyle
+                                                                          .txtManropeSemiBold14
+                                                                          .copyWith(
+                                                                        color: ColorConstant
+                                                                            .gray900,
+                                                                      )),
+                                                                  Text(
+                                                                    'Create and manage up to 5 custom budgets for greater control over your spending.',
+                                                                    style: AppStyle
+                                                                        .txtManropeRegular12
+                                                                        .copyWith(
+                                                                      color: ColorConstant
+                                                                          .blueGray500,
+                                                                    ),
+                                                                    softWrap:
+                                                                        true,
                                                                   ),
-                                                                  child: Row(
-                                                                    mainAxisAlignment:
-                                                                        MainAxisAlignment
-                                                                            .spaceEvenly,
-                                                                    crossAxisAlignment:
-                                                                        CrossAxisAlignment
-                                                                            .center,
-                                                                    children: [
-                                                                      Text(
-                                                                        'Upgrade',
-                                                                        style: AppStyle
-                                                                            .txtManropeBold14
-                                                                            .copyWith(color: ColorConstant.whiteA700),
-                                                                      ),
-                                                                    ],
+                                                                ],
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                      Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .all(8.0),
+                                                        child: Row(
+                                                          mainAxisAlignment:
+                                                              MainAxisAlignment
+                                                                  .end,
+                                                          children: [
+                                                            Padding(
+                                                              padding:
+                                                                  getPadding(
+                                                                      right:
+                                                                          12),
+                                                              child: CustomImageView(
+                                                                  svgPath:
+                                                                      ImageConstant
+                                                                          .imgArchive,
+                                                                  height:
+                                                                      getSize(
+                                                                          32),
+                                                                  width:
+                                                                      getSize(
+                                                                          32),
+                                                                  color: ColorConstant
+                                                                      .blueA700),
+                                                            ),
+                                                            Expanded(
+                                                              child: Column(
+                                                                crossAxisAlignment:
+                                                                    CrossAxisAlignment
+                                                                        .start,
+                                                                children: [
+                                                                  Text(
+                                                                      'Weekly AI-generated Insights',
+                                                                      style: AppStyle
+                                                                          .txtManropeSemiBold14
+                                                                          .copyWith(
+                                                                        color: ColorConstant
+                                                                            .gray900,
+                                                                      )),
+                                                                  Text(
+                                                                    'Get weekly insights and recommendations to help you stay on track with your budget.',
+                                                                    style: AppStyle
+                                                                        .txtManropeRegular12
+                                                                        .copyWith(
+                                                                      color: ColorConstant
+                                                                          .blueGray500,
+                                                                    ),
+                                                                    softWrap:
+                                                                        true,
                                                                   ),
+                                                                ],
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                      Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .all(8.0),
+                                                        child: Row(
+                                                          mainAxisAlignment:
+                                                              MainAxisAlignment
+                                                                  .end,
+                                                          children: [
+                                                            Padding(
+                                                              padding:
+                                                                  getPadding(
+                                                                      right:
+                                                                          12),
+                                                              child: CustomImageView(
+                                                                  svgPath:
+                                                                      ImageConstant
+                                                                          .imgVideoSlash,
+                                                                  height:
+                                                                      getSize(
+                                                                          32),
+                                                                  width:
+                                                                      getSize(
+                                                                          32),
+                                                                  color: ColorConstant
+                                                                      .blueA700),
+                                                            ),
+                                                            Expanded(
+                                                              child: Column(
+                                                                crossAxisAlignment:
+                                                                    CrossAxisAlignment
+                                                                        .start,
+                                                                children: [
+                                                                  Text(
+                                                                      'Ad-free experience',
+                                                                      style: AppStyle
+                                                                          .txtManropeSemiBold14
+                                                                          .copyWith(
+                                                                        color: ColorConstant
+                                                                            .gray900,
+                                                                      )),
+                                                                  Text(
+                                                                    'Enjoy a more focused and streamlined experience without ads.',
+                                                                    style: AppStyle
+                                                                        .txtManropeRegular12
+                                                                        .copyWith(
+                                                                      color: ColorConstant
+                                                                          .blueGray500,
+                                                                    ),
+                                                                    softWrap:
+                                                                        true,
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                      Padding(
+                                                        padding:
+                                                            getPadding(top: 16),
+                                                        child: Row(
+                                                          mainAxisAlignment:
+                                                              MainAxisAlignment
+                                                                  .center,
+                                                          children: [
+                                                            InkWell(
+                                                              onTap: () async {
+                                                                bool
+                                                                    purchaseSuccess =
+                                                                    await makePurchase();
+                                                                if (purchaseSuccess) {
+                                                                  bool
+                                                                      isSubscribed =
+                                                                      await checkIsSubscribed();
+                                                                  if (isSubscribed) {
+                                                                    print(
+                                                                        'User is Subscribed');
+                                                                  } else {
+                                                                    print(
+                                                                        'User is Not Subscribed');
+                                                                  }
+                                                                }
+                                                              },
+                                                              child: Container(
+                                                                height:
+                                                                    getVerticalSize(
+                                                                        50),
+                                                                width:
+                                                                    getHorizontalSize(
+                                                                        100),
+                                                                padding: EdgeInsets
+                                                                    .symmetric(
+                                                                  horizontal: 8,
+                                                                ),
+                                                                decoration:
+                                                                    BoxDecoration(
+                                                                  color: ColorConstant
+                                                                      .blueA700,
+                                                                  borderRadius:
+                                                                      BorderRadius
+                                                                          .circular(
+                                                                              80),
+                                                                ),
+                                                                child: Row(
+                                                                  mainAxisAlignment:
+                                                                      MainAxisAlignment
+                                                                          .spaceEvenly,
+                                                                  crossAxisAlignment:
+                                                                      CrossAxisAlignment
+                                                                          .center,
+                                                                  children: [
+                                                                    Text(
+                                                                      'Upgrade',
+                                                                      style: AppStyle
+                                                                          .txtManropeBold14
+                                                                          .copyWith(
+                                                                              color: ColorConstant.whiteA700),
+                                                                    ),
+                                                                  ],
                                                                 ),
                                                               ),
-                                                            ],
-                                                          ),
+                                                            ),
+                                                          ],
                                                         ),
-                                                      ],
-                                                    ),
+                                                      ),
+                                                    ],
                                                   ),
                                                 ),
                                               ),
                                             ),
                                           ],
                                         ),
-                                      ),
-                                    );
-                                  },
-                                );
-                              },
-                              child: Padding(
-                                padding: getPadding(
-                                    left: 30, right: 30, bottom: 16, top: 16),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Neumorphic(
-                                      style: NeumorphicStyle(
-                                        boxShape: NeumorphicBoxShape.roundRect(
-                                            BorderRadius.circular(80)),
-                                        depth: 7,
-                                        intensity: 7,
-                                        surfaceIntensity: 0.8,
-                                        lightSource: LightSource.top,
-                                        color: ColorConstant.gray50,
-                                        shape: NeumorphicShape.convex,
-                                      ),
-                                      child: Container(
-                                        height: getVerticalSize(50),
-                                        width: getHorizontalSize(140),
-                                        padding: EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: ColorConstant.blueA700,
-                                          borderRadius:
-                                              BorderRadius.circular(80),
-                                        ),
+                                      );
+                                    },
+                                  );
+                                },
+                                child: FutureBuilder<bool>(
+                                  future: checkIsSubscribed(),
+                                  builder: (context, snapshot) {
+                                    // The future is still loading
+                                    if (snapshot.connectionState !=
+                                        ConnectionState.done) {
+                                      return CircularProgressIndicator(); // Or some other placeholder
+                                    }
+
+                                    // The future completed with an error
+                                    if (snapshot.hasError) {
+                                      return Text('An error occurred');
+                                    }
+
+                                    // The future completed with a result
+                                    bool isSubscribed = snapshot.data ?? false;
+
+                                    // If the user is not subscribed, show the upgrade button
+                                    if (!isSubscribed) {
+                                      return Padding(
+                                        padding: getPadding(
+                                            left: 30,
+                                            right: 30,
+                                            bottom: 16,
+                                            top: 16),
                                         child: Row(
                                           mainAxisAlignment:
-                                              MainAxisAlignment.spaceEvenly,
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.center,
+                                              MainAxisAlignment.center,
                                           children: [
-                                            // CustomImageView(
-                                            //   svgPath: ImageConstant.imgStar1,
-                                            //   height: getSize(24),
-                                            //   width: getSize(24),
-                                            //   color: ColorConstant.whiteA700,
-                                            // ),
-                                            Text(
-                                              'Upgrade to Pro',
-                                              style: AppStyle.txtManropeBold14
-                                                  .copyWith(
-                                                      color: ColorConstant
-                                                          .whiteA700),
+                                            Neumorphic(
+                                              style: NeumorphicStyle(
+                                                boxShape: NeumorphicBoxShape
+                                                    .roundRect(
+                                                        BorderRadius.circular(
+                                                            80)),
+                                                depth: 7,
+                                                intensity: 7,
+                                                surfaceIntensity: 0.8,
+                                                lightSource: LightSource.top,
+                                                color: ColorConstant.gray50,
+                                                shape: NeumorphicShape.convex,
+                                              ),
+                                              child: Container(
+                                                height: getVerticalSize(50),
+                                                width: getHorizontalSize(140),
+                                                padding: EdgeInsets.symmetric(
+                                                  horizontal: 8,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: ColorConstant.blueA700,
+                                                  borderRadius:
+                                                      BorderRadius.circular(80),
+                                                ),
+                                                child: Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment
+                                                          .spaceEvenly,
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.center,
+                                                  children: [
+                                                    Text(
+                                                      'Upgrade to Pro',
+                                                      style: AppStyle
+                                                          .txtManropeBold14
+                                                          .copyWith(
+                                                              color: ColorConstant
+                                                                  .whiteA700),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
                                             ),
                                           ],
                                         ),
-                                      ),
-                                    ),
-                                  ],
+                                      );
+                                    } else {
+                                      return Container(); // Display an empty container when the user is subscribed
+                                    }
+                                  },
                                 ),
                               ),
                             ),
-                          ),
-                          Container(
-                            color: Colors.white,
-                            child: Center(
-                              child: BannerAdWidget(),
+                            FutureBuilder<Map<String, dynamic>>(
+                              future: getSubscriptionInfo(),
+                              builder: (context, snapshot) {
+                                // The future is still loading
+                                if (snapshot.connectionState !=
+                                    ConnectionState.done) {
+                                  return Container(); // Or some other placeholder
+                                }
+
+                                // The future completed with an error
+                                if (snapshot.hasError) {
+                                  return Text('An error occurred');
+                                }
+
+                                // The future completed with a result
+                                Map<String, dynamic> subscriptionInfo = snapshot
+                                        .data ??
+                                    {'isSubscribed': false, 'expiryDate': null};
+                                bool isSubscribed =
+                                    subscriptionInfo['isSubscribed'] ?? false;
+                                DateTime? expiryDate =
+                                    subscriptionInfo['expiryDate'];
+
+                                // If the user is not subscribed, show the ad
+                                if (!isSubscribed) {
+                                  return Padding(
+                                    padding: getPadding(bottom: 20),
+                                    child: Container(
+                                      color: Colors.white,
+                                      child: Center(
+                                        child: BannerAdWidget(),
+                                      ),
+                                    ),
+                                  );
+                                } else {
+                                  return Padding(
+                                    padding: getPadding(
+                                        top: 70,
+                                        left: 16,
+                                        right: 16,
+                                        bottom: 8),
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Text(
+                                              "Subscribed ",
+                                              style: AppStyle
+                                                  .txtHelveticaNowTextBold18
+                                                  .copyWith(
+                                                      color: ColorConstant
+                                                          .gray900),
+                                            ),
+                                            Icon(
+                                              Icons
+                                                  .check_circle_outline_rounded,
+                                              size: 24,
+                                              color: Colors.green,
+                                            ),
+                                          ],
+                                        ),
+                                        Padding(
+                                          padding: getPadding(top: 4),
+                                          child: Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              Text(
+                                                "Subscription expires on: ",
+                                                style: AppStyle
+                                                    .txtManropeRegular14
+                                                    .copyWith(
+                                                        color: ColorConstant
+                                                            .blueGray500),
+                                              ),
+                                              Text(
+                                                "${DateFormat('EEEE, MMMM dd, yyyy').format(expiryDate?.toLocal() ?? DateTime.now())}",
+                                                style: AppStyle.txtManropeBold14
+                                                    .copyWith(
+                                                        color: ColorConstant
+                                                            .blueGray500),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        Padding(
+                                          padding: getPadding(top: 6),
+                                          child: GestureDetector(
+                                            onTap: () async {
+                                              if (await canLaunch(
+                                                  subscriptionInfo[
+                                                      'managementUrl'])) {
+                                                await launch(subscriptionInfo[
+                                                    'managementUrl']);
+                                              } else {
+                                                throw 'Could not launch ${subscriptionInfo['managementUrl']}';
+                                              }
+                                            },
+                                            child: Text(
+                                              "Click here to manage your subscription",
+                                              style: AppStyle
+                                                  .txtManropeRegular12
+                                                  .copyWith(
+                                                color:
+                                                    ColorConstant.blueGray500,
+                                                decoration:
+                                                    TextDecoration.underline,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }
+                              },
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ],
           ),
-          floatingActionButton: NeumorphicFloatingActionButton(
-            style: NeumorphicStyle(
-              shape: NeumorphicShape.convex,
-              boxShape: NeumorphicBoxShape.roundRect(BorderRadius.circular(60)),
-              depth: 0.5,
-              // intensity: 9,
-              surfaceIntensity: 0.8,
-              lightSource: LightSource.top,
-              color: ColorConstant.blueA700,
-            ),
-            onPressed: () {
-              Navigator.pushNamed(context, '/generator_salary_screen');
+          floatingActionButton: FutureBuilder<List<dynamic>>(
+            future: Future.wait([
+              Future.value(budgetCount),
+              isSubscriber,
+            ]),
+            builder:
+                (BuildContext context, AsyncSnapshot<List<dynamic>> snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return CircularProgressIndicator();
+              } else {
+                if (snapshot.hasError) {
+                  return Container();
+                } else {
+                  int budgetCount = snapshot.data![0];
+                  bool isSubscriber = snapshot.data![1];
+                  if ((isSubscriber && budgetCount < 5) ||
+                      (!isSubscriber && budgetCount < 1)) {
+                    return NeumorphicFloatingActionButton(
+                      style: NeumorphicStyle(
+                        shape: NeumorphicShape.convex,
+                        boxShape: NeumorphicBoxShape.roundRect(
+                            BorderRadius.circular(60)),
+                        depth: 0.5,
+                        // intensity: 9,
+                        surfaceIntensity: 0.8,
+                        lightSource: LightSource.top,
+                        color: ColorConstant.blueA700,
+                      ),
+                      onPressed: () {
+                        Navigator.pushNamed(
+                            context, '/generator_salary_screen');
+                      },
+                      child: Icon(
+                        Icons.add_rounded,
+                        color: ColorConstant.whiteA700,
+                        size: getSize(42),
+                      ),
+                      // backgroundColor: ColorConstant.lightBlueA200,
+                    );
+                  } else {
+                    return Container();
+                  }
+                }
+              }
             },
-            child: Icon(
-              Icons.add_rounded,
-              color: ColorConstant.whiteA700,
-              size: getSize(42),
-            ),
-            // backgroundColor: ColorConstant.lightBlueA200,
           ),
-          floatingActionButtonLocation: CustomFabLocation(),
+          floatingActionButtonLocation: CustomFabLocation(context),
         ),
       ),
     );
@@ -940,11 +1246,18 @@ class HomePageScreen extends HookConsumerWidget {
 }
 
 class CustomFabLocation extends FloatingActionButtonLocation {
+  final BuildContext context;
+
+  CustomFabLocation(this.context);
+
   @override
   Offset getOffset(ScaffoldPrelayoutGeometry scaffoldGeometry) {
     // Customize the position of the FloatingActionButton here
+    final double screenFactor = MediaQuery.of(context).size.height / 812.0;
+
     final double offsetX = 16.0; // Horizontal offset from the right edge
-    final double offsetY = 525.0; // Vertical offset from the bottom edge
+    final double offsetY =
+        550.0 * screenFactor; // Vertical offset from the bottom edge
 
     return Offset(
       scaffoldGeometry.scaffoldSize.width -

@@ -11,5 +11,7 @@ export 'src/necessary_amount.dart';
 export 'src/discretionary_amount.dart';
 export 'src/date.dart';
 export 'src/category.dart';
+export 'src/frequency.dart';
+export 'src/tracker.dart';
 
 export 'package:formz/formz.dart';

@@ -74,6 +74,8 @@ class GetStartedScreen extends ConsumerWidget {
               Padding(
                 padding: getPadding(
                   top: 7,
+                  left: 8,
+                  right: 8,
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -199,6 +201,7 @@ class GetStartedScreen extends ConsumerWidget {
                           textAlign: TextAlign.center,
                           style: AppStyle.txtHelveticaNowTextBold16WhiteA700
                               .copyWith(
+                            color: ColorConstant.gray900,
                             letterSpacing: getHorizontalSize(0.3),
                           ),
                         ),

@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart' show immutable;
+import 'package:noughtplan/core/budget_info/models/budget_info_payload_sub.dart';
 import 'package:noughtplan/core/constants/budgets.dart';
 import 'package:noughtplan/core/constants/firebase_collection_name.dart';
 import 'package:noughtplan/core/constants/firebase_field_name.dart';
@@ -111,14 +112,16 @@ class BudgetInfoStorage {
     required double salary,
     required String currency,
     required String budgetType,
+    required String deviceId,
   }) async {
     try {
-      final payload = BudgetInfoPayload(
+      final payload = BudgetInfoPayloadSub(
         userId: id,
         budgetId: budgetId,
         salary: salary,
         currency: currency,
         budgetType: budgetType,
+        deviceId: deviceId,
       );
       await FirebaseFirestore.instance
           .collection(FirebaseCollectionName.budgets)
@@ -128,6 +131,16 @@ class BudgetInfoStorage {
     } catch (e) {
       return false;
     }
+  }
+
+  Future<int> getBudgetCount(String deviceId) async {
+    final budgetQuery = FirebaseFirestore.instance
+        .collection('budgets')
+        .where('device_id', isEqualTo: deviceId);
+
+    final querySnapshot = await budgetQuery.get();
+
+    return querySnapshot.docs.length;
   }
 
   Future<bool> updateAmounts({
@@ -246,6 +259,47 @@ class BudgetInfoStorage {
             doc.get(FirebaseFieldName.budget_name) == null) {
           await doc.reference.delete();
         }
+      }
+    } catch (e) {
+      // Handle any errors that might occur during the deletion
+      print(e);
+    }
+  }
+
+  Future<void> deleteUser(String userId) async {
+    print("UserId: $userId");
+    try {
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection(FirebaseCollectionName.users)
+          .where(FirebaseFieldName.id, isEqualTo: userId)
+          .get();
+
+      for (final doc in querySnapshot.docs) {
+        await doc.reference.delete();
+      }
+
+      // Deleting user from Firebase Authentication
+      User? user = FirebaseAuth.instance.currentUser;
+      if (user != null && user.uid == userId) {
+        await user.delete();
+      }
+    } catch (e) {
+      // Handle any errors that might occur during the deletion
+      print(e);
+    }
+  }
+
+  Future<void> deleteAllUserBudgets(String userId) async {
+    try {
+      // Query all budgets for the provided userId
+      final budgetQuery = await FirebaseFirestore.instance
+          .collection(FirebaseCollectionName.budgets)
+          .where(FirebaseFieldName.id, isEqualTo: userId)
+          .get();
+
+      // Delete each budget found
+      for (final doc in budgetQuery.docs) {
+        await doc.reference.delete();
       }
     } catch (e) {
       // Handle any errors that might occur during the deletion
@@ -444,6 +498,80 @@ class BudgetInfoStorage {
       return false;
     } catch (e) {
       print('Failed to add actual expense: $e');
+      return false;
+    }
+  }
+
+  Future<bool> addGoal({
+    required String budgetId,
+    required Map<String, dynamic> goalData,
+  }) async {
+    try {
+      final budgetInfo = await FirebaseFirestore.instance
+          .collection(FirebaseCollectionName.budgets)
+          .where(FirebaseFieldName.budget_id, isEqualTo: budgetId)
+          .limit(1)
+          .get();
+
+      if (budgetInfo.docs.isNotEmpty) {
+        DocumentSnapshot budgetDoc = budgetInfo.docs.first;
+
+        Map<String, dynamic>? budgetData =
+            budgetDoc.data() as Map<String, dynamic>?;
+        List<Map<String, dynamic>> currentGoals = budgetData?['goals'] != null
+            ? List<Map<String, dynamic>>.from(budgetData!['goals'])
+            : [];
+
+        currentGoals.add(goalData);
+
+        await budgetDoc.reference.update({
+          'goals': currentGoals,
+        });
+
+        print('Goal added: $goalData');
+        return true;
+      }
+
+      return false;
+    } catch (e) {
+      print('Failed to add goal: $e');
+      return false;
+    }
+  }
+
+  Future<bool> addDebt({
+    required String budgetId,
+    required Map<String, dynamic> debtData,
+  }) async {
+    try {
+      final budgetInfo = await FirebaseFirestore.instance
+          .collection(FirebaseCollectionName.budgets)
+          .where(FirebaseFieldName.budget_id, isEqualTo: budgetId)
+          .limit(1)
+          .get();
+
+      if (budgetInfo.docs.isNotEmpty) {
+        DocumentSnapshot budgetDoc = budgetInfo.docs.first;
+
+        Map<String, dynamic>? budgetData =
+            budgetDoc.data() as Map<String, dynamic>?;
+        List<Map<String, dynamic>> currentDebts = budgetData?['debts'] != null
+            ? List<Map<String, dynamic>>.from(budgetData!['debts'])
+            : [];
+
+        currentDebts.add(debtData);
+
+        await budgetDoc.reference.update({
+          'debts': currentDebts,
+        });
+
+        print('Debt added: $debtData');
+        return true;
+      }
+
+      return false;
+    } catch (e) {
+      print('Failed to add debt: $e');
       return false;
     }
   }

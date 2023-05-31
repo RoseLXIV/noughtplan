@@ -358,12 +358,12 @@ class CategoryNecessaryScreen extends HookConsumerWidget {
         parentCategory != null ? selectedCategories[parentCategory] ?? [] : [];
     List<Widget> selectedButtons = [];
 
-    useEffect(() {
-      Future.microtask(() {
-        ref.read(buttonListStateProvider.notifier).clearSelectedCategories();
-      });
-      return () {}; // Cleanup function
-    }, []);
+    // useEffect(() {
+    //   Future.microtask(() {
+    //     ref.read(buttonListStateProvider.notifier).clearSelectedCategories();
+    //   });
+    //   return () {}; // Cleanup function
+    // }, []);
 
     selectedCategories.forEach((parentCategory, buttonTexts) {
       buttonTexts.forEach((buttonText) {
@@ -546,7 +546,7 @@ class CategoryNecessaryScreen extends HookConsumerWidget {
                             CustomAppBar(
                               height: getVerticalSize(70),
                               leadingWidth: 25,
-                              leading: AppbarImage(
+                              leading: CustomImageView(
                                 onTap: () {
                                   Navigator.pop(context);
                                 },
@@ -889,6 +889,13 @@ class CategoryNecessaryScreen extends HookConsumerWidget {
                           "Other Loans #2": 0,
                         };
 
+                        bool isDebtOrLoanCategory(String categoryName) {
+                          final lowercaseCategoryName =
+                              categoryName.toLowerCase();
+                          return lowercaseCategoryName.contains("debt") ||
+                              lowercaseCategoryName.contains("loan");
+                        }
+
                         final Map<String, double> savingCategories = {
                           "Emergency Fund": 0,
                           "Retirement Savings": 0,
@@ -917,13 +924,16 @@ class CategoryNecessaryScreen extends HookConsumerWidget {
                           for (String parentCategory in selectedCategories.keys)
                             for (String categoryName
                                 in selectedCategories[parentCategory]!)
-                              if (!debtLoanCategories.containsKey(categoryName))
+                              if (!debtLoanCategories
+                                      .containsKey(categoryName) &&
+                                  !isDebtOrLoanCategory(categoryName))
                                 categoryName: 0,
                         };
 
                         Map<String, double> extractedDebtLoanCategories = {
                           for (String key in allCategoriesWithAmount.keys)
-                            if (debtLoanCategories.containsKey(key))
+                            if (debtLoanCategories.containsKey(key) ||
+                                isDebtOrLoanCategory(key))
                               key: allCategoriesWithAmount[key]!,
                         };
 

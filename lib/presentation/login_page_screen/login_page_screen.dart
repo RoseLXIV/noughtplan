@@ -400,6 +400,8 @@ class LoginPageScreen extends ConsumerWidget {
                                                           style: AppStyle
                                                               .txtHelveticaNowTextBold16WhiteA700
                                                               .copyWith(
+                                                            color: ColorConstant
+                                                                .gray900,
                                                             letterSpacing:
                                                                 getHorizontalSize(
                                                                     0.3),

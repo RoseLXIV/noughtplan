@@ -17,7 +17,7 @@ class PrivacyAndPolicyScreen extends StatelessWidget {
             appBar: CustomAppBar(
                 height: getVerticalSize(100),
                 leadingWidth: 375,
-                leading: AppbarImage(
+                leading: CustomImageView(
                     height: getSize(24),
                     width: getSize(24),
                     svgPath: ImageConstant.imgArrowleft,

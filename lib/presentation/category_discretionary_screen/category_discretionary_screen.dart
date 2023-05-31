@@ -356,14 +356,14 @@ class CategoryDiscretionaryScreen extends HookConsumerWidget {
       });
     }
 
-    useEffect(() {
-      Future.microtask(() {
-        ref
-            .read(buttonListStateProviderDiscretionary.notifier)
-            .clearSelectedCategories();
-      });
-      return () {}; // Cleanup function
-    }, []);
+    // useEffect(() {
+    //   Future.microtask(() {
+    //     ref
+    //         .read(buttonListStateProviderDiscretionary.notifier)
+    //         .clearSelectedCategories();
+    //   });
+    //   return () {}; // Cleanup function
+    // }, []);
 
     selectedCategories.forEach((parentCategory, buttonTexts) {
       buttonTexts.forEach((buttonText) {
@@ -546,7 +546,7 @@ class CategoryDiscretionaryScreen extends HookConsumerWidget {
                             CustomAppBar(
                               height: getVerticalSize(70),
                               leadingWidth: 25,
-                              leading: AppbarImage(
+                              leading: CustomImageView(
                                 onTap: () {
                                   Navigator.pop(context);
                                 },

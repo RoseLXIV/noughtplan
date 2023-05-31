@@ -33,15 +33,18 @@ class GenerateSalaryController extends StateNotifier<GenerateSalaryState> {
   // }
 
   void initializeSalary(double salary) {
+    print('initializeSalary: $salary');
     final formattedSalary = NumberFormat('#,##0.00').format(salary);
     onSalaryChange(formattedSalary);
   }
 
   void initializeCurrency(String currency) {
+    print('initializeCurrency: $currency');
     onCurrencyChange(currency);
   }
 
   void initializeBudgetType(String budgetType) {
+    print('initializeBudgetType: $budgetType');
     onBudgetTypeChange(budgetType);
   }
 

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_neumorphic/flutter_neumorphic.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,12 +13,15 @@ import 'package:noughtplan/core/budget/providers/budget_state_provider.dart';
 import 'package:noughtplan/core/budget/providers/interstitial_ads_class_provider.dart';
 import 'package:noughtplan/core/constants/budgets.dart';
 import 'package:noughtplan/presentation/budget_screen/widgets/call_chat_gpt_highlights.dart';
+import 'package:noughtplan/presentation/budget_screen/widgets/debts_provider.dart';
+import 'package:noughtplan/presentation/budget_screen/widgets/goals_provider.dart';
 import 'package:noughtplan/presentation/budget_screen/widgets/spending_type_progress_bar.dart';
 import 'package:noughtplan/presentation/budget_screen/widgets/selected_budget_id.dart';
 import 'package:noughtplan/presentation/budget_screen/widgets/user_types_bugdet_widget.dart';
 import 'package:noughtplan/presentation/expense_tracking_screen/actual_expenses_provider.dart';
 import 'package:noughtplan/widgets/custom_button_form.dart';
 import 'package:http/http.dart' as http;
+import 'package:purchases_flutter/purchases_flutter.dart';
 import 'dart:convert';
 import 'dart:ui' as ui;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -28,6 +32,10 @@ import 'package:flutter/material.dart';
 import 'package:noughtplan/core/app_export.dart';
 import 'package:noughtplan/widgets/custom_button.dart';
 import 'package:fl_chart/fl_chart.dart';
+
+import 'widgets/add_tracker_modal.dart';
+import 'widgets/debts_lists_widget.dart';
+import 'widgets/goals_lists_widget.dart';
 
 final buttonStateProvider =
     StateNotifierProvider.family<ButtonState, ButtonData, String>(
@@ -62,24 +70,38 @@ class InsightsNotifier extends StateNotifier<InsightsState> {
   void setDataList(List<InsightItem> dataList) {
     state = state.copyWith(dataList: dataList);
   }
+
+  void clearTimer() {
+    state.timer?.cancel();
+    state = state.copyWith(timer: null);
+  }
+
+  void setTimer(Timer timer) {
+    clearTimer();
+    state = state.copyWith(timer: timer);
+  }
 }
 
 class InsightsState {
   final bool isLoading;
   final List<InsightItem> dataList;
+  final Timer? timer;
 
   InsightsState({
     this.isLoading = false,
     this.dataList = const [],
+    this.timer,
   });
 
   InsightsState copyWith({
     bool? isLoading,
     List<InsightItem>? dataList,
+    Timer? timer,
   }) {
     return InsightsState(
       isLoading: isLoading ?? this.isLoading,
       dataList: dataList ?? this.dataList,
+      timer: timer ?? this.timer,
     );
   }
 }
@@ -218,7 +240,8 @@ class BudgetScreen extends HookConsumerWidget {
     totalRemainingFundsFormatted = numberFormat.format(totalRemainingFunds);
 
     // print('Total Amounts: $totalAmounts');
-    // print('Updated Selected Budget: $_updatedSelectedBudget');
+    print('Updated Selected Budget Goals: ${_updatedSelectedBudget?.goals}');
+    print('Updated Selected Budget Debts: ${_updatedSelectedBudget?.debts}');
 
     void updateExpensesOnLoad() {
       Future.microtask(
@@ -452,6 +475,9 @@ class BudgetScreen extends HookConsumerWidget {
         }
       });
 
+      ref.read(goalsProvider.notifier).loadGoals(budgetId);
+      ref.read(debtsProvider.notifier).loadDebts(budgetId);
+
       return () {}; // Clean-up function
     }, []);
 
@@ -513,7 +539,7 @@ class BudgetScreen extends HookConsumerWidget {
     final String totalExpensesFormatted = numberFormat.format(totalExpenses);
 
     final pieChartDataResult = _generatePieChartData(
-        necessaryCategories, discretionaryCategories, debtCategories);
+        context, necessaryCategories, discretionaryCategories, debtCategories);
     final PieChartData pieChartData = pieChartDataResult['pieChartData'];
     final percentages = pieChartDataResult['percentages'];
 
@@ -658,1693 +684,1756 @@ class BudgetScreen extends HookConsumerWidget {
       );
     }
 
+    Future<Map<String, dynamic>> getSubscriptionInfo() async {
+      final firebaseUser = FirebaseAuth.instance.currentUser;
+      Map<String, dynamic> subscriptionInfo = {
+        'isSubscribed': false,
+        'expiryDate': null
+      };
+
+      if (firebaseUser != null) {
+        try {
+          CustomerInfo customerInfo = await Purchases.getCustomerInfo();
+          bool isSubscribed =
+              customerInfo.entitlements.all['pro_features']?.isActive ?? false;
+
+          // parse the String into a DateTime
+          String? expiryDateString =
+              customerInfo.entitlements.all['pro_features']?.expirationDate;
+
+          String? managementUrl = customerInfo.managementURL;
+          DateTime? expiryDate;
+          if (expiryDateString != null) {
+            expiryDate = DateTime.parse(expiryDateString);
+          }
+
+          subscriptionInfo['isSubscribed'] = isSubscribed;
+          subscriptionInfo['expiryDate'] = expiryDate;
+          subscriptionInfo['managementUrl'] = managementUrl;
+        } catch (e) {
+          print('Failed to get customer info: $e');
+        }
+      }
+      return subscriptionInfo;
+    }
+
+    final subscriptionInfoFuture = useMemoized(() => getSubscriptionInfo(), []);
+
 //
 
-    return SafeArea(
-      child: Scaffold(
-        backgroundColor: ColorConstant.whiteA700,
-        body: Container(
-          height: getVerticalSize(812),
-          width: double.maxFinite,
-          child: Stack(
-            // alignment: Alignment.bottomCenter,
-            children: [
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: Transform(
-                  transform: Matrix4.identity()..scale(1.0, 1.0, 0.1),
-                  child: CustomImageView(
-                    imagePath: ImageConstant.imgTopographic7,
-                    height: MediaQuery.of(context).size.height *
-                        1, // Set the height to 50% of the screen height
-                    width: MediaQuery.of(context)
-                        .size
-                        .width, // Set the width to the full screen width
-                    // alignment: Alignment.,
+    return WillPopScope(
+      onWillPop: () async {
+        // Prevent navigation if insights are loading.
+        return !ref.read(insightsNotifierProvider).isLoading;
+      },
+      child: SafeArea(
+        child: Scaffold(
+          backgroundColor: ColorConstant.whiteA700,
+          body: Container(
+            height: getVerticalSize(812),
+            width: double.maxFinite,
+            child: Stack(
+              // alignment: Alignment.bottomCenter,
+              children: [
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: Transform(
+                    transform: Matrix4.identity()..scale(1.0, 1.0, 0.1),
+                    child: CustomImageView(
+                      imagePath: ImageConstant.imgTopographic7,
+                      height: MediaQuery.of(context).size.height *
+                          1, // Set the height to 50% of the screen height
+                      width: MediaQuery.of(context)
+                          .size
+                          .width, // Set the width to the full screen width
+                      // alignment: Alignment.,
+                    ),
                   ),
                 ),
-              ),
-              SingleChildScrollView(
-                controller: scrollController,
-                child: Container(
-                  padding: getPadding(bottom: 25),
-                  child: Column(
-                    children: [
-                      Container(
-                        height: getVerticalSize(
-                          75,
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            CustomImageView(
-                              imagePath: ImageConstant.imgGroup183001,
-                              height: getVerticalSize(
-                                53,
+                SingleChildScrollView(
+                  controller: scrollController,
+                  physics: BouncingScrollPhysics(),
+                  child: Container(
+                    padding: getPadding(bottom: 25),
+                    child: Column(
+                      children: [
+                        Container(
+                          height: getVerticalSize(
+                            75,
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              CustomImageView(
+                                imagePath: ImageConstant.imgGroup183001,
+                                height: getVerticalSize(
+                                  53,
+                                ),
+                                width: getHorizontalSize(
+                                  161,
+                                ),
+                                margin: getMargin(
+                                  left: 17,
+                                  top: 0,
+                                ),
+                                onTap: () {
+                                  Navigator.pushNamed(
+                                    context,
+                                    '/home_page_screen',
+                                  );
+                                },
                               ),
-                              width: getHorizontalSize(
-                                161,
-                              ),
-                              margin: getMargin(
-                                left: 17,
-                                top: 0,
-                              ),
-                            ),
-                            Align(
-                              alignment: Alignment.center,
-                              child: Row(
-                                children: [
-                                  Padding(
-                                    padding: getPadding(
-                                      right: 17,
-                                      top: 0,
-                                    ),
-                                    child: IconButton(
-                                      icon: CustomImageView(
-                                        svgPath: ImageConstant.imgEdit1,
-                                        height: getSize(24),
-                                        width: getSize(24),
+                              Align(
+                                alignment: Alignment.center,
+                                child: Row(
+                                  children: [
+                                    Padding(
+                                      padding: getPadding(
+                                        right: 17,
+                                        top: 0,
                                       ),
-                                      onPressed: () async {
-                                        final result = await showDialog<bool>(
-                                          context: context,
-                                          builder: (context) => AlertDialog(
-                                            title: Text(
-                                                'Watch a quick ad to Edit your budget!',
-                                                style: AppStyle
-                                                    .txtHelveticaNowTextBold18
-                                                    .copyWith(
-                                                        letterSpacing: 0.2)),
-                                            content: Text(
-                                                'To update your budget, we kindly ask that you watch a brief ad. We really appreciate your support and understanding.',
-                                                style: AppStyle
-                                                    .txtManropeRegular14
-                                                    .copyWith(
-                                                        color: ColorConstant
-                                                            .blueGray500,
-                                                        letterSpacing: 0.2)),
-                                            actions: [
-                                              TextButton(
-                                                onPressed: () => Navigator.pop(
-                                                    context, false),
-                                                child: Text('Cancel',
-                                                    style: AppStyle
-                                                        .txtHelveticaNowTextBold14
-                                                        .copyWith(
-                                                            color: ColorConstant
-                                                                .blueGray800,
-                                                            letterSpacing:
-                                                                0.2)),
-                                              ),
-                                              TextButton(
-                                                onPressed: () => Navigator.pop(
-                                                    context, true),
-                                                child: Text('Confirm',
-                                                    style: AppStyle
-                                                        .txtHelveticaNowTextBold14
-                                                        .copyWith(
-                                                            letterSpacing: 0.2,
-                                                            color: ColorConstant
-                                                                .blueA700)),
-                                              ),
-                                            ],
-                                          ),
-                                        );
+                                      child: IconButton(
+                                        icon: CustomImageView(
+                                          svgPath: ImageConstant.imgEdit1,
+                                          height: getSize(24),
+                                          width: getSize(24),
+                                        ),
+                                        onPressed: () async {
+                                          // Wrap your dialog with a FutureBuilder
+                                          bool? isSubscribed =
+                                              await showDialog<bool>(
+                                            context: context,
+                                            builder: (context) {
+                                              return FutureBuilder<
+                                                  Map<String, dynamic>>(
+                                                future: subscriptionInfoFuture,
+                                                builder: (BuildContext context,
+                                                    AsyncSnapshot<
+                                                            Map<String,
+                                                                dynamic>>
+                                                        snapshot) {
+                                                  if (snapshot
+                                                          .connectionState ==
+                                                      ConnectionState.waiting) {
+                                                    return SizedBox.shrink();
+                                                  } else if (snapshot
+                                                      .hasError) {
+                                                    print(snapshot.error);
+                                                    return AlertDialog(
+                                                      title: Text(
+                                                          'An error occurred'),
+                                                      actions: [
+                                                        TextButton(
+                                                          onPressed: () =>
+                                                              Navigator.pop(
+                                                                  context,
+                                                                  false),
+                                                          child: Text('Close'),
+                                                        ),
+                                                      ],
+                                                    );
+                                                  } else if (snapshot
+                                                      .data!['isSubscribed']) {
+                                                    // If user is subscribed, directly return true without showing the dialog
+                                                    return AlertDialog(
+                                                      title: Text(
+                                                          'Edit Your Budget',
+                                                          style: AppStyle
+                                                              .txtHelveticaNowTextBold18
+                                                              .copyWith(
+                                                                  letterSpacing:
+                                                                      0.2)),
+                                                      content: Text(
+                                                          'Would you like to edit your budget?',
+                                                          style: AppStyle
+                                                              .txtManropeRegular14
+                                                              .copyWith(
+                                                                  color: ColorConstant
+                                                                      .blueGray500,
+                                                                  letterSpacing:
+                                                                      0.2)),
+                                                      actions: [
+                                                        TextButton(
+                                                          onPressed: () =>
+                                                              Navigator.pop(
+                                                                  context,
+                                                                  false),
+                                                          child: Text('Cancel',
+                                                              style: AppStyle
+                                                                  .txtHelveticaNowTextBold14
+                                                                  .copyWith(
+                                                                      color: ColorConstant
+                                                                          .blueGray800,
+                                                                      letterSpacing:
+                                                                          0.2)),
+                                                        ),
+                                                        TextButton(
+                                                          onPressed: () {
+                                                            Navigator.pushNamed(
+                                                                context,
+                                                                '/generator_salary_screen_edit',
+                                                                arguments: {
+                                                                  'selectedBudget':
+                                                                      _updatedSelectedBudget
+                                                                });
+                                                          },
+                                                          child: Text('Confirm',
+                                                              style: AppStyle
+                                                                  .txtHelveticaNowTextBold14
+                                                                  .copyWith(
+                                                                      letterSpacing:
+                                                                          0.2,
+                                                                      color: ColorConstant
+                                                                          .blueA700)),
+                                                        ),
+                                                      ],
+                                                    );
+                                                  } else {
+                                                    // User is not subscribed, show the dialog to watch ads
+                                                    return AlertDialog(
+                                                      title: Text(
+                                                          'Watch a quick ad to Edit your budget!',
+                                                          style: AppStyle
+                                                              .txtHelveticaNowTextBold18
+                                                              .copyWith(
+                                                                  letterSpacing:
+                                                                      0.2)),
+                                                      content: Text(
+                                                          'To update your budget, we kindly ask that you watch a brief ad. We really appreciate your support and understanding.',
+                                                          style: AppStyle
+                                                              .txtManropeRegular14
+                                                              .copyWith(
+                                                                  color: ColorConstant
+                                                                      .blueGray500,
+                                                                  letterSpacing:
+                                                                      0.2)),
+                                                      actions: [
+                                                        TextButton(
+                                                          onPressed: () =>
+                                                              Navigator.pop(
+                                                                  context,
+                                                                  false),
+                                                          child: Text('Cancel',
+                                                              style: AppStyle
+                                                                  .txtHelveticaNowTextBold14
+                                                                  .copyWith(
+                                                                      color: ColorConstant
+                                                                          .blueGray800,
+                                                                      letterSpacing:
+                                                                          0.2)),
+                                                        ),
+                                                        TextButton(
+                                                          onPressed: () =>
+                                                              Navigator.pop(
+                                                                  context,
+                                                                  true),
+                                                          child: Text('Confirm',
+                                                              style: AppStyle
+                                                                  .txtHelveticaNowTextBold14
+                                                                  .copyWith(
+                                                                      letterSpacing:
+                                                                          0.2,
+                                                                      color: ColorConstant
+                                                                          .blueA700)),
+                                                        ),
+                                                      ],
+                                                    );
+                                                  }
+                                                },
+                                              );
+                                            },
+                                          );
 
-                                        if (result == true) {
-                                          await loadAndShowInterstitialAd(
-                                              context, ref);
-                                        }
-                                      },
+                                          if (isSubscribed == true) {
+                                            await loadAndShowInterstitialAd(
+                                                context, ref);
+                                          }
+                                        },
+                                      ),
                                     ),
-                                  ),
-                                  Padding(
-                                    padding: getPadding(
-                                      right: 17,
-                                      top: 0,
-                                    ),
-                                    child: GestureDetector(
-                                      onTap: () {
-                                        showDialog(
-                                          context: context,
-                                          builder: (BuildContext context) {
-                                            return AlertDialog(
-                                              title: Text(
-                                                'Budget Details',
-                                                textAlign: TextAlign.center,
-                                                style: AppStyle
-                                                    .txtHelveticaNowTextBold16,
-                                              ),
-                                              content: Column(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  Text(
-                                                    "",
-                                                    textAlign: TextAlign.center,
-                                                    style: AppStyle
-                                                        .txtManropeRegular14,
-                                                  ),
-                                                  FutureBuilder(
-                                                    future:
-                                                        _convertAndStoreTotals(
-                                                            selectedBudget
-                                                                .currency,
-                                                            necessaryTotal,
-                                                            discretionaryTotal),
-                                                    builder:
-                                                        (BuildContext context,
-                                                            AsyncSnapshot<
-                                                                    Map<String,
-                                                                        double>>
-                                                                snapshot) {
-                                                      if (snapshot
-                                                              .connectionState ==
-                                                          ConnectionState
-                                                              .waiting) {
-                                                        return LinearProgressIndicator();
-                                                      } else if (snapshot
-                                                          .hasError) {
-                                                        return Text(
-                                                            'Error: ${snapshot.error}');
-                                                      } else {
-                                                        final necessaryTotalUSD =
-                                                            snapshot.data![
-                                                                    'necessaryTotalUSD'] ??
-                                                                0.0;
-                                                        final discretionaryTotalUSD =
-                                                            snapshot.data![
-                                                                    'discretionaryTotalUSD'] ??
-                                                                0.0;
+                                    Padding(
+                                      padding: getPadding(
+                                        right: 17,
+                                        top: 0,
+                                      ),
+                                      child: GestureDetector(
+                                        onTap: () {
+                                          showDialog(
+                                            context: context,
+                                            builder: (BuildContext context) {
+                                              return AlertDialog(
+                                                title: Text(
+                                                  'Budget Details',
+                                                  textAlign: TextAlign.center,
+                                                  style: AppStyle
+                                                      .txtHelveticaNowTextBold16,
+                                                ),
+                                                content: Column(
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
+                                                  children: [
+                                                    Text(
+                                                      "",
+                                                      textAlign:
+                                                          TextAlign.center,
+                                                      style: AppStyle
+                                                          .txtManropeRegular14,
+                                                    ),
+                                                    FutureBuilder(
+                                                      future:
+                                                          _convertAndStoreTotals(
+                                                              selectedBudget
+                                                                  .currency,
+                                                              necessaryTotal,
+                                                              discretionaryTotal),
+                                                      builder: (BuildContext
+                                                              context,
+                                                          AsyncSnapshot<
+                                                                  Map<String,
+                                                                      double>>
+                                                              snapshot) {
+                                                        if (snapshot
+                                                                .connectionState ==
+                                                            ConnectionState
+                                                                .waiting) {
+                                                          return LinearProgressIndicator();
+                                                        } else if (snapshot
+                                                            .hasError) {
+                                                          return Text(
+                                                              'Error: ${snapshot.error}');
+                                                        } else {
+                                                          final necessaryTotalUSD =
+                                                              snapshot.data![
+                                                                      'necessaryTotalUSD'] ??
+                                                                  0.0;
+                                                          final discretionaryTotalUSD =
+                                                              snapshot.data![
+                                                                      'discretionaryTotalUSD'] ??
+                                                                  0.0;
 
-                                                        return SpendingTypeProgressBar(
-                                                          totalNecessaryExpense:
-                                                              necessaryTotalUSD,
-                                                          totalDiscretionaryExpense:
-                                                              discretionaryTotalUSD,
-                                                        );
-                                                      }
-                                                    },
-                                                  ),
-                                                  Padding(
-                                                    padding: getPadding(top: 7),
-                                                    child: Row(
-                                                      mainAxisAlignment:
-                                                          MainAxisAlignment
-                                                              .spaceBetween,
+                                                          return SpendingTypeProgressBar(
+                                                            totalNecessaryExpense:
+                                                                necessaryTotalUSD,
+                                                            totalDiscretionaryExpense:
+                                                                discretionaryTotalUSD,
+                                                          );
+                                                        }
+                                                      },
+                                                    ),
+                                                    Padding(
+                                                      padding:
+                                                          getPadding(top: 7),
+                                                      child: Row(
+                                                        mainAxisAlignment:
+                                                            MainAxisAlignment
+                                                                .spaceBetween,
+                                                        children: [
+                                                          Text(
+                                                            'Necessary\n Spender',
+                                                            style: AppStyle
+                                                                .txtManropeSemiBold10
+                                                                .copyWith(
+                                                              color: ColorConstant
+                                                                  .blueGray800,
+                                                            ),
+                                                            overflow:
+                                                                TextOverflow
+                                                                    .clip,
+                                                            softWrap: true,
+                                                          ),
+                                                          Text(
+                                                            'Balanced\n Spender',
+                                                            style: AppStyle
+                                                                .txtManropeSemiBold10
+                                                                .copyWith(
+                                                              color: ColorConstant
+                                                                  .blueGray800,
+                                                            ),
+                                                            overflow:
+                                                                TextOverflow
+                                                                    .clip,
+                                                            softWrap: true,
+                                                          ),
+                                                          Text(
+                                                            'Impulsive\n Spender',
+                                                            style: AppStyle
+                                                                .txtManropeSemiBold10
+                                                                .copyWith(
+                                                              color: ColorConstant
+                                                                  .blueGray800,
+                                                            ),
+                                                            overflow:
+                                                                TextOverflow
+                                                                    .clip,
+                                                            softWrap: true,
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                    Column(
                                                       children: [
-                                                        Text(
-                                                          'Necessary\n Spender',
-                                                          style: AppStyle
-                                                              .txtManropeSemiBold10
-                                                              .copyWith(
-                                                            color: ColorConstant
-                                                                .blueGray800,
-                                                          ),
-                                                          overflow:
-                                                              TextOverflow.clip,
-                                                          softWrap: true,
+                                                        SaverTypeProgressBar(
+                                                          spendingType:
+                                                              selectedBudget
+                                                                  .spendingType, // replace with the actual spending type
+                                                          savings:
+                                                              totalSavings, // replace with the actual savings amount
+                                                          salary: selectedBudget
+                                                              .salary, // replace with the actual salary amount
                                                         ),
-                                                        Text(
-                                                          'Balanced\n Spender',
-                                                          style: AppStyle
-                                                              .txtManropeSemiBold10
-                                                              .copyWith(
-                                                            color: ColorConstant
-                                                                .blueGray800,
+                                                        Padding(
+                                                          padding: getPadding(
+                                                              top: 7),
+                                                          child: Row(
+                                                            mainAxisAlignment:
+                                                                MainAxisAlignment
+                                                                    .spaceBetween,
+                                                            children: getSavingsLabels(
+                                                                selectedBudget
+                                                                    .spendingType),
                                                           ),
-                                                          overflow:
-                                                              TextOverflow.clip,
-                                                          softWrap: true,
+                                                        )
+                                                      ],
+                                                    ),
+                                                    Column(
+                                                      children: [
+                                                        DebtTypeProgressBar(
+                                                          debt: debtTotal,
+                                                          income: selectedBudget
+                                                              .salary,
                                                         ),
-                                                        Text(
-                                                          'Impulsive\n Spender',
-                                                          style: AppStyle
-                                                              .txtManropeSemiBold10
-                                                              .copyWith(
-                                                            color: ColorConstant
-                                                                .blueGray800,
+                                                        Padding(
+                                                          padding: getPadding(
+                                                              top: 7),
+                                                          child: Row(
+                                                            mainAxisAlignment:
+                                                                MainAxisAlignment
+                                                                    .spaceBetween,
+                                                            children: [
+                                                              Text(
+                                                                'Debt\nFree',
+                                                                style: AppStyle
+                                                                    .txtManropeSemiBold10
+                                                                    .copyWith(
+                                                                  color: ColorConstant
+                                                                      .blueGray800,
+                                                                ),
+                                                                textAlign:
+                                                                    TextAlign
+                                                                        .center,
+                                                                overflow:
+                                                                    TextOverflow
+                                                                        .clip,
+                                                                softWrap: true,
+                                                              ),
+                                                              Padding(
+                                                                padding:
+                                                                    getPadding(
+                                                                        right:
+                                                                            16),
+                                                                child: Text(
+                                                                  'Minimal\nDebt',
+                                                                  style: AppStyle
+                                                                      .txtManropeSemiBold10
+                                                                      .copyWith(
+                                                                    color: ColorConstant
+                                                                        .blueGray800,
+                                                                  ),
+                                                                  textAlign:
+                                                                      TextAlign
+                                                                          .center,
+                                                                  overflow:
+                                                                      TextOverflow
+                                                                          .clip,
+                                                                  softWrap:
+                                                                      true,
+                                                                ),
+                                                              ),
+                                                              Padding(
+                                                                padding:
+                                                                    getPadding(
+                                                                        right:
+                                                                            16),
+                                                                child: Text(
+                                                                  'Moderate\nDebt',
+                                                                  style: AppStyle
+                                                                      .txtManropeSemiBold10
+                                                                      .copyWith(
+                                                                    color: ColorConstant
+                                                                        .blueGray800,
+                                                                  ),
+                                                                  textAlign:
+                                                                      TextAlign
+                                                                          .center,
+                                                                  overflow:
+                                                                      TextOverflow
+                                                                          .clip,
+                                                                  softWrap:
+                                                                      true,
+                                                                ),
+                                                              ),
+                                                              Text(
+                                                                'Danger\nZone',
+                                                                style: AppStyle
+                                                                    .txtManropeSemiBold10
+                                                                    .copyWith(
+                                                                  color: ColorConstant
+                                                                      .blueGray800,
+                                                                ),
+                                                                textAlign:
+                                                                    TextAlign
+                                                                        .center,
+                                                                overflow:
+                                                                    TextOverflow
+                                                                        .clip,
+                                                                softWrap: true,
+                                                              ),
+                                                              Text(
+                                                                'High\nDebt',
+                                                                style: AppStyle
+                                                                    .txtManropeSemiBold10
+                                                                    .copyWith(
+                                                                  color: ColorConstant
+                                                                      .blueGray800,
+                                                                ),
+                                                                textAlign:
+                                                                    TextAlign
+                                                                        .center,
+                                                                overflow:
+                                                                    TextOverflow
+                                                                        .clip,
+                                                                softWrap: true,
+                                                              ),
+                                                            ],
                                                           ),
-                                                          overflow:
-                                                              TextOverflow.clip,
-                                                          softWrap: true,
+                                                        ),
+                                                        Padding(
+                                                          padding:
+                                                              EdgeInsets.all(
+                                                                  20),
+                                                          child:
+                                                              StatefulBuilder(
+                                                            builder: (BuildContext
+                                                                    context,
+                                                                StateSetter
+                                                                    setState) {
+                                                              List<
+                                                                      DropdownMenuItem<
+                                                                          String>>
+                                                                  getCategoryItems() {
+                                                                List<String>
+                                                                    categories =
+                                                                    [
+                                                                  // Add your categories here (spendingType, savingType, and debtType)
+                                                                  'Necessary Spender',
+                                                                  'Balanced Spender',
+                                                                  'Impulsive Spender',
+                                                                  'Cautious',
+                                                                  'Frugal',
+                                                                  'Prudent Saver',
+                                                                  'Limited Saver',
+                                                                  'Strategic',
+                                                                  'Balanced Saver',
+                                                                  'Debt Free',
+                                                                  'Minimal Debt',
+                                                                  'Moderate Debt',
+                                                                  'Danger Zone',
+                                                                  'High Debt',
+                                                                ];
+
+                                                                return categories.map<
+                                                                    DropdownMenuItem<
+                                                                        String>>((String
+                                                                    category) {
+                                                                  return DropdownMenuItem<
+                                                                      String>(
+                                                                    value:
+                                                                        category,
+                                                                    child: Text(
+                                                                        category),
+                                                                  );
+                                                                }).toList();
+                                                              }
+
+                                                              void updateExplanation(
+                                                                  String?
+                                                                      category) {
+                                                                String
+                                                                    explanation =
+                                                                    '';
+
+                                                                // Update the explanation variable based on the selected category
+                                                                // Add explanations for each category
+                                                                switch (
+                                                                    category) {
+                                                                  case 'Necessary Spender':
+                                                                    explanation =
+                                                                        'A Necessary Spender is someone who primarily spends on essential expenses such as housing, utilities, food, and healthcare. They are cautious with their money and avoid unnecessary expenses.';
+                                                                    break;
+                                                                  case 'Balanced Spender':
+                                                                    explanation =
+                                                                        'A Balanced Spender is someone who manages their money well by covering essential expenses, saving for the future, and occasionally indulging in non-essential items or experiences. They maintain a healthy balance between needs and wants.';
+                                                                    break;
+                                                                  case 'Impulsive Spender':
+                                                                    explanation =
+                                                                        'An Impulsive Spender is someone who frequently makes unplanned purchases, often prioritizing immediate gratification over long-term financial goals. They may struggle with saving money and are more susceptible to impulse buys.';
+                                                                    break;
+                                                                  case 'Cautious':
+                                                                    explanation =
+                                                                        'A Cautious saver is someone who has some savings but has not yet reached a comfortable emergency fund. They may be working on increasing their savings to achieve financial security.';
+                                                                    break;
+                                                                  case 'Frugal':
+                                                                    explanation =
+                                                                        'A Frugal saver is someone who is very careful with their money and prioritizes saving over spending. They often have a substantial emergency fund and may also be saving for long-term goals like retirement or a down payment on a home.';
+                                                                    break;
+                                                                  case 'Prudent Saver':
+                                                                    explanation =
+                                                                        'A Prudent Saver is someone who consistently saves money and makes thoughtful decisions about their spending. They prioritize financial goals and have a strong safety net in case of emergencies.';
+                                                                    break;
+                                                                  case 'Limited Saver':
+                                                                    explanation =
+                                                                        'A Limited Saver is someone who saves some money but may struggle to consistently prioritize savings. They might have difficulty building an emergency fund or saving for long-term goals.';
+                                                                    break;
+                                                                  case 'Strategic':
+                                                                    explanation =
+                                                                        'A Strategic saver is someone who plans their savings and investments to achieve specific financial goals. They have a solid financial plan and allocate their money accordingly to maximize their financial potential.';
+                                                                    break;
+                                                                  case 'Balanced Saver':
+                                                                    explanation =
+                                                                        'A Balanced Saver is someone who saves a moderate amount of their income, focusing on both short-term and long-term financial goals. They maintain a balance between saving, investing, and spending on necessities and occasional wants.';
+                                                                    break;
+                                                                  case 'Debt Free':
+                                                                    explanation =
+                                                                        'Debt Free refers to a financial situation where an individual has no outstanding debts, such as credit card balances, student loans, or car loans. Being debt-free can provide financial flexibility and peace of mind.';
+                                                                    break;
+                                                                  case 'Minimal Debt':
+                                                                    explanation =
+                                                                        'Minimal Debt refers to a financial situation where an individual has a small amount of debt relative to their income and assets. This can make it easier to manage and pay off debts, as well as save and invest for the future.';
+                                                                    break;
+                                                                  case 'Moderate Debt':
+                                                                    explanation =
+                                                                        'Moderate Debt refers to a financial situation where an individual has a moderate amount of debt relative to their income and assets. This can make it more challenging to manage and pay off debts, as well as save and invest for the future.';
+                                                                    break;
+                                                                  case 'Danger Zone':
+                                                                    explanation =
+                                                                        'Danger Zone refers to a financial situation where an individual has a high amount of debt relative to their income and assets. This can create significant financial stress and make it difficult to manage debts, save, or invest. It may require a more aggressive debt repayment plan to regain financial stability.';
+                                                                    break;
+                                                                  case 'High Debt':
+                                                                    explanation =
+                                                                        'High Debt refers to a financial situation where an individual has an extremely high amount of debt relative to their income and assets. This can lead to severe financial strain and may necessitate drastic changes to spending habits or seeking professional help to regain control of their finances.';
+                                                                    break;
+                                                                  default:
+                                                                    explanation =
+                                                                        'Please select a category to see its explanation.';
+                                                                }
+
+                                                                setState(() {
+                                                                  _explanation =
+                                                                      explanation;
+                                                                });
+                                                              }
+
+                                                              return Column(
+                                                                children: [
+                                                                  Padding(
+                                                                    padding: EdgeInsets
+                                                                        .only(
+                                                                            top:
+                                                                                8),
+                                                                    child: Text(
+                                                                      'Use the dropdown below to learn more about each user category.',
+                                                                      textAlign:
+                                                                          TextAlign
+                                                                              .center,
+                                                                      style: AppStyle
+                                                                          .txtManropeSemiBold12
+                                                                          .copyWith(
+                                                                        color: ColorConstant
+                                                                            .blueGray800,
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                  Padding(
+                                                                    padding: EdgeInsets
+                                                                        .only(
+                                                                            top:
+                                                                                8),
+                                                                    child: DropdownButton<
+                                                                        String>(
+                                                                      hint: Text(
+                                                                          'Select a category'),
+                                                                      style: AppStyle
+                                                                          .txtManropeBold14
+                                                                          .copyWith(
+                                                                              color: ColorConstant.blueGray800),
+                                                                      value:
+                                                                          _selectedCategory,
+                                                                      items:
+                                                                          getCategoryItems(),
+                                                                      onChanged:
+                                                                          (String?
+                                                                              newValue) {
+                                                                        // print(
+                                                                        //     newValue);
+                                                                        setState(
+                                                                            () {
+                                                                          _selectedCategory =
+                                                                              newValue;
+                                                                        });
+                                                                        updateExplanation(
+                                                                            newValue);
+                                                                      },
+                                                                    ),
+                                                                  ),
+                                                                  Padding(
+                                                                    padding: EdgeInsets
+                                                                        .only(
+                                                                            top:
+                                                                                8),
+                                                                    child: Text(
+                                                                      _explanation,
+                                                                      textAlign:
+                                                                          TextAlign
+                                                                              .center,
+                                                                      style: AppStyle
+                                                                          .txtManropeRegular12
+                                                                          .copyWith(
+                                                                        color: ColorConstant
+                                                                            .blueGray800,
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                ],
+                                                              );
+                                                            },
+                                                          ),
                                                         ),
                                                       ],
                                                     ),
-                                                  ),
-                                                  Column(
-                                                    children: [
-                                                      SaverTypeProgressBar(
-                                                        spendingType: selectedBudget
-                                                            .spendingType, // replace with the actual spending type
-                                                        savings:
-                                                            totalSavings, // replace with the actual savings amount
-                                                        salary: selectedBudget
-                                                            .salary, // replace with the actual salary amount
-                                                      ),
-                                                      Padding(
-                                                        padding:
-                                                            getPadding(top: 7),
-                                                        child: Row(
-                                                          mainAxisAlignment:
-                                                              MainAxisAlignment
-                                                                  .spaceBetween,
-                                                          children:
-                                                              getSavingsLabels(
-                                                                  selectedBudget
-                                                                      .spendingType),
-                                                        ),
-                                                      )
-                                                    ],
-                                                  ),
-                                                  Column(
-                                                    children: [
-                                                      DebtTypeProgressBar(
-                                                        debt: debtTotal,
-                                                        income: selectedBudget
-                                                            .salary,
-                                                      ),
-                                                      Padding(
-                                                        padding:
-                                                            getPadding(top: 7),
-                                                        child: Row(
-                                                          mainAxisAlignment:
-                                                              MainAxisAlignment
-                                                                  .spaceBetween,
-                                                          children: [
-                                                            Text(
-                                                              'Debt\nFree',
-                                                              style: AppStyle
-                                                                  .txtManropeSemiBold10
-                                                                  .copyWith(
-                                                                color: ColorConstant
-                                                                    .blueGray800,
-                                                              ),
-                                                              textAlign:
-                                                                  TextAlign
-                                                                      .center,
-                                                              overflow:
-                                                                  TextOverflow
-                                                                      .clip,
-                                                              softWrap: true,
-                                                            ),
-                                                            Padding(
-                                                              padding:
-                                                                  getPadding(
-                                                                      right:
-                                                                          16),
-                                                              child: Text(
-                                                                'Minimal\nDebt',
-                                                                style: AppStyle
-                                                                    .txtManropeSemiBold10
-                                                                    .copyWith(
-                                                                  color: ColorConstant
-                                                                      .blueGray800,
-                                                                ),
-                                                                textAlign:
-                                                                    TextAlign
-                                                                        .center,
-                                                                overflow:
-                                                                    TextOverflow
-                                                                        .clip,
-                                                                softWrap: true,
-                                                              ),
-                                                            ),
-                                                            Padding(
-                                                              padding:
-                                                                  getPadding(
-                                                                      right:
-                                                                          16),
-                                                              child: Text(
-                                                                'Moderate\nDebt',
-                                                                style: AppStyle
-                                                                    .txtManropeSemiBold10
-                                                                    .copyWith(
-                                                                  color: ColorConstant
-                                                                      .blueGray800,
-                                                                ),
-                                                                textAlign:
-                                                                    TextAlign
-                                                                        .center,
-                                                                overflow:
-                                                                    TextOverflow
-                                                                        .clip,
-                                                                softWrap: true,
-                                                              ),
-                                                            ),
-                                                            Text(
-                                                              'Danger\nZone',
-                                                              style: AppStyle
-                                                                  .txtManropeSemiBold10
-                                                                  .copyWith(
-                                                                color: ColorConstant
-                                                                    .blueGray800,
-                                                              ),
-                                                              textAlign:
-                                                                  TextAlign
-                                                                      .center,
-                                                              overflow:
-                                                                  TextOverflow
-                                                                      .clip,
-                                                              softWrap: true,
-                                                            ),
-                                                            Text(
-                                                              'High\nDebt',
-                                                              style: AppStyle
-                                                                  .txtManropeSemiBold10
-                                                                  .copyWith(
-                                                                color: ColorConstant
-                                                                    .blueGray800,
-                                                              ),
-                                                              textAlign:
-                                                                  TextAlign
-                                                                      .center,
-                                                              overflow:
-                                                                  TextOverflow
-                                                                      .clip,
-                                                              softWrap: true,
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      ),
-                                                      Padding(
-                                                        padding:
-                                                            EdgeInsets.all(20),
-                                                        child: StatefulBuilder(
-                                                          builder: (BuildContext
-                                                                  context,
-                                                              StateSetter
-                                                                  setState) {
-                                                            List<
-                                                                    DropdownMenuItem<
-                                                                        String>>
-                                                                getCategoryItems() {
-                                                              List<String>
-                                                                  categories = [
-                                                                // Add your categories here (spendingType, savingType, and debtType)
-                                                                'Necessary Spender',
-                                                                'Balanced Spender',
-                                                                'Impulsive Spender',
-                                                                'Cautious',
-                                                                'Frugal',
-                                                                'Prudent Saver',
-                                                                'Limited Saver',
-                                                                'Strategic',
-                                                                'Balanced Saver',
-                                                                'Debt Free',
-                                                                'Minimal Debt',
-                                                                'Moderate Debt',
-                                                                'Danger Zone',
-                                                                'High Debt',
-                                                              ];
-
-                                                              return categories.map<
-                                                                  DropdownMenuItem<
-                                                                      String>>((String
-                                                                  category) {
-                                                                return DropdownMenuItem<
-                                                                    String>(
-                                                                  value:
-                                                                      category,
-                                                                  child: Text(
-                                                                      category),
-                                                                );
-                                                              }).toList();
-                                                            }
-
-                                                            void updateExplanation(
-                                                                String?
-                                                                    category) {
-                                                              String
-                                                                  explanation =
-                                                                  '';
-
-                                                              // Update the explanation variable based on the selected category
-                                                              // Add explanations for each category
-                                                              switch (
-                                                                  category) {
-                                                                case 'Necessary Spender':
-                                                                  explanation =
-                                                                      'A Necessary Spender is someone who primarily spends on essential expenses such as housing, utilities, food, and healthcare. They are cautious with their money and avoid unnecessary expenses.';
-                                                                  break;
-                                                                case 'Balanced Spender':
-                                                                  explanation =
-                                                                      'A Balanced Spender is someone who manages their money well by covering essential expenses, saving for the future, and occasionally indulging in non-essential items or experiences. They maintain a healthy balance between needs and wants.';
-                                                                  break;
-                                                                case 'Impulsive Spender':
-                                                                  explanation =
-                                                                      'An Impulsive Spender is someone who frequently makes unplanned purchases, often prioritizing immediate gratification over long-term financial goals. They may struggle with saving money and are more susceptible to impulse buys.';
-                                                                  break;
-                                                                case 'Cautious':
-                                                                  explanation =
-                                                                      'A Cautious saver is someone who has some savings but has not yet reached a comfortable emergency fund. They may be working on increasing their savings to achieve financial security.';
-                                                                  break;
-                                                                case 'Frugal':
-                                                                  explanation =
-                                                                      'A Frugal saver is someone who is very careful with their money and prioritizes saving over spending. They often have a substantial emergency fund and may also be saving for long-term goals like retirement or a down payment on a home.';
-                                                                  break;
-                                                                case 'Prudent Saver':
-                                                                  explanation =
-                                                                      'A Prudent Saver is someone who consistently saves money and makes thoughtful decisions about their spending. They prioritize financial goals and have a strong safety net in case of emergencies.';
-                                                                  break;
-                                                                case 'Limited Saver':
-                                                                  explanation =
-                                                                      'A Limited Saver is someone who saves some money but may struggle to consistently prioritize savings. They might have difficulty building an emergency fund or saving for long-term goals.';
-                                                                  break;
-                                                                case 'Strategic':
-                                                                  explanation =
-                                                                      'A Strategic saver is someone who plans their savings and investments to achieve specific financial goals. They have a solid financial plan and allocate their money accordingly to maximize their financial potential.';
-                                                                  break;
-                                                                case 'Balanced Saver':
-                                                                  explanation =
-                                                                      'A Balanced Saver is someone who saves a moderate amount of their income, focusing on both short-term and long-term financial goals. They maintain a balance between saving, investing, and spending on necessities and occasional wants.';
-                                                                  break;
-                                                                case 'Debt Free':
-                                                                  explanation =
-                                                                      'Debt Free refers to a financial situation where an individual has no outstanding debts, such as credit card balances, student loans, or car loans. Being debt-free can provide financial flexibility and peace of mind.';
-                                                                  break;
-                                                                case 'Minimal Debt':
-                                                                  explanation =
-                                                                      'Minimal Debt refers to a financial situation where an individual has a small amount of debt relative to their income and assets. This can make it easier to manage and pay off debts, as well as save and invest for the future.';
-                                                                  break;
-                                                                case 'Moderate Debt':
-                                                                  explanation =
-                                                                      'Moderate Debt refers to a financial situation where an individual has a moderate amount of debt relative to their income and assets. This can make it more challenging to manage and pay off debts, as well as save and invest for the future.';
-                                                                  break;
-                                                                case 'Danger Zone':
-                                                                  explanation =
-                                                                      'Danger Zone refers to a financial situation where an individual has a high amount of debt relative to their income and assets. This can create significant financial stress and make it difficult to manage debts, save, or invest. It may require a more aggressive debt repayment plan to regain financial stability.';
-                                                                  break;
-                                                                case 'High Debt':
-                                                                  explanation =
-                                                                      'High Debt refers to a financial situation where an individual has an extremely high amount of debt relative to their income and assets. This can lead to severe financial strain and may necessitate drastic changes to spending habits or seeking professional help to regain control of their finances.';
-                                                                  break;
-                                                                default:
-                                                                  explanation =
-                                                                      'Please select a category to see its explanation.';
-                                                              }
-
-                                                              setState(() {
-                                                                _explanation =
-                                                                    explanation;
-                                                              });
-                                                            }
-
-                                                            return Column(
-                                                              children: [
-                                                                Padding(
-                                                                  padding:
-                                                                      EdgeInsets
-                                                                          .only(
-                                                                              top: 8),
-                                                                  child: Text(
-                                                                    'Use the dropdown below to learn more about each user category.',
-                                                                    textAlign:
-                                                                        TextAlign
-                                                                            .center,
-                                                                    style: AppStyle
-                                                                        .txtManropeSemiBold12
-                                                                        .copyWith(
-                                                                      color: ColorConstant
-                                                                          .blueGray800,
-                                                                    ),
-                                                                  ),
-                                                                ),
-                                                                Padding(
-                                                                  padding:
-                                                                      EdgeInsets
-                                                                          .only(
-                                                                              top: 8),
-                                                                  child:
-                                                                      DropdownButton<
-                                                                          String>(
-                                                                    hint: Text(
-                                                                        'Select a category'),
-                                                                    style: AppStyle
-                                                                        .txtManropeBold14
-                                                                        .copyWith(
-                                                                            color:
-                                                                                ColorConstant.blueGray800),
-                                                                    value:
-                                                                        _selectedCategory,
-                                                                    items:
-                                                                        getCategoryItems(),
-                                                                    onChanged:
-                                                                        (String?
-                                                                            newValue) {
-                                                                      // print(
-                                                                      //     newValue);
-                                                                      setState(
-                                                                          () {
-                                                                        _selectedCategory =
-                                                                            newValue;
-                                                                      });
-                                                                      updateExplanation(
-                                                                          newValue);
-                                                                    },
-                                                                  ),
-                                                                ),
-                                                                Padding(
-                                                                  padding:
-                                                                      EdgeInsets
-                                                                          .only(
-                                                                              top: 8),
-                                                                  child: Text(
-                                                                    _explanation,
-                                                                    textAlign:
-                                                                        TextAlign
-                                                                            .center,
-                                                                    style: AppStyle
-                                                                        .txtManropeRegular12
-                                                                        .copyWith(
-                                                                      color: ColorConstant
-                                                                          .blueGray800,
-                                                                    ),
-                                                                  ),
-                                                                ),
-                                                              ],
-                                                            );
-                                                          },
-                                                        ),
-                                                      ),
-                                                    ],
+                                                  ],
+                                                ),
+                                                actions: [
+                                                  TextButton(
+                                                    onPressed: () =>
+                                                        Navigator.pop(context),
+                                                    child: Text('Close'),
                                                   ),
                                                 ],
-                                              ),
-                                              actions: [
-                                                TextButton(
-                                                  onPressed: () =>
-                                                      Navigator.pop(context),
-                                                  child: Text('Close'),
-                                                ),
-                                              ],
-                                            );
-                                          },
-                                        );
-                                      },
-                                      child: Container(
-                                        child: SvgPicture.asset(
-                                          ImageConstant.imgQuestion,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Container(
-                        child: Padding(
-                          padding: getPadding(
-                            top: 8,
-                          ),
-                          child: Align(
-                            alignment: Alignment.topCenter,
-                            child: Padding(
-                              padding: getPadding(
-                                left: 30,
-                                right: 30,
-                                bottom: 1,
-                              ),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment: MainAxisAlignment.start,
-                                children: [
-                                  Padding(
-                                    padding: getPadding(
-                                      left: 0,
-                                      right: 0,
-                                    ),
-                                    child: Neumorphic(
-                                      style: NeumorphicStyle(
-                                        shape: NeumorphicShape.convex,
-                                        boxShape: NeumorphicBoxShape.roundRect(
-                                            BorderRadius.circular(20)),
-                                        depth: 0.5,
-                                        intensity: 2,
-                                        surfaceIntensity: 0.8,
-                                        lightSource: LightSource.top,
-                                        color: ColorConstant.gray50,
-                                      ),
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          borderRadius:
-                                              BorderRadius.circular(20),
-                                          gradient: LinearGradient(
-                                            colors: [
-                                              getColorForSpendingType(
-                                                  selectedBudget.spendingType),
-                                              getColorForSavingType(
-                                                  selectedBudget.savingType),
-                                              getColorForDebtType(
-                                                  selectedBudget.debtType),
-                                            ],
-                                            stops: [0.0, 0.5, 1.0],
+                                              );
+                                            },
+                                          );
+                                        },
+                                        child: Container(
+                                          child: SvgPicture.asset(
+                                            ImageConstant.imgQuestion,
                                           ),
                                         ),
-                                        height: 13,
-                                        child: Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            Expanded(
-                                              child: Container(
-                                                child: SpendingTypePill(
-                                                  type: selectedBudget
-                                                      .spendingType,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          child: Padding(
+                            padding: getPadding(
+                              top: 8,
+                            ),
+                            child: Align(
+                              alignment: Alignment.topCenter,
+                              child: Padding(
+                                padding: getPadding(
+                                  left: 30,
+                                  right: 30,
+                                  bottom: 1,
+                                ),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  children: [
+                                    Padding(
+                                      padding: getPadding(
+                                        left: 0,
+                                        right: 0,
+                                      ),
+                                      child: Neumorphic(
+                                        style: NeumorphicStyle(
+                                          shape: NeumorphicShape.convex,
+                                          boxShape:
+                                              NeumorphicBoxShape.roundRect(
+                                                  BorderRadius.circular(20)),
+                                          depth: 0.5,
+                                          intensity: 2,
+                                          surfaceIntensity: 0.8,
+                                          lightSource: LightSource.top,
+                                          color: ColorConstant.gray50,
+                                        ),
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                            borderRadius:
+                                                BorderRadius.circular(20),
+                                            gradient: LinearGradient(
+                                              colors: [
+                                                getColorForSpendingType(
+                                                    selectedBudget
+                                                        .spendingType),
+                                                getColorForSavingType(
+                                                    selectedBudget.savingType),
+                                                getColorForDebtType(
+                                                    selectedBudget.debtType),
+                                              ],
+                                              stops: [0.0, 0.5, 1.0],
+                                            ),
+                                          ),
+                                          height: 13,
+                                          child: Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Expanded(
+                                                child: Container(
+                                                  child: SpendingTypePill(
+                                                    type: selectedBudget
+                                                        .spendingType,
+                                                  ),
                                                 ),
                                               ),
-                                            ),
-                                            Expanded(
-                                              child: Container(
-                                                child: SavingTypePill(
-                                                  type:
-                                                      selectedBudget.savingType,
+                                              Expanded(
+                                                child: Container(
+                                                  child: SavingTypePill(
+                                                    type: selectedBudget
+                                                        .savingType,
+                                                  ),
                                                 ),
                                               ),
-                                            ),
-                                            Expanded(
-                                              child: Container(
-                                                child: DebtTypePill(
-                                                  type: selectedBudget.debtType,
+                                              Expanded(
+                                                child: Container(
+                                                  child: DebtTypePill(
+                                                    type:
+                                                        selectedBudget.debtType,
+                                                  ),
                                                 ),
                                               ),
-                                            ),
-                                          ],
+                                            ],
+                                          ),
                                         ),
                                       ),
                                     ),
-                                  ),
-                                  Padding(
-                                    padding: getPadding(top: 7),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(selectedBudget.spendingType,
-                                            style: AppStyle.txtManropeSemiBold12
-                                                .copyWith(
-                                              color: getColorForSpendingType(
-                                                  selectedBudget.spendingType),
-                                            )),
-                                        Text(selectedBudget.savingType,
-                                            style: AppStyle.txtManropeSemiBold12
-                                                .copyWith(
-                                              color: getColorForSavingType(
-                                                  selectedBudget.savingType),
-                                            )),
-                                        Text(selectedBudget.debtType,
-                                            style: AppStyle.txtManropeSemiBold12
-                                                .copyWith(
-                                              color: getColorForDebtType(
-                                                  selectedBudget.debtType),
-                                            )),
-                                      ],
-                                    ),
-                                  ),
-                                  Container(
-                                    padding: getPadding(
-                                      top: 20,
-                                    ),
-                                    width: double.maxFinite,
-                                    child: Neumorphic(
-                                      style: NeumorphicStyle(
-                                        shape: NeumorphicShape.flat,
-                                        boxShape: NeumorphicBoxShape.roundRect(
-                                            BorderRadius.circular(20)),
-                                        depth: 3,
-                                        intensity: 0.5,
-                                        lightSource: LightSource.topLeft,
-                                        color: ColorConstant.gray50,
+                                    Padding(
+                                      padding: getPadding(top: 7),
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(selectedBudget.spendingType,
+                                              style: AppStyle
+                                                  .txtManropeSemiBold12
+                                                  .copyWith(
+                                                color: getColorForSpendingType(
+                                                    selectedBudget
+                                                        .spendingType),
+                                              )),
+                                          Text(selectedBudget.savingType,
+                                              style: AppStyle
+                                                  .txtManropeSemiBold12
+                                                  .copyWith(
+                                                color: getColorForSavingType(
+                                                    selectedBudget.savingType),
+                                              )),
+                                          Text(selectedBudget.debtType,
+                                              style: AppStyle
+                                                  .txtManropeSemiBold12
+                                                  .copyWith(
+                                                color: getColorForDebtType(
+                                                    selectedBudget.debtType),
+                                              )),
+                                        ],
                                       ),
-                                      child: Container(
-                                        width: getHorizontalSize(
-                                          327,
+                                    ),
+                                    Container(
+                                      padding: getPadding(
+                                        top: 20,
+                                      ),
+                                      width: double.maxFinite,
+                                      child: Neumorphic(
+                                        style: NeumorphicStyle(
+                                          shape: NeumorphicShape.flat,
+                                          boxShape:
+                                              NeumorphicBoxShape.roundRect(
+                                                  BorderRadius.circular(20)),
+                                          depth: 3,
+                                          intensity: 0.5,
+                                          lightSource: LightSource.topLeft,
+                                          color: ColorConstant.gray50,
                                         ),
-                                        // margin: getMargin(
-                                        //   top: 15,
-                                        // ),
-                                        padding: getPadding(
-                                          left: 5,
-                                          top: 30,
-                                          right: 5,
-                                          bottom: 15,
-                                        ),
-                                        decoration: AppDecoration.outlineGray100
-                                            .copyWith(
-                                          borderRadius:
-                                              BorderRadiusStyle.roundedBorder12,
-                                        ),
-                                        child: Column(
-                                          mainAxisSize: MainAxisSize.min,
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.end,
-                                          children: [
-                                            Neumorphic(
-                                              style: NeumorphicStyle(
-                                                shape: NeumorphicShape.convex,
-                                                boxShape: NeumorphicBoxShape
-                                                    .roundRect(
+                                        child: Container(
+                                          width: getHorizontalSize(
+                                            327,
+                                          ),
+                                          padding: getPadding(
+                                            left: 5,
+                                            top: 30,
+                                            right: 5,
+                                            bottom: 15,
+                                          ),
+                                          decoration: AppDecoration
+                                              .outlineGray100
+                                              .copyWith(
+                                            borderRadius: BorderRadiusStyle
+                                                .roundedBorder12,
+                                          ),
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.end,
+                                            children: [
+                                              Neumorphic(
+                                                style: NeumorphicStyle(
+                                                  shape: NeumorphicShape.convex,
+                                                  boxShape: NeumorphicBoxShape
+                                                      .circle(),
+                                                  depth: 1,
+                                                  intensity: 0.7,
+                                                  lightSource:
+                                                      LightSource.topLeft,
+                                                  color: ColorConstant.gray50,
+                                                ),
+                                                child: Container(
+                                                  height: MediaQuery.of(context)
+                                                          .size
+                                                          .width *
+                                                      0.78, // 40% of screen width
+                                                  width: MediaQuery.of(context)
+                                                          .size
+                                                          .width *
+                                                      0.78,
+                                                  decoration: BoxDecoration(
+                                                    borderRadius:
                                                         BorderRadius.circular(
-                                                            320)),
-                                                depth: 1,
-                                                intensity: 0.7,
-                                                lightSource:
-                                                    LightSource.topLeft,
-                                                color: ColorConstant.gray50,
-                                              ),
-                                              child: Container(
-                                                height: getSize(320),
-                                                width: getSize(320),
-                                                child: Stack(
-                                                  alignment: Alignment.center,
-                                                  children: [
-                                                    Align(
-                                                      alignment:
-                                                          Alignment.center,
-                                                      child: Neumorphic(
-                                                        style: NeumorphicStyle(
-                                                          shape: NeumorphicShape
-                                                              .concave,
-                                                          boxShape: NeumorphicBoxShape
-                                                              .roundRect(
-                                                                  BorderRadius
-                                                                      .circular(
-                                                                          195)),
-                                                          depth: 20,
-                                                          intensity: 0.5,
-                                                          surfaceIntensity: 0.1,
-                                                          lightSource:
-                                                              LightSource
-                                                                  .topLeft,
-                                                          color: ColorConstant
-                                                              .gray100,
-                                                        ),
-                                                        child: Container(
-                                                          child: PieChart(
-                                                            pieChartData,
+                                                            MediaQuery.of(
+                                                                        context)
+                                                                    .size
+                                                                    .width *
+                                                                0.46 /
+                                                                2),
+                                                  ), // 40% of screen width
+                                                  child: Stack(
+                                                    alignment: Alignment.center,
+                                                    children: [
+                                                      Align(
+                                                        alignment:
+                                                            Alignment.center,
+                                                        child: Neumorphic(
+                                                          style:
+                                                              NeumorphicStyle(
+                                                            shape:
+                                                                NeumorphicShape
+                                                                    .concave,
+                                                            boxShape:
+                                                                NeumorphicBoxShape
+                                                                    .circle(),
+                                                            depth: 20,
+                                                            intensity: 0.5,
+                                                            surfaceIntensity:
+                                                                0.1,
+                                                            lightSource:
+                                                                LightSource
+                                                                    .topLeft,
+                                                            color: ColorConstant
+                                                                .gray100,
+                                                          ),
+                                                          child: Container(
+                                                            height: MediaQuery.of(
+                                                                        context)
+                                                                    .size
+                                                                    .width *
+                                                                1, // 30% of screen width
+                                                            width: MediaQuery.of(
+                                                                        context)
+                                                                    .size
+                                                                    .width *
+                                                                1,
+                                                            child: PieChart(
+                                                              pieChartData,
+                                                            ),
                                                           ),
                                                         ),
                                                       ),
-                                                    ),
-                                                    Align(
-                                                      alignment:
-                                                          Alignment.center,
-                                                      child: Neumorphic(
-                                                        style: NeumorphicStyle(
-                                                          shape: NeumorphicShape
-                                                              .concave,
-                                                          boxShape: NeumorphicBoxShape
-                                                              .roundRect(
-                                                                  BorderRadius
-                                                                      .circular(
-                                                                          195)),
-                                                          depth: -1.5,
-                                                          intensity: 0.70,
-                                                          lightSource:
-                                                              LightSource
-                                                                  .topLeft,
-                                                          color: ColorConstant
-                                                              .blue50,
-                                                        ),
-                                                        child: Container(
-                                                          height: getSize(
-                                                              195), // Adjust the size as needed
-                                                          width: getSize(
-                                                              195), // Adjust the size as needed
-                                                          decoration:
-                                                              BoxDecoration(
-                                                            color: Colors.white,
-                                                            borderRadius:
-                                                                BorderRadius
-                                                                    .circular(
-                                                                        190), // Adjust the border radius as needed
+                                                      Align(
+                                                        alignment:
+                                                            Alignment.center,
+                                                        child: Neumorphic(
+                                                          style:
+                                                              NeumorphicStyle(
+                                                            shape:
+                                                                NeumorphicShape
+                                                                    .concave,
+                                                            boxShape:
+                                                                NeumorphicBoxShape
+                                                                    .circle(),
+                                                            depth: -1.5,
+                                                            intensity: 0.70,
+                                                            lightSource:
+                                                                LightSource
+                                                                    .topLeft,
+                                                            color: ColorConstant
+                                                                .blue50,
                                                           ),
-                                                          child: Padding(
-                                                            padding: getPadding(
-                                                                top: 10),
-                                                            child: Column(
-                                                              crossAxisAlignment:
-                                                                  CrossAxisAlignment
-                                                                      .center,
-                                                              mainAxisAlignment:
-                                                                  MainAxisAlignment
-                                                                      .center,
-                                                              children: [
-                                                                Padding(
-                                                                  padding:
-                                                                      getPadding(
-                                                                    bottom: 15,
-                                                                  ),
-                                                                  child: Row(
-                                                                    mainAxisAlignment:
-                                                                        MainAxisAlignment
-                                                                            .center,
-                                                                    children: [
-                                                                      Text(
-                                                                        '${percentages['necessary'].toStringAsFixed(0)} / ${percentages['discretionary'].toStringAsFixed(0)} / ${percentages['debt'].toStringAsFixed(0)}',
-                                                                        style: AppStyle
-                                                                            .txtHelveticaNowTextBold12
-                                                                            .copyWith(
-                                                                          color:
-                                                                              ColorConstant.blueGray300,
+                                                          child: Container(
+                                                            height: MediaQuery.of(
+                                                                        context)
+                                                                    .size
+                                                                    .width *
+                                                                0.48, // 25% of screen width
+                                                            width: MediaQuery.of(
+                                                                        context)
+                                                                    .size
+                                                                    .width *
+                                                                0.48, // 25% of screen width
+                                                            decoration:
+                                                                BoxDecoration(
+                                                              color:
+                                                                  Colors.white,
+                                                              borderRadius: BorderRadius.circular(
+                                                                  MediaQuery.of(
+                                                                              context)
+                                                                          .size
+                                                                          .width *
+                                                                      0.46 /
+                                                                      2), // half of width or height
+                                                            ),
+                                                            child: Padding(
+                                                              padding: EdgeInsets
+                                                                  .only(
+                                                                      top: 10),
+                                                              child: Column(
+                                                                crossAxisAlignment:
+                                                                    CrossAxisAlignment
+                                                                        .center,
+                                                                mainAxisAlignment:
+                                                                    MainAxisAlignment
+                                                                        .center,
+                                                                children: [
+                                                                  Padding(
+                                                                    padding:
+                                                                        getPadding(
+                                                                      bottom:
+                                                                          10,
+                                                                    ),
+                                                                    child: Row(
+                                                                      mainAxisAlignment:
+                                                                          MainAxisAlignment
+                                                                              .center,
+                                                                      children: [
+                                                                        Text(
+                                                                          '${percentages['necessary'].toStringAsFixed(0)} / ${percentages['discretionary'].toStringAsFixed(0)} / ${percentages['debt'].toStringAsFixed(0)}',
+                                                                          style: AppStyle
+                                                                              .txtHelveticaNowTextBold12
+                                                                              .copyWith(
+                                                                            color:
+                                                                                ColorConstant.blueGray300,
+                                                                          ),
                                                                         ),
-                                                                      ),
-                                                                    ],
+                                                                      ],
+                                                                    ),
                                                                   ),
-                                                                ),
-                                                                Padding(
-                                                                  padding:
-                                                                      getPadding(
-                                                                          bottom:
-                                                                              3),
-                                                                  child: Text(
-                                                                    'Total Remaining Amount',
+                                                                  Padding(
+                                                                    padding: getPadding(
+                                                                        bottom:
+                                                                            3),
+                                                                    child: Text(
+                                                                      'Total Remaining Amount',
+                                                                      style: AppStyle
+                                                                          .txtManropeRegular10
+                                                                          .copyWith(
+                                                                        color: ColorConstant
+                                                                            .blueGray300,
+                                                                      ),
+                                                                      overflow:
+                                                                          TextOverflow
+                                                                              .ellipsis,
+                                                                    ),
+                                                                  ),
+                                                                  Text(
+                                                                    '${totalRemainingFundsFormatted}',
+                                                                    textAlign:
+                                                                        TextAlign
+                                                                            .center,
                                                                     style: AppStyle
-                                                                        .txtManropeRegular10
+                                                                        .txtHelveticaNowTextBold24
                                                                         .copyWith(
                                                                       color: ColorConstant
-                                                                          .blueGray300,
+                                                                          .gray90001,
                                                                     ),
                                                                     overflow:
                                                                         TextOverflow
                                                                             .ellipsis,
                                                                   ),
-                                                                ),
-                                                                Text(
-                                                                  '${totalRemainingFundsFormatted}',
-                                                                  textAlign:
-                                                                      TextAlign
-                                                                          .center,
-                                                                  style: AppStyle
-                                                                      .txtHelveticaNowTextBold24
-                                                                      .copyWith(
-                                                                    color: ColorConstant
-                                                                        .gray90001,
-                                                                  ),
-                                                                  overflow:
-                                                                      TextOverflow
-                                                                          .ellipsis,
-                                                                ),
-                                                                Padding(
-                                                                  padding:
-                                                                      getPadding(
-                                                                          top:
-                                                                              4),
-                                                                  child: Row(
-                                                                    mainAxisAlignment:
-                                                                        MainAxisAlignment
-                                                                            .center,
-                                                                    crossAxisAlignment:
-                                                                        CrossAxisAlignment
-                                                                            .center,
-                                                                    children: [
-                                                                      Text(
-                                                                        'of ',
-                                                                        style: AppStyle
-                                                                            .txtManropeSemiBold12
-                                                                            .copyWith(
-                                                                          color:
-                                                                              ColorConstant.blueGray300,
+                                                                  Padding(
+                                                                    padding:
+                                                                        getPadding(
+                                                                            top:
+                                                                                4),
+                                                                    child: Row(
+                                                                      mainAxisAlignment:
+                                                                          MainAxisAlignment
+                                                                              .center,
+                                                                      crossAxisAlignment:
+                                                                          CrossAxisAlignment
+                                                                              .center,
+                                                                      children: [
+                                                                        Text(
+                                                                          'of ',
+                                                                          style: AppStyle
+                                                                              .txtManropeSemiBold12
+                                                                              .copyWith(
+                                                                            color:
+                                                                                ColorConstant.blueGray300,
+                                                                          ),
+                                                                          overflow:
+                                                                              TextOverflow.ellipsis,
                                                                         ),
-                                                                        overflow:
-                                                                            TextOverflow.ellipsis,
-                                                                      ),
-                                                                      Text(
-                                                                        '${totalExpensesFormatted}',
-                                                                        style: AppStyle
-                                                                            .txtHelveticaNowTextBold12
-                                                                            .copyWith(
-                                                                          color:
-                                                                              ColorConstant.blueGray300,
+                                                                        Text(
+                                                                          '${totalExpensesFormatted}',
+                                                                          style: AppStyle
+                                                                              .txtHelveticaNowTextBold12
+                                                                              .copyWith(
+                                                                            color:
+                                                                                ColorConstant.blueGray300,
+                                                                          ),
+                                                                          overflow:
+                                                                              TextOverflow.ellipsis,
                                                                         ),
-                                                                        overflow:
-                                                                            TextOverflow.ellipsis,
-                                                                      ),
-                                                                    ],
+                                                                      ],
+                                                                    ),
                                                                   ),
-                                                                ),
-                                                                Padding(
-                                                                  padding:
-                                                                      getPadding(
-                                                                          top:
-                                                                              15),
-                                                                ),
-                                                                Text(
-                                                                  'Created: ${DateFormat('MM/dd/yyyy').format(selectedBudget.budgetDate)}',
-                                                                  style: AppStyle
-                                                                      .txtManropeSemiBold12
-                                                                      .copyWith(
-                                                                    color: ColorConstant
-                                                                        .blueGray300,
+                                                                  Padding(
+                                                                    padding:
+                                                                        getPadding(
+                                                                            top:
+                                                                                15),
                                                                   ),
-                                                                ),
-                                                              ],
+                                                                  Text(
+                                                                    'Created: ${DateFormat('MM/dd/yyyy').format(selectedBudget.budgetDate)}',
+                                                                    style: AppStyle
+                                                                        .txtManropeSemiBold12
+                                                                        .copyWith(
+                                                                      color: ColorConstant
+                                                                          .blueGray300,
+                                                                    ),
+                                                                  ),
+                                                                ],
+                                                              ),
                                                             ),
+                                                            // Add your content or child widget here
                                                           ),
-                                                          // Add your content or child widget here
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                              Padding(
+                                                padding: getPadding(
+                                                  // left: 6,
+                                                  top: 22,
+                                                ),
+                                              ),
+                                              SingleChildScrollView(
+                                                physics:
+                                                    BouncingScrollPhysics(),
+                                                scrollDirection:
+                                                    Axis.horizontal,
+                                                child: Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment
+                                                          .spaceBetween,
+                                                  children: [
+                                                    Padding(
+                                                      padding:
+                                                          const EdgeInsets.all(
+                                                              8.0),
+                                                      child: Neumorphic(
+                                                        style: NeumorphicStyle(
+                                                          shape: NeumorphicShape
+                                                              .convex,
+                                                          boxShape: NeumorphicBoxShape
+                                                              .roundRect(
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          8)),
+                                                          depth: 1,
+                                                          intensity: 0.7,
+                                                          surfaceIntensity: 0.2,
+                                                          lightSource:
+                                                              LightSource.top,
+                                                          color: ColorConstant
+                                                              .whiteA700,
+                                                        ),
+                                                        child: Container(
+                                                          width:
+                                                              getHorizontalSize(
+                                                            110,
+                                                          ),
+                                                          height: getSize(
+                                                            40,
+                                                          ),
+                                                          child: Row(
+                                                            mainAxisAlignment:
+                                                                MainAxisAlignment
+                                                                    .center,
+                                                            children: [
+                                                              Neumorphic(
+                                                                style:
+                                                                    NeumorphicStyle(
+                                                                  shape:
+                                                                      NeumorphicShape
+                                                                          .convex,
+                                                                  boxShape: NeumorphicBoxShape.roundRect(
+                                                                      BorderRadius
+                                                                          .circular(
+                                                                              10)),
+                                                                  depth: 1,
+                                                                  intensity:
+                                                                      0.7,
+                                                                  surfaceIntensity:
+                                                                      0.6,
+                                                                  lightSource:
+                                                                      LightSource
+                                                                          .top,
+                                                                  color:
+                                                                      ColorConstant
+                                                                          .gray50,
+                                                                ),
+                                                                child:
+                                                                    Container(
+                                                                  height:
+                                                                      getSize(
+                                                                    18,
+                                                                  ),
+                                                                  width:
+                                                                      getSize(
+                                                                    18,
+                                                                  ),
+                                                                  decoration:
+                                                                      BoxDecoration(
+                                                                    color: Color(
+                                                                        0xFF1A237E),
+                                                                    borderRadius:
+                                                                        BorderRadius
+                                                                            .circular(
+                                                                      getHorizontalSize(
+                                                                        2,
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                              Padding(
+                                                                padding:
+                                                                    getPadding(
+                                                                  left: 6,
+                                                                ),
+                                                                child: Column(
+                                                                  crossAxisAlignment:
+                                                                      CrossAxisAlignment
+                                                                          .start,
+                                                                  mainAxisAlignment:
+                                                                      MainAxisAlignment
+                                                                          .center,
+                                                                  children: [
+                                                                    Text(
+                                                                      "Necessary",
+                                                                      overflow:
+                                                                          TextOverflow
+                                                                              .ellipsis,
+                                                                      textAlign:
+                                                                          TextAlign
+                                                                              .left,
+                                                                      style: AppStyle
+                                                                          .txtManropeBold11
+                                                                          .copyWith(
+                                                                        color: ColorConstant
+                                                                            .blueGray9007f,
+                                                                        letterSpacing:
+                                                                            getHorizontalSize(
+                                                                          0.3,
+                                                                        ),
+                                                                      ),
+                                                                    ),
+                                                                    Text(
+                                                                      "${necessaryTotalFormatted}",
+                                                                      overflow:
+                                                                          TextOverflow
+                                                                              .ellipsis,
+                                                                      textAlign:
+                                                                          TextAlign
+                                                                              .left,
+                                                                      style: AppStyle
+                                                                          .txtHelveticaNowTextBold12
+                                                                          .copyWith(
+                                                                        color: Color(
+                                                                            0xFF1A237E),
+                                                                        letterSpacing:
+                                                                            getHorizontalSize(
+                                                                          0.2,
+                                                                        ),
+                                                                      ),
+                                                                    ),
+                                                                  ],
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    Padding(
+                                                      padding:
+                                                          const EdgeInsets.all(
+                                                              8.0),
+                                                      child: Neumorphic(
+                                                        style: NeumorphicStyle(
+                                                          shape: NeumorphicShape
+                                                              .convex,
+                                                          boxShape: NeumorphicBoxShape
+                                                              .roundRect(
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          8)),
+                                                          depth: 1,
+                                                          intensity: 0.7,
+                                                          surfaceIntensity: 0.2,
+                                                          lightSource:
+                                                              LightSource.top,
+                                                          color: ColorConstant
+                                                              .whiteA700,
+                                                        ),
+                                                        child: Container(
+                                                          width:
+                                                              getHorizontalSize(
+                                                            110,
+                                                          ),
+                                                          height: getSize(
+                                                            40,
+                                                          ),
+                                                          child: Row(
+                                                            mainAxisAlignment:
+                                                                MainAxisAlignment
+                                                                    .center,
+                                                            children: [
+                                                              Neumorphic(
+                                                                style:
+                                                                    NeumorphicStyle(
+                                                                  shape:
+                                                                      NeumorphicShape
+                                                                          .convex,
+                                                                  boxShape: NeumorphicBoxShape.roundRect(
+                                                                      BorderRadius
+                                                                          .circular(
+                                                                              10)),
+                                                                  depth: 1,
+                                                                  intensity:
+                                                                      0.7,
+                                                                  surfaceIntensity:
+                                                                      0.6,
+                                                                  lightSource:
+                                                                      LightSource
+                                                                          .top,
+                                                                  color:
+                                                                      ColorConstant
+                                                                          .gray50,
+                                                                ),
+                                                                child:
+                                                                    Container(
+                                                                  height:
+                                                                      getSize(
+                                                                    18,
+                                                                  ),
+                                                                  width:
+                                                                      getSize(
+                                                                    18,
+                                                                  ),
+                                                                  decoration:
+                                                                      BoxDecoration(
+                                                                    color: Color(
+                                                                        0xFF1E90FF),
+                                                                    borderRadius:
+                                                                        BorderRadius
+                                                                            .circular(
+                                                                      getHorizontalSize(
+                                                                        2,
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                              Padding(
+                                                                padding:
+                                                                    getPadding(
+                                                                  left: 6,
+                                                                ),
+                                                                child: Column(
+                                                                  crossAxisAlignment:
+                                                                      CrossAxisAlignment
+                                                                          .start,
+                                                                  mainAxisAlignment:
+                                                                      MainAxisAlignment
+                                                                          .center,
+                                                                  children: [
+                                                                    Text(
+                                                                      "Discretionary",
+                                                                      overflow:
+                                                                          TextOverflow
+                                                                              .ellipsis,
+                                                                      textAlign:
+                                                                          TextAlign
+                                                                              .left,
+                                                                      style: AppStyle
+                                                                          .txtManropeBold11
+                                                                          .copyWith(
+                                                                        color: ColorConstant
+                                                                            .blueGray9007f,
+                                                                        letterSpacing:
+                                                                            getHorizontalSize(
+                                                                          0.3,
+                                                                        ),
+                                                                      ),
+                                                                    ),
+                                                                    Text(
+                                                                      "${discretionaryTotalFormatted}",
+                                                                      overflow:
+                                                                          TextOverflow
+                                                                              .ellipsis,
+                                                                      textAlign:
+                                                                          TextAlign
+                                                                              .left,
+                                                                      style: AppStyle
+                                                                          .txtHelveticaNowTextBold12
+                                                                          .copyWith(
+                                                                        color: Color(
+                                                                            0xFF1E90FF),
+                                                                        letterSpacing:
+                                                                            getHorizontalSize(
+                                                                          0.2,
+                                                                        ),
+                                                                      ),
+                                                                    ),
+                                                                  ],
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    Padding(
+                                                      padding:
+                                                          const EdgeInsets.all(
+                                                              8.0),
+                                                      child: Neumorphic(
+                                                        style: NeumorphicStyle(
+                                                          shape: NeumorphicShape
+                                                              .convex,
+                                                          boxShape: NeumorphicBoxShape
+                                                              .roundRect(
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          8)),
+                                                          depth: 1,
+                                                          intensity: 0.7,
+                                                          surfaceIntensity: 0.2,
+                                                          lightSource:
+                                                              LightSource.top,
+                                                          color: ColorConstant
+                                                              .whiteA700,
+                                                        ),
+                                                        child: Container(
+                                                          width:
+                                                              getHorizontalSize(
+                                                            110,
+                                                          ),
+                                                          height: getSize(
+                                                            40,
+                                                          ),
+                                                          child: Row(
+                                                            mainAxisAlignment:
+                                                                MainAxisAlignment
+                                                                    .center,
+                                                            children: [
+                                                              Neumorphic(
+                                                                style:
+                                                                    NeumorphicStyle(
+                                                                  shape:
+                                                                      NeumorphicShape
+                                                                          .convex,
+                                                                  boxShape: NeumorphicBoxShape.roundRect(
+                                                                      BorderRadius
+                                                                          .circular(
+                                                                              10)),
+                                                                  depth: 1,
+                                                                  intensity:
+                                                                      0.7,
+                                                                  surfaceIntensity:
+                                                                      0.6,
+                                                                  lightSource:
+                                                                      LightSource
+                                                                          .top,
+                                                                  color:
+                                                                      ColorConstant
+                                                                          .gray50,
+                                                                ),
+                                                                child:
+                                                                    Container(
+                                                                  height:
+                                                                      getSize(
+                                                                    18,
+                                                                  ),
+                                                                  width:
+                                                                      getSize(
+                                                                    18,
+                                                                  ),
+                                                                  decoration:
+                                                                      BoxDecoration(
+                                                                    color: ColorConstant
+                                                                        .blueA700,
+                                                                    borderRadius:
+                                                                        BorderRadius
+                                                                            .circular(
+                                                                      getHorizontalSize(
+                                                                        2,
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                              Padding(
+                                                                padding:
+                                                                    getPadding(
+                                                                  left: 6,
+                                                                ),
+                                                                child: Column(
+                                                                  crossAxisAlignment:
+                                                                      CrossAxisAlignment
+                                                                          .start,
+                                                                  mainAxisAlignment:
+                                                                      MainAxisAlignment
+                                                                          .center,
+                                                                  children: [
+                                                                    Text(
+                                                                      "Debt/Loans",
+                                                                      overflow:
+                                                                          TextOverflow
+                                                                              .ellipsis,
+                                                                      textAlign:
+                                                                          TextAlign
+                                                                              .left,
+                                                                      style: AppStyle
+                                                                          .txtManropeBold11
+                                                                          .copyWith(
+                                                                        color: ColorConstant
+                                                                            .blueGray9007f,
+                                                                        letterSpacing:
+                                                                            getHorizontalSize(
+                                                                          0.3,
+                                                                        ),
+                                                                      ),
+                                                                    ),
+                                                                    Text(
+                                                                      "${debtTotalFormatted}",
+                                                                      overflow:
+                                                                          TextOverflow
+                                                                              .ellipsis,
+                                                                      textAlign:
+                                                                          TextAlign
+                                                                              .left,
+                                                                      style: AppStyle
+                                                                          .txtHelveticaNowTextBold12
+                                                                          .copyWith(
+                                                                        color: ColorConstant
+                                                                            .blueA700,
+                                                                        letterSpacing:
+                                                                            getHorizontalSize(
+                                                                          0.2,
+                                                                        ),
+                                                                      ),
+                                                                    ),
+                                                                  ],
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
                                                         ),
                                                       ),
                                                     ),
                                                   ],
                                                 ),
                                               ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    Padding(
+                                      padding: getPadding(top: 16, bottom: 16),
+                                      child: SingleChildScrollView(
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Row(
+                                              children: [
+                                                Padding(
+                                                  padding: getPadding(
+                                                      left: 8,
+                                                      right: 8,
+                                                      top: 8,
+                                                      bottom: 16),
+                                                  child: Text(
+                                                    "Goal/Debt Trackers",
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                    textAlign: TextAlign.left,
+                                                    style: AppStyle
+                                                        .txtHelveticaNowTextBold16
+                                                        .copyWith(
+                                                      letterSpacing:
+                                                          getHorizontalSize(
+                                                        0.4,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            Consumer(
+                                              builder: (context, ref, child) {
+                                                final goals =
+                                                    ref.watch(goalsProvider);
+                                                final debts =
+                                                    ref.watch(debtsProvider);
+
+                                                print(
+                                                    'Goals length: ${goals.length}');
+
+                                                print(
+                                                    'Debts length: ${debts.length}');
+                                                return Column(
+                                                  children: [
+                                                    ListView.separated(
+                                                      physics:
+                                                          BouncingScrollPhysics(),
+                                                      shrinkWrap: true,
+                                                      separatorBuilder:
+                                                          (context, index) {
+                                                        return SizedBox(
+                                                          height:
+                                                              getVerticalSize(
+                                                                  16),
+                                                        );
+                                                      },
+                                                      itemCount: goals.length,
+                                                      itemBuilder:
+                                                          (context, index) {
+                                                        final goalData =
+                                                            goals[index];
+                                                        return GoalsListWidget(
+                                                            budget:
+                                                                _updatedSelectedBudget,
+                                                            goalData: goalData);
+                                                      },
+                                                    ),
+                                                    ListView.separated(
+                                                      physics:
+                                                          BouncingScrollPhysics(),
+                                                      shrinkWrap: true,
+                                                      separatorBuilder:
+                                                          (context, index) {
+                                                        return SizedBox(
+                                                          height:
+                                                              getVerticalSize(
+                                                                  16),
+                                                        );
+                                                      },
+                                                      itemCount: debts.length,
+                                                      itemBuilder:
+                                                          (context, index) {
+                                                        final debtData =
+                                                            debts[index];
+                                                        return DebtsListWidget(
+                                                            budget:
+                                                                _updatedSelectedBudget,
+                                                            debtData: debtData);
+                                                      },
+                                                    ),
+                                                  ],
+                                                );
+                                              },
                                             ),
                                             Padding(
-                                              padding: getPadding(
-                                                // left: 6,
-                                                top: 22,
-                                              ),
-                                            ),
-                                            SingleChildScrollView(
-                                              physics: BouncingScrollPhysics(),
-                                              scrollDirection: Axis.horizontal,
-                                              child: Row(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment
-                                                        .spaceBetween,
-                                                children: [
-                                                  Padding(
-                                                    padding:
-                                                        const EdgeInsets.all(
-                                                            8.0),
-                                                    child: Neumorphic(
-                                                      style: NeumorphicStyle(
-                                                        shape: NeumorphicShape
-                                                            .convex,
-                                                        boxShape:
-                                                            NeumorphicBoxShape
-                                                                .roundRect(
-                                                                    BorderRadius
-                                                                        .circular(
-                                                                            8)),
-                                                        depth: 1,
-                                                        intensity: 0.7,
-                                                        surfaceIntensity: 0.2,
-                                                        lightSource:
-                                                            LightSource.top,
-                                                        color: ColorConstant
-                                                            .whiteA700,
-                                                      ),
-                                                      child: Container(
-                                                        width:
-                                                            getHorizontalSize(
-                                                          110,
-                                                        ),
-                                                        height: getSize(
-                                                          40,
-                                                        ),
-                                                        child: Row(
-                                                          mainAxisAlignment:
-                                                              MainAxisAlignment
-                                                                  .center,
-                                                          children: [
-                                                            Neumorphic(
-                                                              style:
-                                                                  NeumorphicStyle(
-                                                                shape:
-                                                                    NeumorphicShape
-                                                                        .convex,
-                                                                boxShape: NeumorphicBoxShape.roundRect(
-                                                                    BorderRadius
-                                                                        .circular(
-                                                                            10)),
-                                                                depth: 1,
-                                                                intensity: 0.7,
-                                                                surfaceIntensity:
-                                                                    0.6,
-                                                                lightSource:
-                                                                    LightSource
-                                                                        .top,
-                                                                color:
-                                                                    ColorConstant
-                                                                        .gray50,
-                                                              ),
-                                                              child: Container(
-                                                                height: getSize(
-                                                                  18,
-                                                                ),
-                                                                width: getSize(
-                                                                  18,
-                                                                ),
-                                                                decoration:
-                                                                    BoxDecoration(
-                                                                  color: Color(
-                                                                      0xFF1A237E),
-                                                                  borderRadius:
-                                                                      BorderRadius
-                                                                          .circular(
-                                                                    getHorizontalSize(
-                                                                      2,
-                                                                    ),
-                                                                  ),
-                                                                ),
-                                                              ),
-                                                            ),
-                                                            Padding(
-                                                              padding:
-                                                                  getPadding(
-                                                                left: 6,
-                                                              ),
-                                                              child: Column(
-                                                                crossAxisAlignment:
-                                                                    CrossAxisAlignment
-                                                                        .start,
-                                                                mainAxisAlignment:
-                                                                    MainAxisAlignment
-                                                                        .center,
-                                                                children: [
-                                                                  Text(
-                                                                    "Necessary",
-                                                                    overflow:
-                                                                        TextOverflow
-                                                                            .ellipsis,
-                                                                    textAlign:
-                                                                        TextAlign
-                                                                            .left,
-                                                                    style: AppStyle
-                                                                        .txtManropeBold11
-                                                                        .copyWith(
-                                                                      color: ColorConstant
-                                                                          .blueGray9007f,
-                                                                      letterSpacing:
-                                                                          getHorizontalSize(
-                                                                        0.3,
-                                                                      ),
-                                                                    ),
-                                                                  ),
-                                                                  Text(
-                                                                    "${necessaryTotalFormatted}",
-                                                                    overflow:
-                                                                        TextOverflow
-                                                                            .ellipsis,
-                                                                    textAlign:
-                                                                        TextAlign
-                                                                            .left,
-                                                                    style: AppStyle
-                                                                        .txtHelveticaNowTextBold12
-                                                                        .copyWith(
-                                                                      color: Color(
-                                                                          0xFF1A237E),
-                                                                      letterSpacing:
-                                                                          getHorizontalSize(
-                                                                        0.2,
-                                                                      ),
-                                                                    ),
-                                                                  ),
-                                                                ],
-                                                              ),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ),
-                                                  Padding(
-                                                    padding:
-                                                        const EdgeInsets.all(
-                                                            8.0),
-                                                    child: Neumorphic(
-                                                      style: NeumorphicStyle(
-                                                        shape: NeumorphicShape
-                                                            .convex,
-                                                        boxShape:
-                                                            NeumorphicBoxShape
-                                                                .roundRect(
-                                                                    BorderRadius
-                                                                        .circular(
-                                                                            8)),
-                                                        depth: 1,
-                                                        intensity: 0.7,
-                                                        surfaceIntensity: 0.2,
-                                                        lightSource:
-                                                            LightSource.top,
-                                                        color: ColorConstant
-                                                            .whiteA700,
-                                                      ),
-                                                      child: Container(
-                                                        width:
-                                                            getHorizontalSize(
-                                                          110,
-                                                        ),
-                                                        height: getSize(
-                                                          40,
-                                                        ),
-                                                        child: Row(
-                                                          mainAxisAlignment:
-                                                              MainAxisAlignment
-                                                                  .center,
-                                                          children: [
-                                                            Neumorphic(
-                                                              style:
-                                                                  NeumorphicStyle(
-                                                                shape:
-                                                                    NeumorphicShape
-                                                                        .convex,
-                                                                boxShape: NeumorphicBoxShape.roundRect(
-                                                                    BorderRadius
-                                                                        .circular(
-                                                                            10)),
-                                                                depth: 1,
-                                                                intensity: 0.7,
-                                                                surfaceIntensity:
-                                                                    0.6,
-                                                                lightSource:
-                                                                    LightSource
-                                                                        .top,
-                                                                color:
-                                                                    ColorConstant
-                                                                        .gray50,
-                                                              ),
-                                                              child: Container(
-                                                                height: getSize(
-                                                                  18,
-                                                                ),
-                                                                width: getSize(
-                                                                  18,
-                                                                ),
-                                                                decoration:
-                                                                    BoxDecoration(
-                                                                  color: Color(
-                                                                      0xFF1E90FF),
-                                                                  borderRadius:
-                                                                      BorderRadius
-                                                                          .circular(
-                                                                    getHorizontalSize(
-                                                                      2,
-                                                                    ),
-                                                                  ),
-                                                                ),
-                                                              ),
-                                                            ),
-                                                            Padding(
-                                                              padding:
-                                                                  getPadding(
-                                                                left: 6,
-                                                              ),
-                                                              child: Column(
-                                                                crossAxisAlignment:
-                                                                    CrossAxisAlignment
-                                                                        .start,
-                                                                mainAxisAlignment:
-                                                                    MainAxisAlignment
-                                                                        .center,
-                                                                children: [
-                                                                  Text(
-                                                                    "Discretionary",
-                                                                    overflow:
-                                                                        TextOverflow
-                                                                            .ellipsis,
-                                                                    textAlign:
-                                                                        TextAlign
-                                                                            .left,
-                                                                    style: AppStyle
-                                                                        .txtManropeBold11
-                                                                        .copyWith(
-                                                                      color: ColorConstant
-                                                                          .blueGray9007f,
-                                                                      letterSpacing:
-                                                                          getHorizontalSize(
-                                                                        0.3,
-                                                                      ),
-                                                                    ),
-                                                                  ),
-                                                                  Text(
-                                                                    "${discretionaryTotalFormatted}",
-                                                                    overflow:
-                                                                        TextOverflow
-                                                                            .ellipsis,
-                                                                    textAlign:
-                                                                        TextAlign
-                                                                            .left,
-                                                                    style: AppStyle
-                                                                        .txtHelveticaNowTextBold12
-                                                                        .copyWith(
-                                                                      color: Color(
-                                                                          0xFF1E90FF),
-                                                                      letterSpacing:
-                                                                          getHorizontalSize(
-                                                                        0.2,
-                                                                      ),
-                                                                    ),
-                                                                  ),
-                                                                ],
-                                                              ),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ),
-                                                  Padding(
-                                                    padding:
-                                                        const EdgeInsets.all(
-                                                            8.0),
-                                                    child: Neumorphic(
-                                                      style: NeumorphicStyle(
-                                                        shape: NeumorphicShape
-                                                            .convex,
-                                                        boxShape:
-                                                            NeumorphicBoxShape
-                                                                .roundRect(
-                                                                    BorderRadius
-                                                                        .circular(
-                                                                            8)),
-                                                        depth: 1,
-                                                        intensity: 0.7,
-                                                        surfaceIntensity: 0.2,
-                                                        lightSource:
-                                                            LightSource.top,
-                                                        color: ColorConstant
-                                                            .whiteA700,
-                                                      ),
-                                                      child: Container(
-                                                        width:
-                                                            getHorizontalSize(
-                                                          110,
-                                                        ),
-                                                        height: getSize(
-                                                          40,
-                                                        ),
-                                                        child: Row(
-                                                          mainAxisAlignment:
-                                                              MainAxisAlignment
-                                                                  .center,
-                                                          children: [
-                                                            Neumorphic(
-                                                              style:
-                                                                  NeumorphicStyle(
-                                                                shape:
-                                                                    NeumorphicShape
-                                                                        .convex,
-                                                                boxShape: NeumorphicBoxShape.roundRect(
-                                                                    BorderRadius
-                                                                        .circular(
-                                                                            10)),
-                                                                depth: 1,
-                                                                intensity: 0.7,
-                                                                surfaceIntensity:
-                                                                    0.6,
-                                                                lightSource:
-                                                                    LightSource
-                                                                        .top,
-                                                                color:
-                                                                    ColorConstant
-                                                                        .gray50,
-                                                              ),
-                                                              child: Container(
-                                                                height: getSize(
-                                                                  18,
-                                                                ),
-                                                                width: getSize(
-                                                                  18,
-                                                                ),
-                                                                decoration:
-                                                                    BoxDecoration(
-                                                                  color: ColorConstant
-                                                                      .blueA700,
-                                                                  borderRadius:
-                                                                      BorderRadius
-                                                                          .circular(
-                                                                    getHorizontalSize(
-                                                                      2,
-                                                                    ),
-                                                                  ),
-                                                                ),
-                                                              ),
-                                                            ),
-                                                            Padding(
-                                                              padding:
-                                                                  getPadding(
-                                                                left: 6,
-                                                              ),
-                                                              child: Column(
-                                                                crossAxisAlignment:
-                                                                    CrossAxisAlignment
-                                                                        .start,
-                                                                mainAxisAlignment:
-                                                                    MainAxisAlignment
-                                                                        .center,
-                                                                children: [
-                                                                  Text(
-                                                                    "Debt/Loans",
-                                                                    overflow:
-                                                                        TextOverflow
-                                                                            .ellipsis,
-                                                                    textAlign:
-                                                                        TextAlign
-                                                                            .left,
-                                                                    style: AppStyle
-                                                                        .txtManropeBold11
-                                                                        .copyWith(
-                                                                      color: ColorConstant
-                                                                          .blueGray9007f,
-                                                                      letterSpacing:
-                                                                          getHorizontalSize(
-                                                                        0.3,
-                                                                      ),
-                                                                    ),
-                                                                  ),
-                                                                  Text(
-                                                                    "${debtTotalFormatted}",
-                                                                    overflow:
-                                                                        TextOverflow
-                                                                            .ellipsis,
-                                                                    textAlign:
-                                                                        TextAlign
-                                                                            .left,
-                                                                    style: AppStyle
-                                                                        .txtHelveticaNowTextBold12
-                                                                        .copyWith(
-                                                                      color: ColorConstant
-                                                                          .blueA700,
-                                                                      letterSpacing:
-                                                                          getHorizontalSize(
-                                                                        0.2,
-                                                                      ),
-                                                                    ),
-                                                                  ),
-                                                                ],
-                                                              ),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
+                                                padding: getPadding(top: 8)),
+                                            Consumer(
+                                                builder: (context, ref, _) {
+                                              return FutureBuilder<
+                                                  Map<String, dynamic>>(
+                                                future: subscriptionInfoFuture,
+                                                builder: (BuildContext context,
+                                                    AsyncSnapshot<
+                                                            Map<String,
+                                                                dynamic>>
+                                                        snapshot) {
+                                                  if (snapshot
+                                                          .connectionState ==
+                                                      ConnectionState.waiting) {
+                                                    return SizedBox.shrink();
+                                                  } else if (snapshot
+                                                      .hasError) {
+                                                    print(snapshot.error);
+                                                    return Text(
+                                                        'An error occurred');
+                                                  } else {
+                                                    bool isSubscribed = snapshot
+                                                        .data!['isSubscribed'];
+                                                    bool buttonEnabled = true;
+                                                    return CustomButtonForm(
+                                                      onTap: () {
+                                                        showAddTrackerModal(
+                                                            context,
+                                                            selectedBudget,
+                                                            ref);
+                                                      },
+                                                      alignment: Alignment
+                                                          .bottomCenter,
+                                                      text: 'Add a Tracker',
+                                                      height:
+                                                          getVerticalSize(56),
+                                                      enabled: buttonEnabled,
+                                                    );
+                                                  }
+                                                },
+                                              );
+                                            }),
                                           ],
                                         ),
                                       ),
                                     ),
-                                  ),
-                                  Padding(
-                                    padding: getPadding(top: 16, bottom: 16),
-                                    child: SingleChildScrollView(
-                                      child: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Row(
-                                            children: [
-                                              Padding(
-                                                padding: getPadding(
-                                                    left: 8,
-                                                    right: 8,
-                                                    top: 8,
-                                                    bottom: 16),
-                                                child: Text(
-                                                  "Budget Insight",
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  textAlign: TextAlign.left,
-                                                  style: AppStyle
-                                                      .txtHelveticaNowTextBold16
-                                                      .copyWith(
-                                                    letterSpacing:
-                                                        getHorizontalSize(
-                                                      0.4,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                          Consumer(
-                                            builder: (context, ref, child) {
-                                              final insightsState = ref.watch(
-                                                  insightsNotifierProvider);
-                                              final filteredDataList =
-                                                  insightsState
-                                                      .dataList
-                                                      .where((insight) =>
-                                                          insight.budgetId ==
-                                                          budgetId)
-                                                      .toList();
-
-                                              return Column(
-                                                children: [
-                                                  if (filteredDataList
-                                                          .isNotEmpty ||
-                                                      insightsState.isLoading)
-                                                    Container(
-                                                      height: 300,
-                                                      padding: getPadding(
-                                                          top: 8, bottom: 8),
-                                                      child: insightsState
-                                                              .isLoading
-                                                          ? Center(
-                                                              child:
-                                                                  CircularProgressIndicator(),
-                                                            )
-                                                          : ListView.builder(
-                                                              physics:
-                                                                  ClampingScrollPhysics(),
-                                                              itemCount:
-                                                                  filteredDataList
-                                                                      .length,
-                                                              itemBuilder:
-                                                                  (context,
-                                                                      index) {
-                                                                final insight =
-                                                                    filteredDataList[
-                                                                        index];
-                                                                return CustomListItem(
-                                                                  iconPath: insight
-                                                                      .iconPath,
-                                                                  text: insight
-                                                                      .content,
-                                                                  backgroundColor: insight
-                                                                              .iconPath ==
-                                                                          'assets/images/star.png'
-                                                                      ? Colors
-                                                                          .blue // Background color for highlights
-                                                                      : Colors
-                                                                          .green,
-                                                                );
-                                                              },
-                                                            ),
-                                                    ),
-                                                ],
-                                              );
-                                            },
-                                          ),
-                                          Padding(padding: getPadding(top: 8)),
-                                          Consumer(builder: (context, ref, _) {
-                                            print(buttonStateProvider(budgetId)
-                                                .runtimeType);
-                                            final buttonState = ref.watch(
-                                                buttonStateProvider(budgetId));
-                                            final buttonEnabled =
-                                                buttonState.enabled;
-                                            final timerText =
-                                                buttonState.timerText;
-
-                                            return CustomButtonForm(
-                                              onTap: buttonEnabled
-                                                  ? () async {
-                                                      bool showDialogResult =
-                                                          await showDialog<
-                                                                  bool>(
-                                                                context:
-                                                                    context,
-                                                                builder:
-                                                                    (context) =>
-                                                                        AlertDialog(
-                                                                  title: Text(
-                                                                    'Watch a quick ad to generate insights!',
-                                                                    style: AppStyle
-                                                                        .txtHelveticaNowTextBold18
-                                                                        .copyWith(
-                                                                      letterSpacing:
-                                                                          getHorizontalSize(
-                                                                        0.2,
-                                                                      ),
-                                                                    ),
-                                                                  ),
-                                                                  content: Text(
-                                                                    'To generate insights, we kindly ask that you watch a brief ad. We really appreciate your support and understanding.',
-                                                                    style: AppStyle
-                                                                        .txtManropeRegular14
-                                                                        .copyWith(
-                                                                      letterSpacing:
-                                                                          getHorizontalSize(
-                                                                        0.2,
-                                                                      ),
-                                                                    ),
-                                                                  ),
-                                                                  actions: [
-                                                                    TextButton(
-                                                                      onPressed: () => Navigator.pop(
-                                                                          context,
-                                                                          false),
-                                                                      child:
-                                                                          Text(
-                                                                        'Cancel',
-                                                                        style: AppStyle.txtHelveticaNowTextBold14.copyWith(
-                                                                            color: ColorConstant.blueGray800,
-                                                                            letterSpacing: getHorizontalSize(
-                                                                              0.2,
-                                                                            )),
-                                                                      ),
-                                                                    ),
-                                                                    TextButton(
-                                                                      onPressed: () => Navigator.pop(
-                                                                          context,
-                                                                          true),
-                                                                      child:
-                                                                          Text(
-                                                                        'Confirm',
-                                                                        style: AppStyle.txtHelveticaNowTextBold14.copyWith(
-                                                                            color: ColorConstant.blueA700,
-                                                                            letterSpacing: getHorizontalSize(
-                                                                              0.2,
-                                                                            )),
-                                                                      ),
-                                                                    ),
-                                                                  ],
-                                                                ),
-                                                              ) ??
-                                                              false;
-
-                                                      if (showDialogResult) {
-                                                        await loadAndShowRewardedAd(
-                                                            context, ref);
-
-                                                        scrollController
-                                                            .animateTo(
-                                                          scrollController
-                                                              .position
-                                                              .maxScrollExtent,
-                                                          duration: Duration(
-                                                              milliseconds:
-                                                                  500),
-                                                          curve:
-                                                              Curves.easeInOut,
-                                                        );
-                                                        // Disable the button immediately
-                                                        if (context.mounted) {
-                                                          ref
-                                                              .read(buttonStateProvider(
-                                                                      budgetId)
-                                                                  .notifier)
-                                                              .update(
-                                                                  enabled:
-                                                                      false,
-                                                                  timerText:
-                                                                      '');
-                                                        }
-
-                                                        await fetchDataAndShuffleList(
-                                                            budgetId);
-
-                                                        // Fetch server time
-                                                        DateTime serverTime =
-                                                            await fetchServerTime();
-
-                                                        // Start the timer
-                                                        int timerDurationInSeconds =
-                                                            30; // Replace with desired duration in seconds
-                                                        int endTime = serverTime
-                                                                .millisecondsSinceEpoch +
-                                                            (timerDurationInSeconds *
-                                                                1000);
-                                                        await saveEndTime(
-                                                            budgetId, endTime);
-
-                                                        Timer.periodic(
-                                                            Duration(
-                                                                seconds: 1),
-                                                            (timer) async {
-                                                          DateTime
-                                                              currentServerTime =
-                                                              await fetchServerTime();
-                                                          int remainingDurationInSeconds =
-                                                              (endTime -
-                                                                      currentServerTime
-                                                                          .millisecondsSinceEpoch) ~/
-                                                                  1000;
-
-                                                          int days =
-                                                              (remainingDurationInSeconds ~/
-                                                                  86400);
-                                                          int hours =
-                                                              (remainingDurationInSeconds %
-                                                                      86400) ~/
-                                                                  3600;
-                                                          int minutes =
-                                                              (remainingDurationInSeconds %
-                                                                      3600) ~/
-                                                                  60;
-                                                          int seconds =
-                                                              remainingDurationInSeconds %
-                                                                  60;
-
-                                                          String remainingTime =
-                                                              "${days} Days ${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}";
-
-                                                          if (remainingDurationInSeconds <=
-                                                              0) {
-                                                            if (context
-                                                                .mounted) {
-                                                              ref
-                                                                  .read(buttonStateProvider(
-                                                                          budgetId)
-                                                                      .notifier)
-                                                                  .update(
-                                                                      enabled:
-                                                                          true,
-                                                                      timerText:
-                                                                          '');
-                                                              timer.cancel();
-                                                            }
-                                                          } else {
-                                                            if (context
-                                                                .mounted) {
-                                                              ref
-                                                                  .read(buttonStateProvider(
-                                                                          budgetId)
-                                                                      .notifier)
-                                                                  .update(
-                                                                      enabled:
-                                                                          false,
-                                                                      timerText:
-                                                                          remainingTime);
-                                                            }
-                                                          }
-                                                        });
-                                                      }
-                                                    }
-                                                  : null,
-                                              alignment: Alignment.bottomCenter,
-                                              height: getVerticalSize(56),
-                                              text: timerText.isNotEmpty
-                                                  ? timerText
-                                                  : "Generate AI Insight",
-                                              enabled: buttonEnabled,
-                                            );
-                                          }),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -2352,6 +2441,7 @@ class BudgetScreen extends HookConsumerWidget {
   }
 
   Map<String, dynamic> _generatePieChartData(
+    BuildContext context,
     Map<String, double> necessaryCategories,
     Map<String, double> discretionaryCategories,
     Map<String, double> debtCategories,
@@ -2367,6 +2457,11 @@ class BudgetScreen extends HookConsumerWidget {
     final double discretionaryTotal =
         discretionaryCategories.values.fold(0, (a, b) => a + b);
     final double debtTotal = debtCategories.values.fold(0, (a, b) => a + b);
+
+    final double screenWidth = MediaQuery.of(context).size.width;
+
+    final double responsiveRadius = screenWidth * 0.1; // 10% of screen width
+    final double responsiveCenterSpaceRadius = screenWidth * 0.2659;
 
     final mainSections = {
       "Necessary": necessaryTotal,
@@ -2391,7 +2486,7 @@ class BudgetScreen extends HookConsumerWidget {
         color: categoryColor,
         value: entry.value,
         title: '',
-        radius: 40,
+        radius: responsiveRadius,
         titleStyle: TextStyle(color: Colors.white, fontSize: 12),
       );
     }).toList();
@@ -2400,7 +2495,7 @@ class BudgetScreen extends HookConsumerWidget {
       'pieChartData': PieChartData(
         sections: sections,
         sectionsSpace: 0,
-        centerSpaceRadius: 104,
+        centerSpaceRadius: responsiveCenterSpaceRadius,
         borderData: FlBorderData(show: true),
       ),
       'percentages': {

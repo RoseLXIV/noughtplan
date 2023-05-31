@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
@@ -21,20 +22,28 @@ class Message {
   final String text;
   final bool isUser;
   final bool isLoading;
+  final bool isError;
 
-  Message({required this.text, required this.isUser, this.isLoading = false});
+  Message({
+    required this.text,
+    required this.isUser,
+    this.isLoading = false,
+    this.isError = false,
+  });
 
   Map<String, dynamic> toJson() => {
         'text': text,
         'isUser': isUser,
         'isLoading': isLoading,
+        'isError': isError,
       };
 
   factory Message.fromJson(Map<String, dynamic> json) {
     return Message(
       text: json['text'],
       isUser: json['isUser'],
-      isLoading: json['isLoading'],
+      isLoading: json['isLoading'] ?? false,
+      isError: json['isError'] ?? false,
     );
   }
 }
@@ -46,7 +55,7 @@ void _scrollToBottom() {
     if (_scrollController.hasClients) {
       _scrollController.animateTo(
         _scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 200),
+        duration: const Duration(milliseconds: 100),
         curve: Curves.easeOut,
       );
     }
@@ -105,13 +114,19 @@ class ChatBotNotifier extends StateNotifier<List<Message>> {
     await saveMessages(conversationHistory, budgetId);
   }
 
-  Future<void> simulateTyping(String chatbotResponse) async {
+  Future<void> simulateTyping(
+      String chatbotResponse, Budget selectedBudget) async {
     final delayDuration = Duration(milliseconds: 10); // Adjust typing speed
     String currentMessage = '';
 
     CancelableOperation? debounceScroll;
 
     for (int i = 0; i < chatbotResponse.length; i++) {
+      // If the message was cancelled, stop simulating typing
+      if (!(_timer?.isActive ?? false)) {
+        break;
+      }
+
       currentMessage = chatbotResponse.substring(0, i + 1);
       state = [
         ...state.sublist(0, state.length - 1),
@@ -138,6 +153,21 @@ class ChatBotNotifier extends StateNotifier<List<Message>> {
   Future<void> sendMessage(
       String message, String firstName, Budget selectedBudget,
       {required VoidCallback onBotResponse}) async {
+    // Start a timer that will cancel the message after 60 seconds
+    _timer = Timer(Duration(seconds: 60), () {
+      state.removeLast();
+      cancelMessage();
+      state = [
+        ...state,
+        Message(
+          text: 'Something went wrong. Please check back later or try again.',
+          isError: true,
+          isUser: false,
+        )
+      ];
+      onBotResponse();
+    });
+
     // Add user message to the list
     state = [...state, Message(text: message, isUser: true)];
 
@@ -150,11 +180,11 @@ class ChatBotNotifier extends StateNotifier<List<Message>> {
     // Add a loading message
     state = [...state, Message(text: '', isUser: false, isLoading: true)];
 
-    // Add loading message to the conversation history
-    conversationHistory.add(Message(text: '', isUser: false, isLoading: true));
+    // // Add loading message to the conversation history
+    // conversationHistory.add(Message(text: '', isUser: false, isLoading: true));
 
-    // Save messages after adding loading message
-    await saveMessages(conversationHistory, selectedBudget.budgetId);
+    // // Save messages after adding loading message
+    // await saveMessages(conversationHistory, selectedBudget.budgetId);
 
     onBotResponse();
 
@@ -163,13 +193,19 @@ class ChatBotNotifier extends StateNotifier<List<Message>> {
       final chatbotResponse = await callChatGPTBot(
           message, firstName, selectedBudget, conversationHistory);
 
-      await simulateTyping(chatbotResponse);
+      // If the message wasn't cancelled, simulate typing and add chatbot response
+      if (_timer?.isActive ?? false) {
+        await simulateTyping(chatbotResponse, selectedBudget);
+      }
+
+      // Cancel the timer if it's still active
+      _timer?.cancel();
 
       // Remove the loading message
       state.removeLast();
 
       // Remove the loading message from the conversation history
-      conversationHistory.removeLast();
+      // conversationHistory.removeLast();
 
       // Add chatbot message to the list
       state = [...state, Message(text: chatbotResponse, isUser: false)];
@@ -182,12 +218,29 @@ class ChatBotNotifier extends StateNotifier<List<Message>> {
 
       // Call the callback function after receiving the bot response
       onBotResponse();
-
-      // Scroll to the bottom
-      _scrollToBottom();
     } catch (e) {
       // Handle error in fetching response
       print("Chat Message Failed: $e");
+    }
+  }
+
+  Timer? _timer;
+
+  void cancelMessage() {
+    // Cancel the timer if it is active
+    _cancelTimer();
+
+    // Remove the last message from state and conversation history
+    // if (state.isNotEmpty) {
+    //   state = state.sublist(0, state.length - 1);
+    //   conversationHistory =
+    //       conversationHistory.sublist(0, conversationHistory.length - 1);
+    // }
+  }
+
+  void _cancelTimer() {
+    if (_timer != null && _timer!.isActive) {
+      _timer!.cancel();
     }
   }
 }
@@ -219,6 +272,8 @@ class ChatBotScreen extends HookConsumerWidget {
 
       return null;
     }, []);
+
+    late Timer _timer;
 
     return SafeArea(
       child: Scaffold(
@@ -257,18 +312,23 @@ class ChatBotScreen extends HookConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           CustomImageView(
-                            imagePath: ImageConstant.imgGroup183001,
-                            height: getVerticalSize(
-                              53,
-                            ),
-                            width: getHorizontalSize(
-                              161,
-                            ),
-                            margin: getMargin(
-                              left: 17,
-                              top: 0,
-                            ),
-                          ),
+                              imagePath: ImageConstant.imgGroup183001,
+                              height: getVerticalSize(
+                                53,
+                              ),
+                              width: getHorizontalSize(
+                                161,
+                              ),
+                              margin: getMargin(
+                                left: 17,
+                                top: 0,
+                              ),
+                              onTap: () {
+                                Navigator.pushNamed(
+                                  context,
+                                  '/home_page_screen',
+                                );
+                              }),
                           Align(
                             alignment: Alignment.center,
                             child: Row(
@@ -405,9 +465,50 @@ class ChatBotScreen extends HookConsumerWidget {
                         itemBuilder: (context, index) {
                           final message = messages[index];
 
-                          if (message.isLoading) {
+                          if (message.isError) {
+                            return Align(
+                              alignment: Alignment.centerLeft,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(
+                                    margin: getMargin(
+                                        left: 16,
+                                        right: 16,
+                                        top: 16,
+                                        bottom: 4),
+                                    padding: EdgeInsets.symmetric(
+                                        vertical: 12.0, horizontal: 16.0),
+                                    decoration: BoxDecoration(
+                                      color: ColorConstant
+                                          .redA700, // Color for the error message
+                                      borderRadius: BorderRadius.only(
+                                        topLeft: Radius.circular(16),
+                                        topRight: Radius.circular(16),
+                                        bottomLeft: Radius.circular(16),
+                                        bottomRight: Radius.circular(16),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      message.text,
+                                      style: AppStyle.txtManropeRegular14
+                                          .copyWith(
+                                              color: ColorConstant.whiteA700),
+                                    ),
+                                  ),
+                                  Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: Padding(
+                                      padding: EdgeInsets.only(left: 24.0),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          } else if (message.isLoading) {
+                            // This is the loading indicator
                             return Padding(
-                              padding: getPadding(top: 8, left: 32),
+                              padding: getPadding(top: 16, left: 32),
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.start,
                                 children: [

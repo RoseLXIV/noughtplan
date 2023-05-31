@@ -197,7 +197,7 @@ class ListDebtItemWidgetEdit extends HookConsumerWidget {
                 Padding(
                   padding: getPadding(top: 3),
                   child: SizedBox(
-                    width: 120, // adjust the width as needed
+                    width: 130, // adjust the width as needed
                     child: Stack(
                       alignment: Alignment.centerLeft,
                       children: [

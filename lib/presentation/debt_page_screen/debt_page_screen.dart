@@ -31,7 +31,7 @@ class DebtPageScreen extends StatelessWidget {
                                 CustomAppBar(
                                     height: getVerticalSize(169),
                                     leadingWidth: 48,
-                                    leading: AppbarImage(
+                                    leading: CustomImageView(
                                         height: getSize(24),
                                         width: getSize(24),
                                         svgPath: ImageConstant.imgArrowleft,

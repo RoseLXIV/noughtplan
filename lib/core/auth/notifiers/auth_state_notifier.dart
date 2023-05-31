@@ -11,12 +11,20 @@ class AuthStateNotifier extends StateNotifier<AuthState> {
   final _userInfoStorage = const UserInfoStorage();
 
   AuthStateNotifier() : super(const AuthState.unkown()) {
+    _initialize();
+  }
+
+  Future<void> _initialize() async {
+    String? deviceId;
     if (_authenticator.isSignedIn) {
-      state = AuthState(
-          result: AuthResult.success,
-          userId: _authenticator.userId,
-          isLoading: false);
+      deviceId = await _authenticator.getDeviceId();
     }
+    state = state.copiedWith(
+      result: _authenticator.isSignedIn ? AuthResult.success : null,
+      userId: _authenticator.userId,
+      deviceId: deviceId,
+      isLoading: false,
+    );
   }
 
   Future<void> logOut() async {

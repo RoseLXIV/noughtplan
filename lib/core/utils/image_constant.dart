@@ -99,6 +99,10 @@ class ImageConstant {
 
   static String imgTopographic5 = 'assets/images/img_topographic5.png';
 
+  static String imgTopographic5_sub = 'assets/images/Topographic 5.png';
+
+  static String imgTopographic5_nonsub = 'assets/images/Topographic 5_1.png';
+
   static String imgTopographic2 = 'assets/images/Topographic2.png';
 
   static String imgTopographic1 = 'assets/images/Topographic1.png';

@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:noughtplan/core/auth/backend/authenticator.dart';
 import 'package:noughtplan/core/budget/models/budget_state.dart';
@@ -10,6 +11,8 @@ import 'package:noughtplan/core/constants/budgets.dart';
 import 'package:noughtplan/core/posts/typedefs/budget_id.dart';
 import 'package:noughtplan/core/posts/typedefs/user_id.dart';
 import 'package:noughtplan/core/budget_info/models/backend/budget_info_storage.dart';
+import 'package:noughtplan/presentation/budget_screen/widgets/debts_provider.dart';
+import 'package:noughtplan/presentation/budget_screen/widgets/goals_provider.dart';
 import 'package:noughtplan/presentation/expense_tracking_screen/actual_expenses_provider.dart';
 
 class BudgetStateNotifier extends StateNotifier<BudgetState> {
@@ -20,6 +23,8 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
   final BudgetDiscretionaryInfoStorage _budgetDiscretionaryInfoStorage;
   final BudgetIdStorage _budgetIdStorage;
 
+  final ValueNotifier<int> _budgetCount = ValueNotifier<int>(0);
+
   BudgetStateNotifier(this._authenticator)
       : _budgetInfoStorage = const BudgetInfoStorage(),
         _budgetNecessaryInfoStorage = const BudgetNecessaryInfoStorage(),
@@ -29,6 +34,31 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
         _budgetIdStorage = const BudgetIdStorage(),
         super(const BudgetState.unknown()) {
     fetchUserBudgets();
+  }
+
+  ValueNotifier<int> get budgetCountValueNotifier => _budgetCount;
+
+  Future<int> fetchBudgetCount() async {
+    state = state.copiedWithIsLoading(true);
+
+    // Get the device ID from the Authenticator
+    final deviceId = await _authenticator.getDeviceId();
+
+    try {
+      final count = await _budgetInfoStorage.getBudgetCount(deviceId!);
+      print('Budget Count: $count');
+
+      // Update the ValueNotifier with the new budget count
+      _budgetCount.value = count;
+
+      state = state.copiedWithIsLoading(false);
+
+      return count;
+    } catch (e) {
+      state = state.copiedWithIsLoading(false);
+      print('Error: $e');
+      rethrow;
+    }
   }
 
   Future<void> saveBudgetInfo({
@@ -134,11 +164,13 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
     state = state.copiedWithIsLoading(true);
 
     // Get the user ID from the Authenticator
-    final userId = _authenticator.userId;
-    print(userId);
+    final userId = await _authenticator.userId;
+    final deviceId =
+        await _authenticator.getDeviceId(); // Fetch the device_id here
+    print('Device ID: $deviceId');
 
-    // Ensure userId is not null before proceeding
-    if (userId == null) {
+    // Ensure userId and deviceId are not null before proceeding
+    if (userId == null || deviceId == null) {
       state = BudgetState(
         status: BudgetStatus.failure,
         isLoading: false,
@@ -154,6 +186,7 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
       salary: salary,
       currency: currency,
       budgetType: budgetType,
+      deviceId: deviceId, // Pass the device_id here
     );
     if (result) {
       state = BudgetState(
@@ -622,6 +655,49 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
     }
   }
 
+  Future<void> deleteBudgetsWithNoNameAndUser() async {
+    try {
+      // Get the userId from _authenticator
+      final userId = _authenticator.userId;
+      print('userId Delete Notifier: $userId');
+      if (userId == null) {
+        state = BudgetState(
+          status: BudgetStatus.failure,
+          isLoading: false,
+          userId: null,
+          budgets: [],
+        );
+        return;
+      }
+
+      // Call the deleteBudgetsWithNoName function from BudgetInfoStorage
+      await _budgetInfoStorage.deleteBudgetsWithNoName(userId);
+
+      // Call the deleteAllUserBudgets function from BudgetInfoStorage
+      await _budgetInfoStorage.deleteAllUserBudgets(userId);
+
+      // Call the deleteUser function from BudgetInfoStorage
+      await _budgetInfoStorage.deleteUser(userId);
+
+      // Update the state to reflect successful deletion
+      state = BudgetState(
+        status: BudgetStatus.success,
+        isLoading: false,
+        userId: userId,
+        budgets: [], // Update this to remove the deleted budget from the list
+      );
+    } catch (e) {
+      // Handle any errors that might occur during the deletion
+      print(e);
+      state = BudgetState(
+        status: BudgetStatus.failure,
+        isLoading: false,
+        userId: _authenticator.userId,
+        budgets: [], // Update this to keep the current list of budgets
+      );
+    }
+  }
+
   Future<void> deleteExpense(String budgetId, int index, WidgetRef ref) async {
     try {
       // Call the deleteExpense function from BudgetInfoStorage
@@ -855,6 +931,102 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
             ref.read(actualExpensesProvider.notifier);
         actualExpensesNotifier
             .updateActualExpenses(updatedBudget.actualExpenses);
+      }
+
+      print('Updated budgets: $updatedBudgets');
+    } else {
+      state = state.copyWith(
+        status: BudgetStatus.failure,
+        isLoading: false,
+        budgets: [],
+      );
+    }
+  }
+
+  Future<void> addGoal(
+      {required String? budgetId,
+      required Map<String, dynamic> goalData,
+      required WidgetRef ref}) async {
+    if (budgetId == null) {
+      state = state.copyWith(
+        status: BudgetStatus.failure,
+        isLoading: false,
+        budgets: [],
+      );
+      return;
+    }
+    state = state.copyWith(isLoading: true);
+
+    final success = await _budgetInfoStorage.addGoal(
+      budgetId: budgetId,
+      goalData: goalData,
+    );
+
+    if (success) {
+      List<Budget?> updatedBudgets = await fetchUserBudgets();
+      state = state.copyWith(
+        status: BudgetStatus.success,
+        isLoading: false,
+        budgets: updatedBudgets,
+      );
+
+      // Get the updated budget
+      final updatedBudget =
+          updatedBudgets.firstWhere((b) => b?.budgetId == budgetId);
+
+      // Update the goals
+      if (updatedBudget != null) {
+        final goalsNotifier = ref.read(goalsProvider.notifier);
+        goalsNotifier.updateGoals(updatedBudget.goals);
+      }
+
+      print('Updated budgets: $updatedBudgets');
+    } else {
+      state = state.copyWith(
+        status: BudgetStatus.failure,
+        isLoading: false,
+        budgets: [],
+      );
+    }
+  }
+
+  Future<void> addDebt(
+      {required String? budgetId,
+      required Map<String, dynamic> debtData,
+      required WidgetRef ref}) async {
+    if (budgetId == null) {
+      state = state.copyWith(
+        status: BudgetStatus.failure,
+        isLoading: false,
+        budgets: [],
+      );
+      return;
+    }
+    state = state.copyWith(isLoading: true);
+
+    final success = await _budgetInfoStorage.addDebt(
+      budgetId: budgetId,
+      debtData: debtData,
+    );
+
+    if (success) {
+      List<Budget?> updatedBudgets = await fetchUserBudgets();
+      state = state.copyWith(
+        status: BudgetStatus.success,
+        isLoading: false,
+        budgets: updatedBudgets,
+      );
+
+      // Get the updated budget
+      final updatedBudget =
+          updatedBudgets.firstWhere((b) => b?.budgetId == budgetId);
+
+      // Update the debts
+      if (updatedBudget != null) {
+        final debtsNotifier = ref.read(debtsProvider
+            .notifier); // Make sure you have a corresponding notifier and provider for the debts
+        debtsNotifier.updateDebts(updatedBudget
+            .debts); // And a corresponding method to update the debts in the notifier
       }
 
       print('Updated budgets: $updatedBudgets');

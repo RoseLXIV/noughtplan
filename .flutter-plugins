@@ -1,6 +1,7 @@
 # This is a generated file; do not edit or check into version control.
 cloud_firestore=C:\\Users\\romon\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\cloud_firestore-4.4.3\\
 cloud_firestore_web=C:\\Users\\romon\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\cloud_firestore_web-3.3.3\\
+device_info_plus=C:\\Users\\romon\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\device_info_plus-8.2.2\\
 facebook_auth_desktop=C:\\Users\\romon\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\facebook_auth_desktop-0.0.8\\
 firebase_auth=C:\\Users\\romon\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\firebase_auth-4.2.9\\
 firebase_auth_web=C:\\Users\\romon\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\firebase_auth_web-5.2.8\\
@@ -37,7 +38,7 @@ shared_preferences_linux=C:\\Users\\romon\\AppData\\Local\\Pub\\Cache\\hosted\\p
 shared_preferences_web=C:\\Users\\romon\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\shared_preferences_web-2.0.6\\
 shared_preferences_windows=C:\\Users\\romon\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\shared_preferences_windows-2.1.5\\
 sqflite=C:\\Users\\romon\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\sqflite-2.2.4+1\\
-url_launcher=C:\\Users\\romon\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\url_launcher-6.1.10\\
+url_launcher=C:\\Users\\romon\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\url_launcher-6.1.11\\
 url_launcher_android=C:\\Users\\romon\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\url_launcher_android-6.0.24\\
 url_launcher_ios=C:\\Users\\romon\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\url_launcher_ios-6.1.1\\
 url_launcher_linux=C:\\Users\\romon\\AppData\\Local\\Pub\\Cache\\hosted\\pub.dev\\url_launcher_linux-3.0.3\\

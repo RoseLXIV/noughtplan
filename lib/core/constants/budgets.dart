@@ -17,6 +17,8 @@ class Budget {
   final String savingType;
   final String spendingType;
   final List<Map<String, dynamic>> actualExpenses;
+  final List<Map<String, dynamic>> goals;
+  final List<Map<String, dynamic>> debts;
 
   Budget({
     required this.budgetId,
@@ -33,6 +35,8 @@ class Budget {
     required this.savingType,
     required this.spendingType,
     required this.actualExpenses,
+    required this.goals,
+    required this.debts,
   });
 
   // You can also add factory methods to create instances from your data source
@@ -59,6 +63,12 @@ class Budget {
       actualExpenses: map['actualExpenses'] != null
           ? List<Map<String, dynamic>>.from(map['actualExpenses'])
           : [],
+      goals: map['goals'] != null
+          ? List<Map<String, dynamic>>.from(map['goals'])
+          : [],
+      debts: map['debts'] != null
+          ? List<Map<String, dynamic>>.from(map['debts'])
+          : [],
     );
   }
   Budget copyWith({
@@ -76,6 +86,8 @@ class Budget {
     String? savingType,
     String? spendingType,
     List<Map<String, dynamic>>? actualExpenses,
+    List<Map<String, dynamic>>? goals,
+    List<Map<String, dynamic>>? debts,
   }) {
     return Budget(
       budgetId: budgetId ?? this.budgetId,
@@ -92,6 +104,8 @@ class Budget {
       savingType: savingType ?? this.savingType,
       spendingType: spendingType ?? this.spendingType,
       actualExpenses: actualExpenses ?? this.actualExpenses,
+      goals: goals ?? this.goals,
+      debts: debts ?? this.debts,
     );
   }
 
@@ -110,6 +124,8 @@ class Budget {
         'salary: $salary, '
         'savingType: $savingType, '
         'spendingType: $spendingType, '
-        'actualExpenses: $actualExpenses)';
+        'actualExpenses: $actualExpenses)'
+        'goals: $goals, '
+        'debts: $debts, ';
   }
 }

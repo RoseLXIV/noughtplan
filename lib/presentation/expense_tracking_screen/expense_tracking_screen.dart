@@ -529,19 +529,24 @@ class ExpenseTrackingScreen extends HookConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     CustomImageView(
-                      imagePath: ImageConstant.imgGroup183001,
-                      height: getVerticalSize(
-                        53,
-                      ),
-                      width: getHorizontalSize(
-                        161,
-                      ),
-                      alignment: Alignment.center,
-                      margin: getMargin(
-                        left: 17,
-                        top: 0,
-                      ),
-                    ),
+                        imagePath: ImageConstant.imgGroup183001,
+                        height: getVerticalSize(
+                          53,
+                        ),
+                        width: getHorizontalSize(
+                          161,
+                        ),
+                        alignment: Alignment.center,
+                        margin: getMargin(
+                          left: 17,
+                          top: 0,
+                        ),
+                        onTap: () {
+                          Navigator.pushNamed(
+                            context,
+                            '/home_page_screen',
+                          );
+                        }),
                     Align(
                       alignment: Alignment.center,
                       child: Row(

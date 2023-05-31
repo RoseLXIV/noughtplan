@@ -119,42 +119,41 @@ class ListDebtChartItemWidgetSave extends HookWidget {
               ),
             ],
           ),
-          Container(
-            width: 133,
-            padding: getPadding(
-              top: 26,
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.end,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  "Amount Saved",
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.right,
-                  style: AppStyle.txtManropeSemiBold10Bluegray300.copyWith(
-                    letterSpacing: getHorizontalSize(
-                      0.2,
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: getPadding(
-                    top: 1,
-                  ),
-                  child: Text(
-                    formattedRemainingAmount,
+          Padding(
+            padding: getPadding(top: 30),
+            child: Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    "Amount Saved",
                     overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.left,
-                    style: AppStyle.txtHelveticaNowTextBold18.copyWith(
+                    textAlign: TextAlign.right,
+                    style: AppStyle.txtManropeSemiBold10Bluegray300.copyWith(
                       letterSpacing: getHorizontalSize(
                         0.2,
                       ),
-                      color: amountTextColor,
                     ),
                   ),
-                ),
-              ],
+                  Padding(
+                    padding: getPadding(
+                      top: 1,
+                    ),
+                    child: Text(
+                      formattedRemainingAmount,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.left,
+                      style: AppStyle.txtHelveticaNowTextBold16.copyWith(
+                        letterSpacing: getHorizontalSize(
+                          0.2,
+                        ),
+                        color: amountTextColor,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           // Padding(
