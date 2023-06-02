@@ -312,7 +312,7 @@ class HomePageScreen extends HookConsumerWidget {
                     AsyncSnapshot<Map<String, dynamic>> snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     // Display loading indicator while waiting for response
-                    return CircularProgressIndicator();
+                    return SizedBox.shrink();
                   } else if (snapshot.hasError) {
                     // Handle error if any
                     return Text('Error: ${snapshot.error}');
@@ -476,8 +476,23 @@ class HomePageScreen extends HookConsumerWidget {
                                                             getVerticalSize(95),
                                                         decoration:
                                                             BoxDecoration(
-                                                          color: ColorConstant
-                                                              .redA700,
+                                                          gradient:
+                                                              LinearGradient(
+                                                            colors: [
+                                                              Colors
+                                                                  .transparent,
+                                                              ColorConstant
+                                                                  .redA700
+                                                            ],
+                                                            begin: Alignment
+                                                                .centerLeft,
+                                                            end: Alignment
+                                                                .centerRight,
+                                                            stops: [
+                                                              0.15,
+                                                              1.0
+                                                            ], // first color stops at 70%, second at 100%
+                                                          ),
                                                           borderRadius:
                                                               BorderRadius
                                                                   .circular(12),
@@ -982,7 +997,8 @@ class HomePageScreen extends HookConsumerWidget {
                                     // The future is still loading
                                     if (snapshot.connectionState !=
                                         ConnectionState.done) {
-                                      return CircularProgressIndicator(); // Or some other placeholder
+                                      return SizedBox
+                                          .shrink(); // Or some other placeholder
                                     }
 
                                     // The future completed with an error
@@ -1196,7 +1212,7 @@ class HomePageScreen extends HookConsumerWidget {
             builder:
                 (BuildContext context, AsyncSnapshot<List<dynamic>> snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return CircularProgressIndicator();
+                return SizedBox.shrink();
               } else {
                 if (snapshot.hasError) {
                   return Container();

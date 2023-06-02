@@ -9,6 +9,7 @@ import 'package:noughtplan/core/app_export.dart';
 import 'package:noughtplan/core/budget/providers/budget_state_provider.dart';
 import 'package:noughtplan/core/constants/budgets.dart';
 import 'package:noughtplan/theme/app_style.dart';
+import 'package:noughtplan/widgets/custom_button.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 import 'expenses_lists_widget.dart';
@@ -376,7 +377,7 @@ class CalendarWidget extends HookConsumerWidget {
           ),
         ),
         SizedBox(
-          height: getVerticalSize(16),
+          height: getVerticalSize(0),
         ),
         StatefulBuilder(builder: (context, StateSetter setState) {
           void _onDismissed(int index) {
@@ -385,113 +386,314 @@ class CalendarWidget extends HookConsumerWidget {
             });
           }
 
-          return Consumer(builder: (context, ref, child) {
-            return Padding(
-              padding: getPadding(left: 15, right: 15),
-              child: reversedSelectedDateExpenses.isEmpty
-                  ? Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Neumorphic(
-                            style: NeumorphicStyle(
-                              shape: NeumorphicShape.convex,
-                              boxShape: NeumorphicBoxShape.roundRect(
-                                  BorderRadius.circular(12)),
-                              depth: 0.1,
-                              intensity: 1,
-                              surfaceIntensity: 0.5,
-                              lightSource: LightSource.top,
-                              color: ColorConstant.gray50,
-                            ),
-                            child: Container(
-                              height: getVerticalSize(95),
-                              decoration: BoxDecoration(
-                                color: ColorConstant.gray100,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  Text(
-                                      "Press the plus (+) button to add an Expense",
-                                      style: AppStyle.txtManropeBold12.copyWith(
-                                        color: ColorConstant.blueGray500,
-                                        letterSpacing: getHorizontalSize(1),
-                                      )),
-                                ],
-                              ),
-                            ),
-                          ),
+          return Column(
+            children: [
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(
+                          color: ColorConstant.redA700,
+                          width: 1,
                         ),
-                      ],
-                    )
-                  : ListView.separated(
-                      physics: BouncingScrollPhysics(),
-                      shrinkWrap: true,
-                      separatorBuilder: (context, index) {
-                        return SizedBox(
-                          height: getVerticalSize(16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(50),
+                        ),
+                      ),
+                      onPressed: () async {
+                        showDialog(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return AlertDialog(
+                              title: Text(
+                                'Clear Expenses',
+                                style: AppStyle.txtHelveticaNowTextBold18
+                                    .copyWith(letterSpacing: 0.2),
+                              ),
+                              content: Text(
+                                'Are you sure you want to clear all expenses for the Week?',
+                                style: AppStyle.txtManropeRegular14
+                                    .copyWith(letterSpacing: 0.2),
+                              ),
+                              actions: [
+                                TextButton(
+                                  child: Text('Cancel',
+                                      style: AppStyle.txtHelveticaNowTextBold14
+                                          .copyWith(letterSpacing: 0.2)),
+                                  onPressed: () {
+                                    Navigator.of(context).pop();
+                                  },
+                                ),
+                                TextButton(
+                                  child: Text('Clear',
+                                      style: AppStyle.txtHelveticaNowTextBold14
+                                          .copyWith(
+                                              letterSpacing: 0.2,
+                                              color: ColorConstant.redA700)),
+                                  onPressed: () async {
+                                    String budgetId = budget!.budgetId;
+                                    print('budgetId: $budgetId');
+                                    print(selectedDate);
+                                    await ref
+                                        .read(budgetStateProvider.notifier)
+                                        .deleteWeeklyExpenses(
+                                            budgetId, selectedDate!, ref);
+                                    Navigator.of(context).pop();
+                                  },
+                                ),
+                              ],
+                            );
+                          },
                         );
                       },
-                      itemCount: reversedSelectedDateExpenses.length,
-                      itemBuilder: (context, index) {
-                        int actualExpensesIndex = actualExpenses
-                            .indexOf(reversedSelectedDateExpenses[index]);
-                        return Dismissible(
-                          key: Key(
-                              '${reversedSelectedDateExpenses[index]['date'].toString()}_${reversedSelectedDateExpenses[index]['category']}'),
-                          background: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Stack(
+                      child: Padding(
+                        padding: getPadding(
+                            left: 0,
+                            right: 0,
+                            top: 0,
+                            bottom: 0), // Adjust padding here
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: <Widget>[
+                            CustomImageView(
+                              width: 20,
+                              height: 20,
+                              svgPath: ImageConstant.imgTrashNew,
+                              color: ColorConstant.redA700,
+                            ),
+                            SizedBox(
+                                width:
+                                    4), // Adjust the space between the icon and text
+                            Text(
+                              'Exps. Week',
+                              style:
+                                  AppStyle.txtHelveticaNowTextBold12.copyWith(
+                                color: ColorConstant.redA700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(
+                          color: ColorConstant.redA700,
+                          width: 1,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(50),
+                        ),
+                      ),
+                      onPressed: () async {
+                        showDialog(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return AlertDialog(
+                              title: Text(
+                                'Clear Expenses',
+                                style: AppStyle.txtHelveticaNowTextBold18
+                                    .copyWith(letterSpacing: 0.2),
+                              ),
+                              content: Text(
+                                'Are you sure you want to clear all expenses for the Month?',
+                                style: AppStyle.txtManropeRegular14
+                                    .copyWith(letterSpacing: 0.2),
+                              ),
+                              actions: [
+                                TextButton(
+                                  child: Text('Cancel',
+                                      style: AppStyle.txtHelveticaNowTextBold14
+                                          .copyWith(letterSpacing: 0.2)),
+                                  onPressed: () {
+                                    Navigator.of(context).pop();
+                                  },
+                                ),
+                                TextButton(
+                                  child: Text('Clear',
+                                      style: AppStyle.txtHelveticaNowTextBold14
+                                          .copyWith(
+                                              letterSpacing: 0.2,
+                                              color: ColorConstant.redA700)),
+                                  onPressed: () async {
+                                    String budgetId = budget!.budgetId;
+                                    print('budgetId: $budgetId');
+                                    print(selectedDate);
+                                    await ref
+                                        .read(budgetStateProvider.notifier)
+                                        .deleteMonthlyExpenses(
+                                            budgetId, selectedDate!, ref);
+                                    Navigator.of(context).pop();
+                                  },
+                                ),
+                              ],
+                            );
+                          },
+                        );
+                      },
+                      child: Padding(
+                        padding: getPadding(
+                            left: 0,
+                            right: 0,
+                            top: 0,
+                            bottom: 0), // Adjust padding here
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: <Widget>[
+                            CustomImageView(
+                              width: 20,
+                              height: 20,
+                              svgPath: ImageConstant.imgTrashNew,
+                              color: ColorConstant.redA700,
+                            ),
+                            SizedBox(
+                                width:
+                                    4), // Adjust the space between the icon and text
+                            Text(
+                              'Exps. Month',
+                              style:
+                                  AppStyle.txtHelveticaNowTextBold12.copyWith(
+                                color: ColorConstant.redA700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(
+                height: getVerticalSize(8),
+              ),
+              Consumer(builder: (context, ref, child) {
+                return Padding(
+                  padding: getPadding(left: 15, right: 15),
+                  child: reversedSelectedDateExpenses.isEmpty
+                      ? Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Neumorphic(
+                                style: NeumorphicStyle(
+                                  shape: NeumorphicShape.convex,
+                                  boxShape: NeumorphicBoxShape.roundRect(
+                                      BorderRadius.circular(12)),
+                                  depth: 0.1,
+                                  intensity: 1,
+                                  surfaceIntensity: 0.5,
+                                  lightSource: LightSource.top,
+                                  color: ColorConstant.gray50,
+                                ),
+                                child: Container(
+                                  height: getVerticalSize(95),
+                                  decoration: BoxDecoration(
+                                    color: ColorConstant.gray100,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                          "Press the plus (+) button to add an Expense",
+                                          style: AppStyle.txtManropeBold12
+                                              .copyWith(
+                                            color: ColorConstant.blueGray500,
+                                            letterSpacing: getHorizontalSize(1),
+                                          )),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        )
+                      : ListView.separated(
+                          physics: BouncingScrollPhysics(),
+                          shrinkWrap: true,
+                          separatorBuilder: (context, index) {
+                            return SizedBox(
+                              height: getVerticalSize(16),
+                            );
+                          },
+                          itemCount: reversedSelectedDateExpenses.length,
+                          itemBuilder: (context, index) {
+                            int actualExpensesIndex = actualExpenses
+                                .indexOf(reversedSelectedDateExpenses[index]);
+                            return Dismissible(
+                              key: UniqueKey(),
+                              background: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Container(
-                                    height: getVerticalSize(50),
-                                    decoration: BoxDecoration(
-                                      color: ColorConstant.redA700,
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.end,
-                                      children: [
-                                        // SizedBox(width: 25),
-                                        Padding(
-                                          padding: getPadding(right: 16),
-                                          child: CustomImageView(
-                                            svgPath: ImageConstant.imgTrashNew,
-                                            height: getSize(24),
-                                            width: getSize(24),
-                                            color: ColorConstant.whiteA700,
+                                  Stack(
+                                    children: [
+                                      Container(
+                                        height: getVerticalSize(50),
+                                        decoration: BoxDecoration(
+                                          gradient: LinearGradient(
+                                            colors: [
+                                              Colors.transparent,
+                                              ColorConstant.redA700
+                                            ],
+                                            begin: Alignment.centerLeft,
+                                            end: Alignment.centerRight,
+                                            stops: [
+                                              0.15,
+                                              1.0
+                                            ], // first color stops at 70%, second at 100%
                                           ),
+                                          borderRadius:
+                                              BorderRadius.circular(12),
                                         ),
-                                      ],
-                                    ),
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.end,
+                                          children: [
+                                            // SizedBox(width: 25),
+                                            Padding(
+                                              padding: getPadding(right: 16),
+                                              child: CustomImageView(
+                                                svgPath:
+                                                    ImageConstant.imgTrashNew,
+                                                height: getSize(24),
+                                                width: getSize(24),
+                                                color: ColorConstant.whiteA700,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
-                            ],
-                          ),
-                          direction: DismissDirection.endToStart,
-                          onDismissed: (direction) {
-                            _onDismissed(index);
-                            ref
-                                .read(budgetStateProvider.notifier)
-                                .deleteExpense(
-                                    budget!.budgetId, actualExpensesIndex, ref);
+                              direction: DismissDirection.endToStart,
+                              onDismissed: (direction) {
+                                _onDismissed(index);
+                                ref
+                                    .read(budgetStateProvider.notifier)
+                                    .deleteExpense(budget!.budgetId,
+                                        actualExpensesIndex, ref);
+                              },
+                              child: ExpenseListWidget(
+                                selectedDate: selectedDate!,
+                                budget: budget,
+                                expenseData:
+                                    reversedSelectedDateExpenses[index],
+                              ),
+                            );
                           },
-                          child: ExpenseListWidget(
-                            selectedDate: selectedDate!,
-                            budget: budget,
-                            expenseData: reversedSelectedDateExpenses[index],
-                          ),
-                        );
-                      },
-                    ),
-            );
-          });
+                        ),
+                );
+              }),
+            ],
+          );
         }),
       ],
     );

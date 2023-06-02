@@ -51,6 +51,17 @@ class ExpenseTrackerController extends StateNotifier<ExpenseTrackerState> {
     print('Status: ${state.status}');
   }
 
+  void reset() {
+    _selectedCategory = null;
+    _amountText = '';
+
+    state = state.copyWith(
+      category: Category.pure(),
+      amount: Amount.pure(),
+      status: FormzStatus.pure,
+    );
+  }
+
   Future<void> addActualExpenseToBudget(
       String budgetId, Map<String, dynamic> expenseData, WidgetRef ref) {
     return _budgetStateNotifier.addActualExpense(

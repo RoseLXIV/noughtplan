@@ -80,31 +80,34 @@ class GoalsListWidget extends StatelessWidget {
     }
     String goalEndDateStr = "${DateFormat.yMMMM().format(goalEndDate)}";
 
-    // Function to determine the goal end date message
     String getGoalEndDateMessage(DateTime goalEndDate) {
       DateTime currentDate = DateTime.now();
       Duration remainingTime = goalEndDate.difference(currentDate);
+      String formattedBudgetAmount =
+          budget?.necessaryExpense![goalData['category']] != null
+              ? formatter
+                  .format(budget?.necessaryExpense![goalData['category']])
+              : '0.00';
 
       if (remainingTime.isNegative) {
-        return "Congratulations! You have successfully achieved your goal. You've demonstrated great determination and perseverance.";
+        return "Hats off to you! You've achieved your goal. This is what determination looks like. Your future self is thanking you, and so am I!";
       } else if (remainingTime.inDays == 0) {
-        return "Today is the last day to reach your goal. Stay focused and give it your all. You're so close!";
+        return "Today is a big day, the final day to reach your goal. I'm with you every step of the way. Together, we'll cross this finish line. I know you can do it!";
       } else if (remainingTime.inDays == 1) {
-        return 'Just one more day to go to achieve your goal. Keep pushing forward and remember that every step counts!';
+        return "Almost there, just one day left. Every penny saved is a step forward. You're doing great. Let's continue to save and achieve your goal together!";
       } else if (remainingTime.inDays < 7) {
-        return 'You have ${remainingTime.inDays} days left to reach your goal. Keep up the good work, stay motivated, and make the most of every day!';
+        return 'Just a week to go! You\'ve been doing an awesome job! If you stick to saving "\$${formattedBudgetAmount}" each ${goalData['frequency']}, you\'ll reach your goal in no time!';
       } else {
         int remainingMonths = (remainingTime.inDays / 30).floor();
         int remainingYears = (remainingMonths / 12).floor();
 
         if (remainingYears > 0) {
-          return 'You have ${remainingYears} ${remainingYears > 1 ? 'years' : 'year'} and ${remainingMonths % 12} ${remainingMonths % 12 > 1 ? 'months' : 'month'} left to reach your goal. Stay committed and motivated, and remember that consistency brings success!';
+          return 'You\'re on the right path, and it shows! You have around ${remainingYears} ${remainingYears > 1 ? 'years' : 'year'} and ${remainingMonths % 12} ${remainingMonths % 12 > 1 ? 'months' : 'month'} left to reach your goal, you\'re doing fantastic!';
         } else {
-          return 'You have ${remainingMonths} ${remainingMonths > 1 ? 'months' : 'month'} left to reach your goal. Stay focused, keep up the great work, and trust in your ability to achieve what you set out to do!';
+          return 'Just ${remainingMonths} ${remainingMonths > 1 ? 'months' : 'month'} left to reach your goal. You\'re making steady progress, let\'s keep the momentum going!';
         }
       }
     }
-
     // print('totalSpent: $totalSpent');
     // print('Total: ${goalData['amount']}');
 
@@ -126,14 +129,15 @@ class GoalsListWidget extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              margin: EdgeInsets.symmetric(vertical: 12),
-              padding: getPadding(left: 8, right: 8, top: 8, bottom: 3),
+              margin: EdgeInsets.symmetric(vertical: 6),
+              padding: getPadding(left: 16, right: 16, top: 8, bottom: 0),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Text(
                     goalData['category'],
+                    overflow: TextOverflow.ellipsis,
                     style: AppStyle.txtHelveticaNowTextBold14
                         .copyWith(color: ColorConstant.gray900),
                   ),
@@ -146,10 +150,13 @@ class GoalsListWidget extends StatelessWidget {
                       //   style: AppStyle.txtHelveticaNowTextBold16
                       //       .copyWith(color: ColorConstant.gray900),
                       // ),
-                      Row(
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Text(
                             '\$${budget?.necessaryExpense![goalData['category']] != null ? formatter.format(budget?.necessaryExpense![goalData['category']]) : '0.00'}',
+                            overflow: TextOverflow.ellipsis,
                             style: AppStyle.txtHelveticaNowTextBold14
                                 .copyWith(color: ColorConstant.gray900),
                           ),
@@ -186,7 +193,7 @@ class GoalsListWidget extends StatelessWidget {
                     top: 0.1,
                     right: 4,
                     child: Text(
-                      '${formattedRemaining.startsWith('-') ? "+" : ""}\$${formattedRemaining.replaceAll('-', '')} left',
+                      '${formattedRemaining.startsWith('-') ? "+" : ""}\$${formattedRemaining.replaceAll('-', '')} / \$${formattedGoalAmount}',
                       textAlign: TextAlign.left,
                       style: AppStyle.txtManropeBold12
                           .copyWith(color: Colors.grey.shade800),
@@ -196,7 +203,7 @@ class GoalsListWidget extends StatelessWidget {
               ),
             ),
             Container(
-                padding: getPadding(left: 28, right: 16, top: 6, bottom: 8),
+                padding: getPadding(left: 28, right: 20, top: 6, bottom: 8),
                 child: Text(
                   getGoalEndDateMessage(goalEndDate),
                   textAlign: TextAlign.left,

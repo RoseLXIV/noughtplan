@@ -87,12 +87,32 @@ class DataModelTypes extends ChangeNotifier {
 final dataProvider = ChangeNotifierProvider((ref) => DataModel());
 final dataProviderBudgets = ChangeNotifierProvider((ref) => DataModelTypes());
 
+class OnboardingNotifier extends StateNotifier<bool> {
+  OnboardingNotifier()
+      : super(
+            true); // True indicates that onboarding instructions should be shown
+
+  void markOnboardingAsComplete() {
+    state = false; // Set to false when onboarding is completed
+  }
+}
+
+final onboardingNotifierProvider =
+    StateNotifierProvider<OnboardingNotifier, bool>((ref) {
+  return OnboardingNotifier();
+});
+
+final arrowVisibleProvider = StateProvider<bool>((ref) => true);
+
 class GeneratorSalaryScreen extends HookConsumerWidget {
   final salaryFocusNode = FocusNode();
   final currencyFocusNode = FocusNode();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final _animationController =
+        useAnimationController(duration: const Duration(seconds: 1));
+
     final salaryController = useTextEditingController(text: '');
     final hasInitialized = useState(false);
 
@@ -107,33 +127,7 @@ class GeneratorSalaryScreen extends HookConsumerWidget {
     final generateSalaryController = ref.watch(generateSalaryProvider.notifier);
     final bool isValidated = generateSalaryState.status.isValidated;
 
-    // // if (!hasInitialized.value) {
-    // WidgetsBinding.instance.addPostFrameCallback((_) {
-    //   // Try parsing the salary from salaryController.text to double
-    //   double? salary =
-    //       double.tryParse(salaryController.text.replaceAll(',', ''));
-
-    //   print('salary $salary');
-    //   if (salary != null) {
-    //     // If parsing is successful, pass the salary to the function
-    //     generateSalaryController.initializeSalary(salary);
-    //   } else {
-    //     // Handle the case when salary is not a valid number
-    //     // You might want to show an error message to the user
-    //   }
-
-    //   // Pass the selected currency to the function
-    //   generateSalaryController
-    //       .initializeCurrency(data._selectedCurrency?.name ?? '');
-    //   print('currency ${data._selectedCurrency?.name}');
-
-    //   // Pass the selected budget type to the function
-    //   generateSalaryController
-    //       .initializeBudgetType(dataBudgets._selectedType?.types ?? '');
-    //   print('budget type ${dataBudgets._selectedType?.types}');
-    // });
-    // //   hasInitialized.value = true;
-    // // }
+    final arrowVisible = ref.watch(arrowVisibleProvider);
 
     Future<Map<String, dynamic>> getSubscriptionInfo() async {
       final firebaseUser = FirebaseAuth.instance.currentUser;
@@ -168,10 +162,23 @@ class GeneratorSalaryScreen extends HookConsumerWidget {
       return subscriptionInfo;
     }
 
+    useEffect(() {
+      // Start the animation as before...
+      _animationController.repeat(reverse: true);
+
+      // After 5 seconds, hide the arrow
+      Future.delayed(const Duration(seconds: 10), () {
+        ref.read(arrowVisibleProvider.notifier).state = false;
+      });
+
+      return _animationController.dispose;
+    }, []);
+
     return WillPopScope(
       onWillPop: () async {
         final budgetState = ref.read(budgetStateProvider.notifier);
         await budgetState.deleteBudgetsWithNoName();
+        Navigator.pop(context);
         return false;
       },
       child: SafeArea(
@@ -196,71 +203,102 @@ class GeneratorSalaryScreen extends HookConsumerWidget {
                           mainAxisAlignment: MainAxisAlignment.start,
                           children: [
                             CustomAppBar(
-                                height: getVerticalSize(100),
-                                leadingWidth: 25,
-                                leading: CustomImageView(
-                                  onTap: () async {
-                                    final budgetState =
-                                        ref.read(budgetStateProvider.notifier);
-                                    await budgetState.deleteBudgetsWithNoName();
-                                    Navigator.pop(context);
+                              height: getVerticalSize(100),
+                              leadingWidth: 25,
+                              leading: CustomImageView(
+                                onTap: () async {
+                                  final budgetState =
+                                      ref.read(budgetStateProvider.notifier);
+                                  await budgetState.deleteBudgetsWithNoName();
+                                  Navigator.pop(context);
+                                },
+                                height: getSize(24),
+                                width: getSize(24),
+                                svgPath: ImageConstant.imgArrowleft,
+                              ),
+                              centerTitle: true,
+                              title:
+                                  AppbarTitle(text: "Salary and Budget Type"),
+                              actions: [
+                                GestureDetector(
+                                  onTap: () {
+                                    showDialog(
+                                      context: context,
+                                      builder: (BuildContext context) {
+                                        return AlertDialog(
+                                          title: Text(
+                                            'Welcome to The Nought Plan',
+                                            textAlign: TextAlign.center,
+                                            style: AppStyle
+                                                .txtHelveticaNowTextBold16,
+                                          ),
+                                          content: Text(
+                                            'To get started, please enter your monthly salary and select your preferred currency from the dropdown menu below. Our smart algorithms will take care of the rest, providing you with a personalized budget plan to help you save and manage your finances.',
+                                            textAlign: TextAlign.center,
+                                            style: AppStyle.txtManropeRegular14,
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(context),
+                                              child: Text('Close'),
+                                            ),
+                                          ],
+                                        );
+                                      },
+                                    );
                                   },
-                                  height: getSize(24),
-                                  width: getSize(24),
-                                  svgPath: ImageConstant.imgArrowleft,
-                                ),
-                                centerTitle: true,
-                                title:
-                                    AppbarTitle(text: "Salary and Budget Type"),
-                                actions: [
-                                  GestureDetector(
-                                    onTap: () {
-                                      showDialog(
-                                        context: context,
-                                        builder: (BuildContext context) {
-                                          return AlertDialog(
-                                            title: Text(
-                                              'Welcome to The Nought Plan',
-                                              textAlign: TextAlign.center,
-                                              style: AppStyle
-                                                  .txtHelveticaNowTextBold16,
-                                            ),
-                                            content: Text(
-                                              'To get started, please enter your monthly salary and select your preferred currency from the dropdown menu below. Our smart algorithms will take care of the rest, providing you with a personalized budget plan to help you save and manage your finances.',
-                                              textAlign: TextAlign.center,
-                                              style:
-                                                  AppStyle.txtManropeRegular14,
-                                            ),
-                                            actions: [
-                                              TextButton(
-                                                onPressed: () =>
-                                                    Navigator.pop(context),
-                                                child: Text('Close'),
-                                              ),
-                                            ],
-                                          );
-                                        },
-                                      );
-                                    },
-                                    // height: getSize(24),
-                                    //     width: getSize(24),
-                                    //     svgPath: ImageConstant.imgQuestion,
-                                    //     margin: getMargin(bottom: 1)
-                                    child: Container(
-                                      margin: EdgeInsets.only(bottom: 7),
-                                      child: SvgPicture.asset(
-                                        ImageConstant.imgQuestion,
-                                        height: 24,
-                                        width: 24,
+                                  child: Stack(
+                                    children: [
+                                      Align(
+                                        alignment: Alignment.center,
+                                        child: Container(
+                                          child: SvgPicture.asset(
+                                            ImageConstant.imgQuestion,
+                                            height: 24,
+                                            width: 24,
+                                            color: ColorConstant.blueGray500,
+                                          ),
+                                        ),
                                       ),
-                                    ),
-                                  )
-                                ]),
+                                      Align(
+                                        alignment: Alignment.bottomCenter,
+                                        child: AnimatedBuilder(
+                                          animation: _animationController,
+                                          builder: (BuildContext context,
+                                              Widget? child) {
+                                            if (_animationController
+                                                .isCompleted)
+                                              return SizedBox
+                                                  .shrink(); // This line ensures that the arrow disappears after the animation has completed
+
+                                            return Transform.translate(
+                                              offset: Offset(
+                                                  0,
+                                                  -10 *
+                                                      _animationController
+                                                          .value),
+                                              child: SvgPicture.asset(
+                                                ImageConstant
+                                                    .imgArrowUp, // path to your arrow SVG image
+                                                height: 24,
+                                                width: 24,
+                                                color: ColorConstant.blueA700,
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              ],
+                            ),
                             Column(
                               children: [
                                 Padding(
                                   padding:
-                                      getPadding(top: 30, right: 18, left: 18),
+                                      getPadding(top: 24, right: 18, left: 18),
                                   child: TextField(
                                       controller: salaryController,
                                       focusNode: salaryFocusNode,

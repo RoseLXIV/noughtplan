@@ -712,6 +712,58 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
     }
   }
 
+  Future<void> deleteWeeklyExpenses(
+      String budgetId, DateTime selectedDate, WidgetRef ref) async {
+    try {
+      state = state.copiedWithIsLoading(true);
+      // Call the deleteWeeklyExpenses function from BudgetInfoStorage
+      await _budgetInfoStorage.deleteWeeklyExpenses(budgetId, selectedDate);
+
+      // Update the expenses in ActualExpensesNotifier
+      ref.read(actualExpensesProvider.notifier).loadExpenses(budgetId);
+      state = state.copiedWithIsLoading(false);
+    } catch (e) {
+      print('Error deleting weekly expenses: $e');
+      state = state.copiedWithIsLoading(false);
+    }
+  }
+
+  Future<void> deleteMonthlyExpenses(
+      String budgetId, DateTime selectedDate, WidgetRef ref) async {
+    try {
+      state = state.copiedWithIsLoading(true);
+      // Call the deleteMonthlyExpenses function from BudgetInfoStorage
+      await _budgetInfoStorage.deleteMonthlyExpenses(budgetId, selectedDate);
+
+      // Update the expenses in ActualExpensesNotifier
+      ref.read(actualExpensesProvider.notifier).loadExpenses(budgetId);
+      state = state.copiedWithIsLoading(false);
+    } catch (e) {
+      print('Error deleting monthly expenses: $e');
+      state = state.copiedWithIsLoading(false);
+    }
+  }
+
+  Future<void> deleteGoal(
+      String budgetId, int index, int reversedIndex, WidgetRef ref) async {
+    try {
+      ref.read(goalsProvider.notifier).removeGoalAtIndex(index);
+      await _budgetInfoStorage.deleteGoal(budgetId, reversedIndex);
+    } catch (e) {
+      print('Error deleting goal: $e');
+    }
+  }
+
+  Future<void> deleteDebt(
+      String budgetId, int index, int reversedIndex, WidgetRef ref) async {
+    try {
+      ref.read(debtsProvider.notifier).removeDebtAtIndex(index);
+      await _budgetInfoStorage.deleteDebt(budgetId, reversedIndex);
+    } catch (e) {
+      print('Error deleting debt: $e');
+    }
+  }
+
   Future<String?> updateSpendingType({
     required String? budgetId,
     required double totalNecessaryExpense,
@@ -976,7 +1028,7 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
 
       // Update the goals
       if (updatedBudget != null) {
-        final goalsNotifier = ref.read(goalsProvider.notifier);
+        final goalsNotifier = await ref.read(goalsProvider.notifier);
         goalsNotifier.updateGoals(updatedBudget.goals);
       }
 

@@ -35,8 +35,12 @@ class GoalTrackerController extends StateNotifier<GoalTrackerState> {
     final category = Category.dirty(value);
     state = state.copyWith(
       category: category,
-      status: Formz.validate(
-          [category, state.amount, state.frequency]), // Updated this line
+      status: Formz.validate([
+        category,
+        state.amount,
+        state.frequency,
+        state.tracker
+      ]), // Updated this line
     );
     print('Category: $value');
     print('Status: ${state.status}');
@@ -50,8 +54,12 @@ class GoalTrackerController extends StateNotifier<GoalTrackerState> {
     final amount = Amount.dirty(sanitizedValue);
     state = state.copyWith(
       amount: amount,
-      status: Formz.validate(
-          [state.category, amount, state.frequency]), // Updated this line
+      status: Formz.validate([
+        state.category,
+        amount,
+        state.frequency,
+        state.tracker
+      ]), // Updated this line
     );
     print('Amount: $value');
     print('Status: ${state.status}');
@@ -63,7 +71,8 @@ class GoalTrackerController extends StateNotifier<GoalTrackerState> {
     final frequency = Frequency.dirty(value);
     state = state.copyWith(
       frequency: frequency,
-      status: Formz.validate([state.category, state.amount, frequency]),
+      status: Formz.validate(
+          [state.category, state.amount, frequency, state.tracker]),
     );
     print('Frequency: $value');
     print('Status: ${state.status}');
@@ -77,8 +86,27 @@ class GoalTrackerController extends StateNotifier<GoalTrackerState> {
       status: Formz.validate(
           [state.category, state.amount, state.frequency, tracker]),
     );
+
     print('Tracker: $value');
+    print('_amountText: $_amountText');
+    print('_frequencyText: $_frequencyText');
+    print('_selectedCategory: $_selectedCategory');
     print('Status: ${state.status}');
+  }
+
+  void reset() {
+    _selectedCategory = null;
+    _amountText = '';
+    _frequencyText = '';
+    _trackerTypeText = '';
+
+    state = state.copyWith(
+      category: Category.pure(),
+      amount: Amount.pure(),
+      frequency: Frequency.pure(),
+      tracker: Tracker.pure(),
+      status: FormzStatus.pure,
+    );
   }
 
   Future<void> addGoalToBudget(

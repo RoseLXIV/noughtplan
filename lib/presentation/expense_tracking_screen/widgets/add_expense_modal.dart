@@ -13,6 +13,19 @@ import 'package:noughtplan/widgets/custom_button_form.dart';
 
 import 'calender_widget.dart';
 
+String? selectedCategory;
+String? recurringType;
+int? duration;
+TextEditingController amountController = TextEditingController();
+
+void resetControllers() {
+  selectedCategory = null;
+  recurringType = null;
+  duration = null;
+
+  amountController.clear();
+}
+
 Future<void> showAddExpenseModal(
     BuildContext context, Budget? budget, WidgetRef ref) async {
   final categoryFocusNode = FocusNode();
@@ -28,18 +41,15 @@ Future<void> showAddExpenseModal(
   final expenseController = ref.watch(expenseTrackerProvider.notifier);
   final bool isValidated = expenseState.status.isValidated;
 
+  print('Length of Actual Expenses ${budget?.actualExpenses.length}');
+
   List<String> allCategories = [
     ...necessaryCategories.keys,
     ...discretionaryCategories.keys,
     ...debtCategories.keys,
   ];
 
-  String? selectedCategory;
-  String? recurringType;
-  int? duration;
-  TextEditingController amountController = TextEditingController();
-
-  return showModalBottomSheet(
+  await showModalBottomSheet(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
@@ -523,12 +533,26 @@ Future<void> showAddExpenseModal(
                                           SizedBox(height: 16),
                                           CustomButtonForm(
                                             onTap: () {
-                                              submitForm();
+                                              if ((budget?.actualExpenses
+                                                          .length ??
+                                                      0) <
+                                                  1) {
+                                                submitForm();
+                                              }
                                             },
                                             alignment: Alignment.bottomCenter,
                                             height: getVerticalSize(56),
-                                            text: "Save",
-                                            enabled: isValidated,
+                                            text: (budget?.actualExpenses
+                                                            .length ??
+                                                        0) >=
+                                                    90
+                                                ? "Max Expenses Reached"
+                                                : "Save",
+                                            enabled: (budget?.actualExpenses
+                                                            .length ??
+                                                        0) <
+                                                    90 &&
+                                                isValidated,
                                           ),
                                         ],
                                       );
@@ -550,6 +574,8 @@ Future<void> showAddExpenseModal(
       );
     },
   );
+  resetControllers();
+  ref.read(expenseTrackerProvider.notifier).reset();
 }
 
 class ThousandsFormatter extends TextInputFormatter {

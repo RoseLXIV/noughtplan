@@ -474,7 +474,6 @@ class BudgetScreen extends HookConsumerWidget {
           updateTimerText(remainingDuration);
         }
       });
-
       ref.read(goalsProvider.notifier).loadGoals(budgetId);
       ref.read(debtsProvider.notifier).loadDebts(budgetId);
 
@@ -633,52 +632,6 @@ class BudgetScreen extends HookConsumerWidget {
           },
           onAdFailedToLoad: (LoadAdError error) {
             print('InterstitialAd failed to load: $error');
-          },
-        ),
-      );
-    }
-
-    Future<void> loadAndShowRewardedAd(
-        BuildContext context, WidgetRef ref) async {
-      RewardedAd? rewardedAd;
-      await RewardedAd.load(
-        adUnitId:
-            'ca-app-pub-3940256099942544/5224354917', // Replace with your own AdUnitID
-        request: AdRequest(),
-        rewardedAdLoadCallback: RewardedAdLoadCallback(
-          onAdLoaded: (RewardedAd ad) {
-            print('RewardedAd loaded: ${ad.adUnitId}');
-            rewardedAd = ad;
-
-            rewardedAd?.fullScreenContentCallback = FullScreenContentCallback(
-              onAdDismissedFullScreenContent: (RewardedAd ad) {
-                // Perform the action after ad is completed
-                // Generate insights here
-                ad.dispose();
-              },
-              onAdFailedToShowFullScreenContent:
-                  (RewardedAd ad, AdError error) {
-                print('$ad onAdFailedToShowFullScreenContent: $error');
-                ad.dispose();
-              },
-              onAdShowedFullScreenContent: (RewardedAd ad) {
-                print('$ad onAdShowedFullScreenContent.');
-              },
-              onAdImpression: (RewardedAd ad) {
-                print('$ad onAdImpression.');
-              },
-            );
-
-            rewardedAd?.show(
-              onUserEarnedReward: (AdWithoutView ad, RewardItem reward) {
-                print(
-                    '$ad with reward $RewardItem(${reward.amount}, ${reward.type})');
-                // You can also perform any action needed when the user earns a reward here
-              },
-            );
-          },
-          onAdFailedToLoad: (LoadAdError error) {
-            print('RewardedAd failed to load: $error');
           },
         ),
       );
@@ -2281,102 +2234,11 @@ class BudgetScreen extends HookConsumerWidget {
                                       ),
                                     ),
                                     Padding(
-                                      padding: getPadding(top: 16, bottom: 16),
+                                      padding: getPadding(top: 24, bottom: 16),
                                       child: SingleChildScrollView(
                                         child: Column(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
-                                            Row(
-                                              children: [
-                                                Padding(
-                                                  padding: getPadding(
-                                                      left: 8,
-                                                      right: 8,
-                                                      top: 8,
-                                                      bottom: 16),
-                                                  child: Text(
-                                                    "Goal/Debt Trackers",
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                    textAlign: TextAlign.left,
-                                                    style: AppStyle
-                                                        .txtHelveticaNowTextBold16
-                                                        .copyWith(
-                                                      letterSpacing:
-                                                          getHorizontalSize(
-                                                        0.4,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                            Consumer(
-                                              builder: (context, ref, child) {
-                                                final goals =
-                                                    ref.watch(goalsProvider);
-                                                final debts =
-                                                    ref.watch(debtsProvider);
-
-                                                print(
-                                                    'Goals length: ${goals.length}');
-
-                                                print(
-                                                    'Debts length: ${debts.length}');
-                                                return Column(
-                                                  children: [
-                                                    ListView.separated(
-                                                      physics:
-                                                          BouncingScrollPhysics(),
-                                                      shrinkWrap: true,
-                                                      separatorBuilder:
-                                                          (context, index) {
-                                                        return SizedBox(
-                                                          height:
-                                                              getVerticalSize(
-                                                                  16),
-                                                        );
-                                                      },
-                                                      itemCount: goals.length,
-                                                      itemBuilder:
-                                                          (context, index) {
-                                                        final goalData =
-                                                            goals[index];
-                                                        return GoalsListWidget(
-                                                            budget:
-                                                                _updatedSelectedBudget,
-                                                            goalData: goalData);
-                                                      },
-                                                    ),
-                                                    ListView.separated(
-                                                      physics:
-                                                          BouncingScrollPhysics(),
-                                                      shrinkWrap: true,
-                                                      separatorBuilder:
-                                                          (context, index) {
-                                                        return SizedBox(
-                                                          height:
-                                                              getVerticalSize(
-                                                                  16),
-                                                        );
-                                                      },
-                                                      itemCount: debts.length,
-                                                      itemBuilder:
-                                                          (context, index) {
-                                                        final debtData =
-                                                            debts[index];
-                                                        return DebtsListWidget(
-                                                            budget:
-                                                                _updatedSelectedBudget,
-                                                            debtData: debtData);
-                                                      },
-                                                    ),
-                                                  ],
-                                                );
-                                              },
-                                            ),
-                                            Padding(
-                                                padding: getPadding(top: 8)),
                                             Consumer(
                                                 builder: (context, ref, _) {
                                               return FutureBuilder<
@@ -2400,21 +2262,622 @@ class BudgetScreen extends HookConsumerWidget {
                                                     bool isSubscribed = snapshot
                                                         .data!['isSubscribed'];
                                                     bool buttonEnabled = true;
-                                                    return CustomButtonForm(
-                                                      onTap: () {
-                                                        showAddTrackerModal(
-                                                            context,
-                                                            selectedBudget,
-                                                            ref);
-                                                      },
-                                                      alignment: Alignment
-                                                          .bottomCenter,
-                                                      text: 'Add a Tracker',
-                                                      height:
-                                                          getVerticalSize(56),
-                                                      enabled: buttonEnabled,
-                                                    );
+                                                    return FutureBuilder<
+                                                            Map<String,
+                                                                dynamic>>(
+                                                        future:
+                                                            getSubscriptionInfo(),
+                                                        builder: (BuildContext
+                                                                context,
+                                                            AsyncSnapshot<
+                                                                    Map<String,
+                                                                        dynamic>>
+                                                                snapshot) {
+                                                          if (snapshot
+                                                                  .connectionState ==
+                                                              ConnectionState
+                                                                  .waiting) {
+                                                            return CircularProgressIndicator(); // Show loading indicator while waiting for getSubscriptionInfo
+                                                          } else if (snapshot
+                                                              .hasError) {
+                                                            return Text(
+                                                                'Error: ${snapshot.error}');
+                                                          } else {
+                                                            bool isSubscribed =
+                                                                snapshot.data![
+                                                                    'isSubscribed'];
+                                                            final goals =
+                                                                ref.watch(
+                                                                    goalsProvider);
+                                                            final debts =
+                                                                ref.watch(
+                                                                    debtsProvider);
+                                                            int trackersCount =
+                                                                goals.length +
+                                                                    debts
+                                                                        .length;
+
+                                                            if (isSubscribed) {
+                                                              if (trackersCount >=
+                                                                  10) {
+                                                                buttonEnabled =
+                                                                    false;
+                                                              }
+                                                            } else {
+                                                              if (trackersCount >=
+                                                                  6) {
+                                                                buttonEnabled =
+                                                                    false;
+                                                              }
+                                                            }
+                                                            return CustomButtonForm(
+                                                              onTap: () async {
+                                                                showAddTrackerModal(
+                                                                    context,
+                                                                    selectedBudget,
+                                                                    ref);
+                                                              },
+                                                              alignment: Alignment
+                                                                  .bottomCenter,
+                                                              text:
+                                                                  'Add a Tracker',
+                                                              height:
+                                                                  getVerticalSize(
+                                                                      56),
+                                                              enabled:
+                                                                  buttonEnabled,
+                                                            );
+                                                          }
+                                                        });
                                                   }
+                                                },
+                                              );
+                                            }),
+                                            Row(
+                                              children: [
+                                                Padding(
+                                                  padding: getPadding(
+                                                      left: 8,
+                                                      right: 8,
+                                                      top: 30,
+                                                      bottom: 16),
+                                                  child: Text(
+                                                    "Goal Trackers",
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                    textAlign: TextAlign.left,
+                                                    style: AppStyle
+                                                        .txtHelveticaNowTextBold16
+                                                        .copyWith(
+                                                      letterSpacing:
+                                                          getHorizontalSize(
+                                                        0.4,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            StatefulBuilder(builder: (context,
+                                                StateSetter setState) {
+                                              return Consumer(
+                                                builder: (context, ref, child) {
+                                                  final goals =
+                                                      ref.watch(goalsProvider);
+                                                  final debts =
+                                                      ref.watch(debtsProvider);
+
+                                                  void _onDismissed(int index) {
+                                                    if (goals.isNotEmpty &&
+                                                        index >= 0 &&
+                                                        index < goals.length) {
+                                                      setState(() {
+                                                        goals.removeAt(index);
+                                                        print('Index: $index');
+                                                      });
+                                                    } else {
+                                                      print(
+                                                          'Invalid index: $index for goals list of length: ${goals.length}');
+                                                    }
+                                                  }
+
+                                                  void _onDismissedDebt(
+                                                      int index) {
+                                                    if (debts.isNotEmpty &&
+                                                        index >= 0 &&
+                                                        index < debts.length) {
+                                                      setState(() {
+                                                        debts.removeAt(
+                                                            debts.length -
+                                                                1 -
+                                                                index);
+                                                        print('Index: $index');
+                                                      });
+                                                    } else {
+                                                      print(
+                                                          'Invalid index: $index for debts list of length: ${debts.length}');
+                                                    }
+                                                  }
+
+                                                  print(
+                                                      'Goals length: ${goals.length}');
+
+                                                  print(
+                                                      'Debts length: ${debts.length}');
+                                                  return Column(
+                                                    children: [
+                                                      goals.length > 0
+                                                          ? Padding(
+                                                              padding:
+                                                                  getPadding(
+                                                                      bottom:
+                                                                          16),
+                                                              child: SizedBox(
+                                                                height: 155,
+                                                                child: ListView
+                                                                    .separated(
+                                                                  physics:
+                                                                      BouncingScrollPhysics(),
+                                                                  scrollDirection:
+                                                                      Axis.horizontal,
+                                                                  separatorBuilder:
+                                                                      (context,
+                                                                          index) {
+                                                                    return SizedBox(
+                                                                      width:
+                                                                          getHorizontalSize(
+                                                                              16),
+                                                                    ); // Use width instead of height for a horizontal separator
+                                                                  },
+                                                                  itemCount: goals
+                                                                      .length,
+                                                                  itemBuilder:
+                                                                      (context,
+                                                                          index) {
+                                                                    final goalData =
+                                                                        goals[goals.length -
+                                                                            1 -
+                                                                            index];
+                                                                    return Dismissible(
+                                                                      key:
+                                                                          UniqueKey(), // Change this to your unique identifier
+                                                                      background:
+                                                                          Container(
+                                                                        decoration:
+                                                                            BoxDecoration(
+                                                                          gradient:
+                                                                              LinearGradient(
+                                                                            colors: [
+                                                                              Colors.transparent,
+                                                                              ColorConstant.redA700
+                                                                            ],
+                                                                            begin:
+                                                                                Alignment.topCenter,
+                                                                            end:
+                                                                                Alignment.bottomCenter,
+                                                                            stops: [
+                                                                              0.15,
+                                                                              1.0
+                                                                            ],
+                                                                          ),
+                                                                          borderRadius:
+                                                                              BorderRadius.circular(12),
+                                                                        ),
+                                                                        child:
+                                                                            Align(
+                                                                          alignment:
+                                                                              Alignment.bottomCenter,
+                                                                          child:
+                                                                              Padding(
+                                                                            padding:
+                                                                                getPadding(bottom: 16),
+                                                                            child:
+                                                                                CustomImageView(
+                                                                              svgPath: ImageConstant.imgTrashNew,
+                                                                              height: getSize(24),
+                                                                              width: getSize(24),
+                                                                              color: ColorConstant.whiteA700,
+                                                                            ),
+                                                                          ),
+                                                                        ),
+                                                                      ),
+                                                                      direction:
+                                                                          DismissDirection
+                                                                              .up,
+                                                                      confirmDismiss:
+                                                                          (direction) async {
+                                                                        return await showDialog<
+                                                                            bool>(
+                                                                          context:
+                                                                              context,
+                                                                          builder:
+                                                                              (BuildContext context) {
+                                                                            return AlertDialog(
+                                                                              title: Text('Confirm Deletion', style: AppStyle.txtHelveticaNowTextBold18),
+                                                                              content: Text('Are you sure you want to delete this Goal?', style: AppStyle.txtManropeRegular14),
+                                                                              actions: <Widget>[
+                                                                                TextButton(
+                                                                                  onPressed: () => Navigator.of(context).pop(false),
+                                                                                  child: Text('Cancel', style: AppStyle.txtHelveticaNowTextBold14),
+                                                                                ),
+                                                                                TextButton(
+                                                                                  onPressed: () {
+                                                                                    Navigator.of(context).pop(true);
+                                                                                  },
+                                                                                  child: Text('Delete',
+                                                                                      style: AppStyle.txtHelveticaNowTextBold14.copyWith(
+                                                                                        color: ColorConstant.redA700,
+                                                                                      )),
+                                                                                ),
+                                                                              ],
+                                                                            );
+                                                                          },
+                                                                        );
+                                                                      },
+                                                                      onDismissed:
+                                                                          (direction) async {
+                                                                        print(
+                                                                            'Index on Dismiss: $index');
+                                                                        int reversedIndex = goals.length -
+                                                                            1 -
+                                                                            index;
+
+                                                                        if (reversedIndex >=
+                                                                                0 &&
+                                                                            reversedIndex <
+                                                                                goals.length) {
+                                                                          print(
+                                                                              'Index in deleteGoal: $reversedIndex');
+
+                                                                          await ref.read(budgetStateProvider.notifier).deleteGoal(
+                                                                              budgetId,
+                                                                              index,
+                                                                              reversedIndex,
+                                                                              ref);
+                                                                          // _onDismissed(
+                                                                          //     index);
+                                                                          ref.read(goalsProvider.notifier).loadGoals(
+                                                                              budgetId);
+                                                                        } else {
+                                                                          print(
+                                                                              'Invalid index: $reversedIndex for goals list of length: ${goals.length}');
+                                                                        }
+                                                                      },
+                                                                      child:
+                                                                          SizedBox(
+                                                                        width: MediaQuery.of(context).size.width *
+                                                                            0.75,
+                                                                        child:
+                                                                            GoalsListWidget(
+                                                                          budget:
+                                                                              _updatedSelectedBudget,
+                                                                          goalData:
+                                                                              goalData,
+                                                                        ),
+                                                                      ),
+                                                                    );
+                                                                  },
+                                                                ),
+                                                              ),
+                                                            )
+                                                          : Padding(
+                                                              padding:
+                                                                  getPadding(
+                                                                      top: 0,
+                                                                      bottom:
+                                                                          16),
+                                                              child: Row(
+                                                                mainAxisAlignment:
+                                                                    MainAxisAlignment
+                                                                        .center,
+                                                                crossAxisAlignment:
+                                                                    CrossAxisAlignment
+                                                                        .start,
+                                                                children: [
+                                                                  Expanded(
+                                                                    child:
+                                                                        Neumorphic(
+                                                                      style:
+                                                                          NeumorphicStyle(
+                                                                        shape: NeumorphicShape
+                                                                            .convex,
+                                                                        boxShape:
+                                                                            NeumorphicBoxShape.roundRect(BorderRadius.circular(12)),
+                                                                        depth:
+                                                                            0.1,
+                                                                        intensity:
+                                                                            1,
+                                                                        surfaceIntensity:
+                                                                            0.5,
+                                                                        lightSource:
+                                                                            LightSource.top,
+                                                                        color: ColorConstant
+                                                                            .gray50,
+                                                                      ),
+                                                                      child:
+                                                                          Container(
+                                                                        height:
+                                                                            getVerticalSize(95),
+                                                                        decoration:
+                                                                            BoxDecoration(
+                                                                          color:
+                                                                              ColorConstant.gray100,
+                                                                          borderRadius:
+                                                                              BorderRadius.circular(12),
+                                                                        ),
+                                                                        child:
+                                                                            Column(
+                                                                          mainAxisAlignment:
+                                                                              MainAxisAlignment.center,
+                                                                          crossAxisAlignment:
+                                                                              CrossAxisAlignment.center,
+                                                                          children: [
+                                                                            Padding(
+                                                                              padding: const EdgeInsets.all(8.0),
+                                                                              child: Text("Press 'Add a Tracker' to get started!",
+                                                                                  style: AppStyle.txtManropeBold12.copyWith(
+                                                                                    color: ColorConstant.blueGray500,
+                                                                                    letterSpacing: getHorizontalSize(1),
+                                                                                  )),
+                                                                            ),
+                                                                          ],
+                                                                        ),
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                            ),
+                                                      Row(
+                                                        children: [
+                                                          Padding(
+                                                            padding: getPadding(
+                                                                left: 8,
+                                                                right: 8,
+                                                                top: 0,
+                                                                bottom: 16),
+                                                            child: Text(
+                                                              "Debt Trackers",
+                                                              overflow:
+                                                                  TextOverflow
+                                                                      .ellipsis,
+                                                              textAlign:
+                                                                  TextAlign
+                                                                      .left,
+                                                              style: AppStyle
+                                                                  .txtHelveticaNowTextBold16
+                                                                  .copyWith(
+                                                                letterSpacing:
+                                                                    getHorizontalSize(
+                                                                  0.4,
+                                                                ),
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                      debts.length > 0
+                                                          ? Padding(
+                                                              padding:
+                                                                  getPadding(
+                                                                      bottom:
+                                                                          16),
+                                                              child: SizedBox(
+                                                                height: 210,
+                                                                child: ListView
+                                                                    .separated(
+                                                                  physics:
+                                                                      BouncingScrollPhysics(),
+                                                                  scrollDirection:
+                                                                      Axis.horizontal,
+                                                                  separatorBuilder:
+                                                                      (context,
+                                                                          index) {
+                                                                    return SizedBox(
+                                                                      width:
+                                                                          getHorizontalSize(
+                                                                              16),
+                                                                    );
+                                                                  },
+                                                                  itemCount: debts
+                                                                      .length,
+                                                                  itemBuilder:
+                                                                      (context,
+                                                                          index) {
+                                                                    final debtData =
+                                                                        debts[debts.length -
+                                                                            1 -
+                                                                            index];
+                                                                    return Dismissible(
+                                                                      key:
+                                                                          UniqueKey(),
+                                                                      background:
+                                                                          Container(
+                                                                        decoration:
+                                                                            BoxDecoration(
+                                                                          gradient:
+                                                                              LinearGradient(
+                                                                            colors: [
+                                                                              Colors.transparent,
+                                                                              ColorConstant.redA700
+                                                                            ],
+                                                                            begin:
+                                                                                Alignment.topCenter,
+                                                                            end:
+                                                                                Alignment.bottomCenter,
+                                                                            stops: [
+                                                                              0.15,
+                                                                              1.0
+                                                                            ],
+                                                                          ),
+                                                                          borderRadius:
+                                                                              BorderRadius.circular(12),
+                                                                        ),
+                                                                        child:
+                                                                            Align(
+                                                                          alignment:
+                                                                              Alignment.bottomCenter,
+                                                                          child:
+                                                                              Padding(
+                                                                            padding:
+                                                                                getPadding(bottom: 16),
+                                                                            child:
+                                                                                CustomImageView(
+                                                                              svgPath: ImageConstant.imgTrashNew,
+                                                                              height: getSize(24),
+                                                                              width: getSize(24),
+                                                                              color: ColorConstant.whiteA700,
+                                                                            ),
+                                                                          ),
+                                                                        ),
+                                                                      ),
+                                                                      direction:
+                                                                          DismissDirection
+                                                                              .up,
+                                                                      confirmDismiss:
+                                                                          (direction) async {
+                                                                        return await showDialog<
+                                                                            bool>(
+                                                                          context:
+                                                                              context,
+                                                                          builder:
+                                                                              (BuildContext context) {
+                                                                            return AlertDialog(
+                                                                              title: Text('Confirm Deletion', style: AppStyle.txtHelveticaNowTextBold18),
+                                                                              content: Text('Are you sure you want to delete this Debt?', style: AppStyle.txtManropeRegular14),
+                                                                              actions: <Widget>[
+                                                                                TextButton(
+                                                                                  onPressed: () => Navigator.of(context).pop(false),
+                                                                                  child: Text('Cancel', style: AppStyle.txtHelveticaNowTextBold14),
+                                                                                ),
+                                                                                TextButton(
+                                                                                  onPressed: () => Navigator.of(context).pop(true),
+                                                                                  child: Text('Delete',
+                                                                                      style: AppStyle.txtHelveticaNowTextBold14.copyWith(
+                                                                                        color: ColorConstant.redA700,
+                                                                                      )),
+                                                                                ),
+                                                                              ],
+                                                                            );
+                                                                          },
+                                                                        );
+                                                                      },
+                                                                      onDismissed:
+                                                                          (direction) async {
+                                                                        print(
+                                                                            'Index on Dismiss: $index');
+                                                                        int reversedIndex = debts.length -
+                                                                            1 -
+                                                                            index;
+
+                                                                        if (reversedIndex >=
+                                                                                0 &&
+                                                                            reversedIndex <
+                                                                                debts.length) {
+                                                                          print(
+                                                                              'Index in deleteDebt: $reversedIndex');
+
+                                                                          await ref.read(budgetStateProvider.notifier).deleteDebt(
+                                                                              budgetId,
+                                                                              index,
+                                                                              reversedIndex,
+                                                                              ref);
+
+                                                                          ref.read(debtsProvider.notifier).loadDebts(
+                                                                              budgetId);
+                                                                        } else {
+                                                                          print(
+                                                                              'Invalid index: $reversedIndex for debts list of length: ${debts.length}');
+                                                                        }
+                                                                      },
+                                                                      child:
+                                                                          SizedBox(
+                                                                        width: MediaQuery.of(context).size.width *
+                                                                            0.84,
+                                                                        child:
+                                                                            DebtsListWidget(
+                                                                          // Make sure to replace this with the appropriate Widget for showing a single Debt
+                                                                          budget:
+                                                                              _updatedSelectedBudget,
+                                                                          debtData:
+                                                                              debtData,
+                                                                        ),
+                                                                      ),
+                                                                    );
+                                                                  },
+                                                                ),
+                                                              ),
+                                                            )
+                                                          : Padding(
+                                                              padding:
+                                                                  getPadding(
+                                                                      top: 0,
+                                                                      bottom:
+                                                                          16),
+                                                              child: Row(
+                                                                mainAxisAlignment:
+                                                                    MainAxisAlignment
+                                                                        .center,
+                                                                crossAxisAlignment:
+                                                                    CrossAxisAlignment
+                                                                        .start,
+                                                                children: [
+                                                                  Expanded(
+                                                                    child:
+                                                                        Neumorphic(
+                                                                      style:
+                                                                          NeumorphicStyle(
+                                                                        shape: NeumorphicShape
+                                                                            .convex,
+                                                                        boxShape:
+                                                                            NeumorphicBoxShape.roundRect(BorderRadius.circular(12)),
+                                                                        depth:
+                                                                            0.1,
+                                                                        intensity:
+                                                                            1,
+                                                                        surfaceIntensity:
+                                                                            0.5,
+                                                                        lightSource:
+                                                                            LightSource.top,
+                                                                        color: ColorConstant
+                                                                            .gray50,
+                                                                      ),
+                                                                      child:
+                                                                          Container(
+                                                                        height:
+                                                                            getVerticalSize(95),
+                                                                        decoration:
+                                                                            BoxDecoration(
+                                                                          color:
+                                                                              ColorConstant.gray100,
+                                                                          borderRadius:
+                                                                              BorderRadius.circular(12),
+                                                                        ),
+                                                                        child:
+                                                                            Column(
+                                                                          mainAxisAlignment:
+                                                                              MainAxisAlignment.center,
+                                                                          crossAxisAlignment:
+                                                                              CrossAxisAlignment.center,
+                                                                          children: [
+                                                                            Padding(
+                                                                              padding: const EdgeInsets.all(8.0),
+                                                                              child: Text("Press 'Add a Tracker' to get started!",
+                                                                                  style: AppStyle.txtManropeBold12.copyWith(
+                                                                                    color: ColorConstant.blueGray500,
+                                                                                    letterSpacing: getHorizontalSize(1),
+                                                                                  )),
+                                                                            ),
+                                                                          ],
+                                                                        ),
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                            ),
+                                                    ],
+                                                  );
                                                 },
                                               );
                                             }),

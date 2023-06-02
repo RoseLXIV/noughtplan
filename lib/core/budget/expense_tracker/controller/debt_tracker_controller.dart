@@ -136,6 +136,25 @@ class DebtTrackerController extends StateNotifier<DebtTrackerState> {
     print('Status: ${state.status}');
   }
 
+  void reset() {
+    _selectedCategory = null;
+    _amountText = '';
+    _frequencyText = '';
+    _trackerTypeText = '';
+    _outstandingText = '';
+    _interestText = '';
+
+    state = state.copyWith(
+      category: Category.pure(),
+      amount: Amount.pure(),
+      frequency: Frequency.pure(),
+      tracker: Tracker.pure(),
+      outstanding: Amount.pure(),
+      interest: Amount.pure(),
+      status: FormzStatus.pure,
+    );
+  }
+
   Future<void> addDebtToBudget(
       String budgetId, Map<String, dynamic> debtData, WidgetRef ref) {
     return _budgetStateNotifier.addDebt(

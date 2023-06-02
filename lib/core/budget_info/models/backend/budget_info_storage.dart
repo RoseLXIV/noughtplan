@@ -336,6 +336,148 @@ class BudgetInfoStorage {
     }
   }
 
+  Future<bool> deleteWeeklyExpenses(
+      String budgetId, DateTime selectedDate) async {
+    try {
+      // Find the budget document using the budgetId
+      final budgetInfo = await FirebaseFirestore.instance
+          .collection(FirebaseCollectionName.budgets)
+          .where(FirebaseFieldName.budget_id, isEqualTo: budgetId)
+          .limit(1)
+          .get();
+
+      // If the budget document is found, delete the expenses for the selected week
+      if (budgetInfo.docs.isNotEmpty) {
+        final budgetData = budgetInfo.docs.first.data();
+        final List<Map<String, dynamic>> actualExpenses =
+            List<Map<String, dynamic>>.from(budgetData['actualExpenses']);
+
+        // Define the start and end of the week
+        final startOfWeek =
+            selectedDate.subtract(Duration(days: selectedDate.weekday));
+        final endOfWeek = startOfWeek.add(Duration(days: 6));
+
+        // Get the indices of the expenses to be removed
+        final indicesToRemove = <int>[];
+        for (var i = 0; i < actualExpenses.length; i++) {
+          final expenseDate = DateTime.parse(actualExpenses[i]['date']);
+          if (expenseDate.isAfter(startOfWeek) &&
+              expenseDate.isBefore(endOfWeek)) {
+            indicesToRemove.add(i);
+          }
+        }
+
+        // Remove the expenses at the indices found
+        indicesToRemove.reversed
+            .forEach((index) => actualExpenses.removeAt(index));
+
+        // Update the budget document with the modified actualExpenses list
+        await budgetInfo.docs.first.reference
+            .update({'actualExpenses': actualExpenses});
+
+        return true;
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<bool> deleteMonthlyExpenses(
+      String budgetId, DateTime selectedDate) async {
+    try {
+      // Find the budget document using the budgetId
+      final budgetInfo = await FirebaseFirestore.instance
+          .collection(FirebaseCollectionName.budgets)
+          .where(FirebaseFieldName.budget_id, isEqualTo: budgetId)
+          .limit(1)
+          .get();
+
+      // If the budget document is found, delete the expenses for the selected month
+      if (budgetInfo.docs.isNotEmpty) {
+        final budgetData = budgetInfo.docs.first.data();
+        final List<Map<String, dynamic>> actualExpenses =
+            List<Map<String, dynamic>>.from(budgetData['actualExpenses']);
+
+        // Define the start and end of the month
+        final startOfMonth = DateTime(selectedDate.year, selectedDate.month, 1);
+        final endOfMonth =
+            DateTime(selectedDate.year, selectedDate.month + 1, 0);
+
+        // Get the indices of the expenses to be removed
+        final indicesToRemove = <int>[];
+        for (var i = 0; i < actualExpenses.length; i++) {
+          final expenseDate = DateTime.parse(actualExpenses[i]['date']);
+          if (expenseDate.isAfter(startOfMonth) &&
+              expenseDate.isBefore(endOfMonth)) {
+            indicesToRemove.add(i);
+          }
+        }
+
+        // Remove the expenses at the indices found
+        indicesToRemove.reversed
+            .forEach((index) => actualExpenses.removeAt(index));
+
+        // Update the budget document with the modified actualExpenses list
+        await budgetInfo.docs.first.reference
+            .update({'actualExpenses': actualExpenses});
+
+        return true;
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<bool> deleteGoal(String budgetId, int index) async {
+    try {
+      final budgetInfo = await FirebaseFirestore.instance
+          .collection(FirebaseCollectionName.budgets)
+          .where(FirebaseFieldName.budget_id, isEqualTo: budgetId)
+          .limit(1)
+          .get();
+
+      if (budgetInfo.docs.isNotEmpty) {
+        final budgetData = budgetInfo.docs.first.data();
+        final List<dynamic> goals = budgetData['goals'];
+
+        goals.removeAt(index);
+
+        await budgetInfo.docs.first.reference.update({'goals': goals});
+
+        return true;
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<bool> deleteDebt(String budgetId, int index) async {
+    try {
+      final budgetInfo = await FirebaseFirestore.instance
+          .collection(FirebaseCollectionName.budgets)
+          .where(FirebaseFieldName.budget_id, isEqualTo: budgetId)
+          .limit(1)
+          .get();
+
+      if (budgetInfo.docs.isNotEmpty) {
+        final budgetData = budgetInfo.docs.first.data();
+        final List<dynamic> debts = budgetData['debts'];
+
+        debts.removeAt(index);
+
+        await budgetInfo.docs.first.reference.update({'debts': debts});
+
+        return true;
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
   Future<String?> updateSpendingType({
     required BudgetId budgetId,
     required double totalNecessaryExpense,

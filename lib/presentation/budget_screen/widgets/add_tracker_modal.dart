@@ -1,9 +1,11 @@
 import 'dart:ui';
 
 import 'package:dropdown_search/dropdown_search.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:intl/intl.dart';
 import 'package:noughtplan/core/app_export.dart';
 import 'package:noughtplan/core/budget/expense_tracker/controller/debt_tracker_controller.dart';
@@ -11,6 +13,28 @@ import 'package:noughtplan/core/budget/expense_tracker/controller/goal_tracker_c
 import 'package:noughtplan/core/constants/budgets.dart';
 import 'package:noughtplan/core/forms/form_validators.dart';
 import 'package:noughtplan/widgets/custom_button_form.dart';
+import 'package:purchases_flutter/purchases_flutter.dart';
+
+import 'debts_provider.dart';
+import 'goals_provider.dart';
+
+String? selectedCategory;
+String? frequencyType;
+String? trackerType;
+
+final amountController = TextEditingController();
+TextEditingController amountOustandingController = TextEditingController();
+TextEditingController interestController = TextEditingController();
+
+void resetControllers() {
+  selectedCategory = null;
+  frequencyType = null;
+  trackerType = null;
+
+  amountController.clear();
+  amountOustandingController.clear();
+  interestController.clear();
+}
 
 Future<void> showAddTrackerModal(
     BuildContext context, Budget? budget, WidgetRef ref) async {
@@ -43,26 +67,90 @@ Future<void> showAddTrackerModal(
   final goalController = ref.watch(goalTrackerProvider.notifier);
   final debtController = ref.watch(debtTrackerProvider.notifier);
 
-  List<String> allCategories = [
-    ...necessaryCategories.keys,
-    ...discretionaryCategories.keys,
-    ...debtCategories.keys,
-  ];
+  Future<void> loadAndShowRewardedAd(
+      BuildContext context, WidgetRef ref) async {
+    RewardedAd? rewardedAd;
+    await RewardedAd.load(
+      adUnitId:
+          'ca-app-pub-3940256099942544/5224354917', // Replace with your own AdUnitID
+      request: AdRequest(),
+      rewardedAdLoadCallback: RewardedAdLoadCallback(
+        onAdLoaded: (RewardedAd ad) {
+          print('RewardedAd loaded: ${ad.adUnitId}');
+          rewardedAd = ad;
 
-  String? selectedCategory;
-  String? frequencyType;
-  String? trackerType;
+          rewardedAd?.fullScreenContentCallback = FullScreenContentCallback(
+            onAdDismissedFullScreenContent: (RewardedAd ad) {
+              // Perform the action after ad is completed
+              // Generate insights here
+              ad.dispose();
+            },
+            onAdFailedToShowFullScreenContent: (RewardedAd ad, AdError error) {
+              print('$ad onAdFailedToShowFullScreenContent: $error');
+              ad.dispose();
+            },
+            onAdShowedFullScreenContent: (RewardedAd ad) {
+              print('$ad onAdShowedFullScreenContent.');
+            },
+            onAdImpression: (RewardedAd ad) {
+              print('$ad onAdImpression.');
+            },
+          );
 
-  final amountController = TextEditingController(
-    text: (budget?.debtExpense?[selectedCategory]?.toString() ??
-        budget?.discretionaryExpense?[selectedCategory]?.toString() ??
-        budget?.necessaryExpense?[selectedCategory]?.toString() ??
-        ''),
-  );
-  TextEditingController amountOustandingController = TextEditingController();
-  TextEditingController interestController = TextEditingController();
+          rewardedAd?.show(
+            onUserEarnedReward: (AdWithoutView ad, RewardItem reward) {
+              print(
+                  '$ad with reward $RewardItem(${reward.amount}, ${reward.type})');
+              // You can also perform any action needed when the user earns a reward here
+            },
+          );
+        },
+        onAdFailedToLoad: (LoadAdError error) {
+          print('RewardedAd failed to load: $error');
+        },
+      ),
+    );
+  }
 
-  return showModalBottomSheet(
+  Future<Map<String, dynamic>> getSubscriptionInfo() async {
+    final firebaseUser = FirebaseAuth.instance.currentUser;
+    Map<String, dynamic> subscriptionInfo = {
+      'isSubscribed': false,
+      'expiryDate': null
+    };
+
+    if (firebaseUser != null) {
+      try {
+        CustomerInfo customerInfo = await Purchases.getCustomerInfo();
+        bool isSubscribed =
+            customerInfo.entitlements.all['pro_features']?.isActive ?? false;
+
+        // parse the String into a DateTime
+        String? expiryDateString =
+            customerInfo.entitlements.all['pro_features']?.expirationDate;
+
+        String? managementUrl = customerInfo.managementURL;
+        DateTime? expiryDate;
+        if (expiryDateString != null) {
+          expiryDate = DateTime.parse(expiryDateString);
+        }
+
+        subscriptionInfo['isSubscribed'] = isSubscribed;
+        subscriptionInfo['expiryDate'] = expiryDate;
+        subscriptionInfo['managementUrl'] = managementUrl;
+      } catch (e) {
+        print('Failed to get customer info: $e');
+      }
+    }
+    return subscriptionInfo;
+  }
+
+  amountController.text = (budget?.debtExpense?[selectedCategory]?.toString() ??
+      budget?.discretionaryExpense?[selectedCategory]?.toString() ??
+      budget?.necessaryExpense?[selectedCategory]?.toString() ??
+      '');
+
+  await showModalBottomSheet(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
@@ -76,15 +164,21 @@ Future<void> showAddTrackerModal(
     builder: (BuildContext context) {
       return StatefulBuilder(
         builder: (BuildContext context, StateSetter setState) {
-          void resetValues() {
-            setState(() {
-              selectedCategory = null;
-              frequencyType = null;
-              trackerType = null;
-              amountController.text = '';
-              amountOustandingController.text = '';
-              interestController.text = '';
-            });
+          List<String> allCategories;
+
+          if (trackerType == 'Debt') {
+            allCategories = debtCategories.keys.toList();
+          } else if (trackerType == 'Goal') {
+            allCategories = [
+              ...necessaryCategories.keys,
+              ...discretionaryCategories.keys,
+            ];
+          } else {
+            allCategories = [
+              ...necessaryCategories.keys,
+              ...discretionaryCategories.keys,
+              ...debtCategories.keys,
+            ];
           }
 
           return Padding(
@@ -171,7 +265,7 @@ Future<void> showAddTrackerModal(
                                           style: AppStyle
                                               .txtHelveticaNowTextBold12
                                               .copyWith(
-                                            color: ColorConstant.blueGray300,
+                                            color: ColorConstant.blueGray800,
                                           )),
                                     ),
                                     Row(
@@ -241,13 +335,16 @@ Future<void> showAddTrackerModal(
                                               setState(() {
                                                 trackerType = newValue!;
                                               });
-                                              goalController
-                                                  .onTrackerTypeChange(
-                                                      newValue ?? '');
-
-                                              debtController
-                                                  .onTrackerTypeChange(
-                                                      newValue ?? '');
+                                              if (trackerType == 'Goal') {
+                                                goalController
+                                                    .onTrackerTypeChange(
+                                                        newValue ?? '');
+                                              } else if (trackerType ==
+                                                  'Debt') {
+                                                debtController
+                                                    .onTrackerTypeChange(
+                                                        newValue ?? '');
+                                              }
                                             },
                                           ),
                                         ),
@@ -315,11 +412,16 @@ Future<void> showAddTrackerModal(
                                               setState(() {
                                                 frequencyType = newValue!;
                                               });
-                                              goalController.onFrequencyChange(
-                                                  newValue ?? '');
-
-                                              debtController.onFrequencyChange(
-                                                  newValue ?? '');
+                                              if (trackerType == 'Goal') {
+                                                goalController
+                                                    .onFrequencyChange(
+                                                        newValue ?? '');
+                                              } else if (trackerType ==
+                                                  'Debt') {
+                                                debtController
+                                                    .onFrequencyChange(
+                                                        newValue ?? '');
+                                              }
                                             },
                                           ),
                                         ),
@@ -342,8 +444,233 @@ Future<void> showAddTrackerModal(
                                           ref.watch(debtTrackerProvider);
                                       final bool isValidatedGoal =
                                           goalState.status.isValidated;
-                                      final bool isValidatedDebt = debtState
-                                          .status.isValidated; // Add this line
+                                      final bool isValidatedDebt =
+                                          debtState.status.isValidated;
+
+                                      void submitForm(BuildContext context,
+                                          WidgetRef ref) async {
+                                        final goals =
+                                            await ref.watch(goalsProvider);
+                                        final debts =
+                                            await ref.watch(debtsProvider);
+                                        int trackersCount =
+                                            goals.length + debts.length;
+
+                                        print('trackersCount: $trackersCount');
+                                        if (trackerType == 'Goal') {
+                                          if (isValidatedGoal) {
+                                            Map<String, dynamic> goalData = {
+                                              'category': selectedCategory,
+                                              'frequency': frequencyType,
+                                              'amount': double.tryParse(
+                                                      amountController.text
+                                                          .replaceAll(
+                                                              ',', '')) ??
+                                                  0.0,
+                                            };
+
+                                            String budgetId = budget!.budgetId;
+                                            print('budgetId: $budgetId');
+                                            print('goalData: $goalData');
+
+                                            if (trackersCount > 2) {
+                                              Map<String, dynamic>
+                                                  subscriptionInfo =
+                                                  await getSubscriptionInfo();
+                                              bool isSubscribed =
+                                                  subscriptionInfo[
+                                                      'isSubscribed'];
+
+                                              if (!isSubscribed) {
+                                                await showDialog(
+                                                  context: context,
+                                                  builder: (BuildContext
+                                                      dialogContext) {
+                                                    return AlertDialog(
+                                                      title: Text(
+                                                          'Watch an ad to add more trackers',
+                                                          style: AppStyle
+                                                              .txtManropeRegular14
+                                                              .copyWith(
+                                                                  color: ColorConstant
+                                                                      .blueGray500,
+                                                                  letterSpacing:
+                                                                      0.2)),
+                                                      actions: <Widget>[
+                                                        TextButton(
+                                                          child: Text('OK',
+                                                              style: AppStyle
+                                                                  .txtHelveticaNowTextBold14
+                                                                  .copyWith(
+                                                                      letterSpacing:
+                                                                          0.2,
+                                                                      color: ColorConstant
+                                                                          .blueA700)),
+                                                          onPressed: () async {
+                                                            Navigator.of(
+                                                                    dialogContext)
+                                                                .pop();
+                                                            await loadAndShowRewardedAd(
+                                                                context, ref);
+
+                                                            // Add the code to add trackers here
+                                                            await goalController
+                                                                .addGoalToBudget(
+                                                                    budgetId,
+                                                                    goalData,
+                                                                    ref);
+                                                            Navigator.of(
+                                                                    context)
+                                                                .pop();
+                                                          },
+                                                        ),
+                                                        TextButton(
+                                                          child: Text('Cancel',
+                                                              style: AppStyle
+                                                                  .txtHelveticaNowTextBold14
+                                                                  .copyWith(
+                                                                      color: ColorConstant
+                                                                          .blueGray800,
+                                                                      letterSpacing:
+                                                                          0.2)),
+                                                          onPressed: () {
+                                                            Navigator.of(
+                                                                    dialogContext)
+                                                                .pop();
+                                                          },
+                                                        ),
+                                                      ],
+                                                    );
+                                                  },
+                                                );
+                                              } else {
+                                                // Add the code to add trackers here for subscribed users
+                                                await goalController
+                                                    .addGoalToBudget(budgetId,
+                                                        goalData, ref);
+                                                Navigator.pop(context);
+                                              }
+                                            } else {
+                                              // Add the code to add trackers here for users with 2 or less trackers
+                                              await goalController
+                                                  .addGoalToBudget(
+                                                      budgetId, goalData, ref);
+                                              Navigator.pop(context);
+                                            }
+                                          }
+                                        } else if (trackerType == 'Debt') {
+                                          if (isValidatedDebt) {
+                                            Map<String, dynamic> debtData = {
+                                              'category': selectedCategory,
+                                              'frequency': frequencyType,
+                                              'amount': double.tryParse(
+                                                      amountController.text
+                                                          .replaceAll(
+                                                              ',', '')) ??
+                                                  0.0,
+                                              'outstanding': double.tryParse(
+                                                      amountOustandingController
+                                                          .text
+                                                          .replaceAll(
+                                                              ',', '')) ??
+                                                  0.0,
+                                              'interest': double.tryParse(
+                                                      interestController.text
+                                                          .replaceAll(
+                                                              ',', '')) ??
+                                                  0.0,
+                                            };
+                                            String budgetId = budget!.budgetId;
+                                            print('budgetId: $budgetId');
+                                            print('debtData: $debtData');
+
+                                            if (trackersCount > 2) {
+                                              Map<String, dynamic>
+                                                  subscriptionInfo =
+                                                  await getSubscriptionInfo();
+                                              bool isSubscribed =
+                                                  subscriptionInfo[
+                                                      'isSubscribed'];
+
+                                              if (!isSubscribed) {
+                                                await showDialog(
+                                                  context: context,
+                                                  builder: (BuildContext
+                                                      dialogContext) {
+                                                    return AlertDialog(
+                                                      title: Text(
+                                                          'Watch an ad to add more trackers',
+                                                          style: AppStyle
+                                                              .txtManropeRegular14
+                                                              .copyWith(
+                                                                  color: ColorConstant
+                                                                      .blueGray500,
+                                                                  letterSpacing:
+                                                                      0.2)),
+                                                      actions: <Widget>[
+                                                        TextButton(
+                                                          child: Text('OK',
+                                                              style: AppStyle
+                                                                  .txtHelveticaNowTextBold14
+                                                                  .copyWith(
+                                                                      letterSpacing:
+                                                                          0.2,
+                                                                      color: ColorConstant
+                                                                          .blueA700)),
+                                                          onPressed: () async {
+                                                            Navigator.of(
+                                                                    dialogContext)
+                                                                .pop();
+                                                            await loadAndShowRewardedAd(
+                                                                context, ref);
+
+                                                            // Add the code to add trackers here
+                                                            await debtController
+                                                                .addDebtToBudget(
+                                                                    budgetId,
+                                                                    debtData,
+                                                                    ref);
+                                                            Navigator.of(
+                                                                    context)
+                                                                .pop();
+                                                          },
+                                                        ),
+                                                        TextButton(
+                                                          child: Text('Cancel',
+                                                              style: AppStyle
+                                                                  .txtHelveticaNowTextBold14
+                                                                  .copyWith(
+                                                                      color: ColorConstant
+                                                                          .blueGray800,
+                                                                      letterSpacing:
+                                                                          0.2)),
+                                                          onPressed: () {
+                                                            Navigator.of(
+                                                                    dialogContext)
+                                                                .pop();
+                                                          },
+                                                        ),
+                                                      ],
+                                                    );
+                                                  },
+                                                );
+                                              } else {
+                                                // Add the code to add trackers here for subscribed users
+                                                await debtController
+                                                    .addDebtToBudget(budgetId,
+                                                        debtData, ref);
+                                                Navigator.pop(context);
+                                              }
+                                            } else {
+                                              // Add the code to add trackers here for users with 2 or less trackers
+                                              await debtController
+                                                  .addDebtToBudget(
+                                                      budgetId, debtData, ref);
+                                              Navigator.pop(context);
+                                            }
+                                          }
+                                        }
+                                      }
 
                                       return Column(
                                         children: [
@@ -394,29 +721,30 @@ Future<void> showAddTrackerModal(
                                                     budget?.necessaryExpense?[
                                                         newValue ?? ''];
 
-                                                goalController.onCategoryChange(
-                                                    newValue ?? '');
+                                                if (trackerType == 'Goal') {
+                                                  goalController
+                                                      .onCategoryChange(
+                                                          newValue ?? '');
+                                                } else if (trackerType ==
+                                                    'Debt') {
+                                                  debtController
+                                                      .onCategoryChange(
+                                                          newValue ?? '');
 
-                                                debtController.onCategoryChange(
-                                                    newValue ?? '');
-
-                                                // Set the category amount in the expense controller
-                                                goalController.onAmountChange(
-                                                    categoryAmount
-                                                            ?.toString() ??
-                                                        '');
-
-                                                debtController.onAmountChange(
-                                                    categoryAmount
-                                                            ?.toString() ??
-                                                        '');
-
-                                                // Update the amount TextField value
-                                                if (trackerType == 'Debt') {
-                                                  amountController.text =
+                                                  debtController.onAmountChange(
                                                       categoryAmount
                                                               ?.toString() ??
-                                                          '';
+                                                          '');
+
+                                                  final formatCurrency =
+                                                      NumberFormat(
+                                                          "#,##0.00", "en_US");
+                                                  amountController
+                                                      .text = categoryAmount !=
+                                                          null
+                                                      ? formatCurrency.format(
+                                                          categoryAmount)
+                                                      : '';
                                                 }
 
                                                 print(
@@ -429,7 +757,7 @@ Future<void> showAddTrackerModal(
                                                     .txtHelveticaNowTextBold14
                                                     .copyWith(
                                                   color:
-                                                      ColorConstant.blueGray300,
+                                                      ColorConstant.blueGray800,
                                                 ),
                                                 fillColor: Colors.transparent,
                                                 filled: true,
@@ -495,7 +823,9 @@ Future<void> showAddTrackerModal(
                                           ),
                                           SizedBox(height: 16),
                                           TextField(
-                                            onSubmitted: (_) {},
+                                            onSubmitted: (_) {
+                                              submitForm(context, ref);
+                                            },
                                             controller: amountController,
                                             focusNode: amountFocusNode,
                                             keyboardType:
@@ -506,11 +836,14 @@ Future<void> showAddTrackerModal(
                                             ],
                                             textAlign: TextAlign.start,
                                             onChanged: (amount) {
-                                              goalController
-                                                  .onAmountChange(amount);
-                                              debtController
-                                                  .onAmountChange(amount);
-                                              // print(amount);
+                                              if (trackerType == 'Goal') {
+                                                goalController
+                                                    .onAmountChange(amount);
+                                              } else if (trackerType ==
+                                                  'Debt') {
+                                                debtController
+                                                    .onAmountChange(amount);
+                                              }
                                             },
                                             decoration: InputDecoration(
                                               labelText: trackerType == 'Debt'
@@ -520,7 +853,7 @@ Future<void> showAddTrackerModal(
                                                   .txtHelveticaNowTextBold14
                                                   .copyWith(
                                                 color:
-                                                    ColorConstant.blueGray300,
+                                                    ColorConstant.blueGray800,
                                               ),
                                               fillColor: Colors.transparent,
                                               filled: true,
@@ -588,12 +921,12 @@ Future<void> showAddTrackerModal(
                                                     ],
                                                     decoration: InputDecoration(
                                                       labelText:
-                                                          'Outstanding Balance',
+                                                          'Current Loan Balance',
                                                       labelStyle: AppStyle
                                                           .txtHelveticaNowTextBold14
                                                           .copyWith(
                                                         color: ColorConstant
-                                                            .blueGray300,
+                                                            .blueGray800,
                                                       ),
                                                       fillColor:
                                                           Colors.transparent,
@@ -657,16 +990,22 @@ Future<void> showAddTrackerModal(
                                                           .width *
                                                       0.3,
                                                   child: TextField(
+                                                    onSubmitted: (_) {
+                                                      submitForm(context, ref);
+                                                    },
                                                     controller:
                                                         interestController,
+                                                    keyboardType: TextInputType
+                                                        .numberWithOptions(
+                                                            decimal: true),
                                                     decoration: InputDecoration(
                                                       labelText:
-                                                          'Interest Rate',
+                                                          'Ann. Interest Rate',
                                                       labelStyle: AppStyle
                                                           .txtHelveticaNowTextBold14
                                                           .copyWith(
                                                         color: ColorConstant
-                                                            .blueGray300,
+                                                            .blueGray800,
                                                       ),
                                                       fillColor:
                                                           Colors.transparent,
@@ -728,64 +1067,8 @@ Future<void> showAddTrackerModal(
                                             ),
                                           SizedBox(height: 16),
                                           CustomButtonForm(
-                                            onTap: () async {
-                                              if (trackerType == 'Goal') {
-                                                Map<String, dynamic> goalData =
-                                                    {
-                                                  'category': selectedCategory,
-                                                  'frequency': frequencyType,
-                                                  'amount': double.tryParse(
-                                                          amountController.text
-                                                              .replaceAll(
-                                                                  ',', '')) ??
-                                                      0.0,
-                                                };
-
-                                                String budgetId =
-                                                    budget!.budgetId;
-                                                print('budgetId: $budgetId');
-
-                                                print('goalData: $goalData');
-
-                                                await goalController
-                                                    .addGoalToBudget(budgetId,
-                                                        goalData, ref);
-                                                Navigator.pop(context);
-                                              } else if (trackerType ==
-                                                  'Debt') {
-                                                Map<String, dynamic> debtData =
-                                                    {
-                                                  'category': selectedCategory,
-                                                  'frequency': frequencyType,
-                                                  'amount': double.tryParse(
-                                                          amountController.text
-                                                              .replaceAll(
-                                                                  ',', '')) ??
-                                                      0.0,
-                                                  'outstanding': double.tryParse(
-                                                          amountOustandingController
-                                                              .text
-                                                              .replaceAll(
-                                                                  ',', '')) ??
-                                                      0.0,
-                                                  'interest': double.tryParse(
-                                                          interestController
-                                                              .text
-                                                              .replaceAll(
-                                                                  ',', '')) ??
-                                                      0.0,
-                                                };
-                                                String budgetId =
-                                                    budget!.budgetId;
-                                                print('budgetId: $budgetId');
-
-                                                print('debtData: $debtData');
-
-                                                await debtController
-                                                    .addDebtToBudget(budgetId,
-                                                        debtData, ref);
-                                                Navigator.pop(context);
-                                              }
+                                            onTap: () {
+                                              submitForm(context, ref);
                                             },
                                             alignment: Alignment.bottomCenter,
                                             height: getVerticalSize(56),
@@ -814,6 +1097,21 @@ Future<void> showAddTrackerModal(
       );
     },
   );
+  print('selectedCategory BEFORE: $selectedCategory');
+  print('frequencyType BEFORE: $frequencyType');
+  print('trackerType BEFORE: $trackerType');
+  print('amount BEFORE: ${amountController.text}');
+  print('amountOutstanding BEFORE: ${amountOustandingController.text}');
+  print('interest BEFORE: ${interestController.text}');
+  resetControllers();
+  ref.read(goalTrackerProvider.notifier).reset();
+  ref.read(debtTrackerProvider.notifier).reset();
+  print('selectedCategory: $selectedCategory');
+  print('frequencyType: $frequencyType');
+  print('trackerType: $trackerType');
+  print('amount: ${amountController.text}');
+  print('amountOutstanding: ${amountOustandingController.text}');
+  print('interest: ${interestController.text}');
 }
 
 class ThousandsFormatter extends TextInputFormatter {

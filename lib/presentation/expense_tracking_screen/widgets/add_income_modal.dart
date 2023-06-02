@@ -13,6 +13,18 @@ import 'package:noughtplan/widgets/custom_button_form.dart';
 
 import 'calender_widget.dart';
 
+String? selectedCategory = 'Income';
+String? recurringType;
+int? duration;
+TextEditingController amountController = TextEditingController();
+
+void resetControllers() {
+  recurringType = null;
+  duration = null;
+
+  amountController.clear();
+}
+
 Future<void> showAddIncomeModal(
     BuildContext context, Budget? budget, WidgetRef ref) async {
   final categoryFocusNode = FocusNode();
@@ -34,12 +46,7 @@ Future<void> showAddIncomeModal(
     ...debtCategories.keys,
   ];
 
-  String? selectedCategory = 'Income';
-  String? recurringType;
-  int? duration;
-  TextEditingController amountController = TextEditingController();
-
-  return showModalBottomSheet(
+  await showModalBottomSheet(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
@@ -419,12 +426,26 @@ Future<void> showAddIncomeModal(
                                           SizedBox(height: 16),
                                           CustomButtonForm(
                                             onTap: () {
-                                              submitForm();
+                                              if ((budget?.actualExpenses
+                                                          .length ??
+                                                      0) <
+                                                  1) {
+                                                submitForm();
+                                              }
                                             },
                                             alignment: Alignment.bottomCenter,
                                             height: getVerticalSize(56),
-                                            text: "Save",
-                                            enabled: isValidated,
+                                            text: (budget?.actualExpenses
+                                                            .length ??
+                                                        0) >=
+                                                    1
+                                                ? "Max Income Reached"
+                                                : "Save",
+                                            enabled: (budget?.actualExpenses
+                                                            .length ??
+                                                        0) <
+                                                    1 &&
+                                                isValidated,
                                           ),
                                         ],
                                       );
@@ -446,6 +467,8 @@ Future<void> showAddIncomeModal(
       );
     },
   );
+  resetControllers();
+  ref.read(incomeTrackerProvider.notifier).reset();
 }
 
 class ThousandsFormatter extends TextInputFormatter {
