@@ -12,6 +12,7 @@ import 'package:intl/intl.dart';
 import 'package:noughtplan/core/budget/providers/budget_state_provider.dart';
 import 'package:noughtplan/core/budget/providers/interstitial_ads_class_provider.dart';
 import 'package:noughtplan/core/constants/budgets.dart';
+import 'package:noughtplan/core/providers/first_time_provider.dart';
 import 'package:noughtplan/presentation/budget_screen/widgets/call_chat_gpt_highlights.dart';
 import 'package:noughtplan/presentation/budget_screen/widgets/debts_provider.dart';
 import 'package:noughtplan/presentation/budget_screen/widgets/goals_provider.dart';
@@ -243,6 +244,8 @@ class BudgetScreen extends HookConsumerWidget {
     print('Updated Selected Budget Goals: ${_updatedSelectedBudget?.goals}');
     print('Updated Selected Budget Debts: ${_updatedSelectedBudget?.debts}');
 
+    double totalExpensesWithIncome = selectedBudget.salary + totalIncome;
+
     void updateExpensesOnLoad() {
       Future.microtask(
         () async {
@@ -461,7 +464,13 @@ class BudgetScreen extends HookConsumerWidget {
       });
     }
 
+    final _animationController =
+        useAnimationController(duration: const Duration(seconds: 1));
+
+    final firstTime = ref.watch(firstTimeProvider);
+
     useEffect(() {
+      _animationController.repeat(reverse: true);
       updateExpensesOnLoad();
 
       loadListData(selectedBudget.budgetId).then((listData) {
@@ -535,7 +544,8 @@ class BudgetScreen extends HookConsumerWidget {
     final String discretionaryTotalFormatted =
         numberFormat.format(discretionaryTotal);
     final String debtTotalFormatted = numberFormat.format(debtTotal);
-    final String totalExpensesFormatted = numberFormat.format(totalExpenses);
+    final String totalExpensesFormatted =
+        numberFormat.format(totalExpensesWithIncome);
 
     final pieChartDataResult = _generatePieChartData(
         context, necessaryCategories, discretionaryCategories, debtCategories);
@@ -612,7 +622,7 @@ class BudgetScreen extends HookConsumerWidget {
     Future<void> loadAndShowInterstitialAd(
         BuildContext context, WidgetRef ref) async {
       InterstitialAd.load(
-        adUnitId: 'ca-app-pub-3940256099942544/8691691433',
+        adUnitId: 'ca-app-pub-9181910622688491/2479441952',
         request: AdRequest(),
         adLoadCallback: InterstitialAdLoadCallback(
           onAdLoaded: (InterstitialAd ad) {
@@ -695,9 +705,9 @@ class BudgetScreen extends HookConsumerWidget {
                   child: Transform(
                     transform: Matrix4.identity()..scale(1.0, 1.0, 0.1),
                     child: CustomImageView(
-                      imagePath: ImageConstant.imgTopographic7,
+                      imagePath: ImageConstant.budgetTopo,
                       height: MediaQuery.of(context).size.height *
-                          1, // Set the height to 50% of the screen height
+                          0.8, // Set the height to 50% of the screen height
                       width: MediaQuery.of(context)
                           .size
                           .width, // Set the width to the full screen width
@@ -924,449 +934,514 @@ class BudgetScreen extends HookConsumerWidget {
                                                   style: AppStyle
                                                       .txtHelveticaNowTextBold16,
                                                 ),
-                                                content: Column(
-                                                  mainAxisSize:
-                                                      MainAxisSize.min,
-                                                  children: [
-                                                    Text(
-                                                      "",
-                                                      textAlign:
-                                                          TextAlign.center,
-                                                      style: AppStyle
-                                                          .txtManropeRegular14,
-                                                    ),
-                                                    FutureBuilder(
-                                                      future:
-                                                          _convertAndStoreTotals(
-                                                              selectedBudget
-                                                                  .currency,
-                                                              necessaryTotal,
-                                                              discretionaryTotal),
-                                                      builder: (BuildContext
-                                                              context,
-                                                          AsyncSnapshot<
-                                                                  Map<String,
-                                                                      double>>
-                                                              snapshot) {
-                                                        if (snapshot
-                                                                .connectionState ==
-                                                            ConnectionState
-                                                                .waiting) {
-                                                          return LinearProgressIndicator();
-                                                        } else if (snapshot
-                                                            .hasError) {
-                                                          return Text(
-                                                              'Error: ${snapshot.error}');
-                                                        } else {
-                                                          final necessaryTotalUSD =
-                                                              snapshot.data![
-                                                                      'necessaryTotalUSD'] ??
-                                                                  0.0;
-                                                          final discretionaryTotalUSD =
-                                                              snapshot.data![
-                                                                      'discretionaryTotalUSD'] ??
-                                                                  0.0;
-
-                                                          return SpendingTypeProgressBar(
-                                                            totalNecessaryExpense:
-                                                                necessaryTotalUSD,
-                                                            totalDiscretionaryExpense:
-                                                                discretionaryTotalUSD,
-                                                          );
-                                                        }
-                                                      },
-                                                    ),
-                                                    Padding(
-                                                      padding:
-                                                          getPadding(top: 7),
-                                                      child: Row(
-                                                        mainAxisAlignment:
-                                                            MainAxisAlignment
-                                                                .spaceBetween,
-                                                        children: [
-                                                          Text(
-                                                            'Necessary\n Spender',
+                                                content: SingleChildScrollView(
+                                                  physics:
+                                                      BouncingScrollPhysics(),
+                                                  child: Column(
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
+                                                    children: [
+                                                      Container(
+                                                        child: RichText(
+                                                          textAlign:
+                                                              TextAlign.left,
+                                                          text: TextSpan(
                                                             style: AppStyle
-                                                                .txtManropeSemiBold10
+                                                                .txtManropeRegular14
                                                                 .copyWith(
-                                                              color: ColorConstant
-                                                                  .blueGray800,
-                                                            ),
-                                                            overflow:
-                                                                TextOverflow
-                                                                    .clip,
-                                                            softWrap: true,
-                                                          ),
-                                                          Text(
-                                                            'Balanced\n Spender',
-                                                            style: AppStyle
-                                                                .txtManropeSemiBold10
-                                                                .copyWith(
-                                                              color: ColorConstant
-                                                                  .blueGray800,
-                                                            ),
-                                                            overflow:
-                                                                TextOverflow
-                                                                    .clip,
-                                                            softWrap: true,
-                                                          ),
-                                                          Text(
-                                                            'Impulsive\n Spender',
-                                                            style: AppStyle
-                                                                .txtManropeSemiBold10
-                                                                .copyWith(
-                                                              color: ColorConstant
-                                                                  .blueGray800,
-                                                            ),
-                                                            overflow:
-                                                                TextOverflow
-                                                                    .clip,
-                                                            softWrap: true,
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                    Column(
-                                                      children: [
-                                                        SaverTypeProgressBar(
-                                                          spendingType:
-                                                              selectedBudget
-                                                                  .spendingType, // replace with the actual spending type
-                                                          savings:
-                                                              totalSavings, // replace with the actual savings amount
-                                                          salary: selectedBudget
-                                                              .salary, // replace with the actual salary amount
-                                                        ),
-                                                        Padding(
-                                                          padding: getPadding(
-                                                              top: 7),
-                                                          child: Row(
-                                                            mainAxisAlignment:
-                                                                MainAxisAlignment
-                                                                    .spaceBetween,
-                                                            children: getSavingsLabels(
-                                                                selectedBudget
-                                                                    .spendingType),
-                                                          ),
-                                                        )
-                                                      ],
-                                                    ),
-                                                    Column(
-                                                      children: [
-                                                        DebtTypeProgressBar(
-                                                          debt: debtTotal,
-                                                          income: selectedBudget
-                                                              .salary,
-                                                        ),
-                                                        Padding(
-                                                          padding: getPadding(
-                                                              top: 7),
-                                                          child: Row(
-                                                            mainAxisAlignment:
-                                                                MainAxisAlignment
-                                                                    .spaceBetween,
-                                                            children: [
-                                                              Text(
-                                                                'Debt\nFree',
-                                                                style: AppStyle
-                                                                    .txtManropeSemiBold10
-                                                                    .copyWith(
-                                                                  color: ColorConstant
-                                                                      .blueGray800,
-                                                                ),
-                                                                textAlign:
-                                                                    TextAlign
-                                                                        .center,
-                                                                overflow:
-                                                                    TextOverflow
-                                                                        .clip,
-                                                                softWrap: true,
-                                                              ),
-                                                              Padding(
-                                                                padding:
-                                                                    getPadding(
-                                                                        right:
-                                                                            16),
-                                                                child: Text(
-                                                                  'Minimal\nDebt',
-                                                                  style: AppStyle
-                                                                      .txtManropeSemiBold10
-                                                                      .copyWith(
                                                                     color: ColorConstant
-                                                                        .blueGray800,
-                                                                  ),
-                                                                  textAlign:
-                                                                      TextAlign
-                                                                          .center,
-                                                                  overflow:
-                                                                      TextOverflow
-                                                                          .clip,
-                                                                  softWrap:
-                                                                      true,
-                                                                ),
-                                                              ),
-                                                              Padding(
-                                                                padding:
-                                                                    getPadding(
-                                                                        right:
-                                                                            16),
-                                                                child: Text(
-                                                                  'Moderate\nDebt',
-                                                                  style: AppStyle
-                                                                      .txtManropeSemiBold10
-                                                                      .copyWith(
-                                                                    color: ColorConstant
-                                                                        .blueGray800,
-                                                                  ),
-                                                                  textAlign:
-                                                                      TextAlign
-                                                                          .center,
-                                                                  overflow:
-                                                                      TextOverflow
-                                                                          .clip,
-                                                                  softWrap:
-                                                                      true,
-                                                                ),
-                                                              ),
-                                                              Text(
-                                                                'Danger\nZone',
-                                                                style: AppStyle
-                                                                    .txtManropeSemiBold10
-                                                                    .copyWith(
-                                                                  color: ColorConstant
-                                                                      .blueGray800,
-                                                                ),
-                                                                textAlign:
-                                                                    TextAlign
-                                                                        .center,
-                                                                overflow:
-                                                                    TextOverflow
-                                                                        .clip,
-                                                                softWrap: true,
-                                                              ),
-                                                              Text(
-                                                                'High\nDebt',
-                                                                style: AppStyle
-                                                                    .txtManropeSemiBold10
-                                                                    .copyWith(
-                                                                  color: ColorConstant
-                                                                      .blueGray800,
-                                                                ),
-                                                                textAlign:
-                                                                    TextAlign
-                                                                        .center,
-                                                                overflow:
-                                                                    TextOverflow
-                                                                        .clip,
-                                                                softWrap: true,
-                                                              ),
+                                                                        .blueGray800),
+                                                            children: <
+                                                                TextSpan>[
+                                                              TextSpan(
+                                                                  text:
+                                                                      "Welcome to the Budget Screen. Here's how to navigate:\n\n"),
+                                                              TextSpan(
+                                                                  text:
+                                                                      '1. Menu Navigation:',
+                                                                  style: TextStyle(
+                                                                      fontWeight:
+                                                                          FontWeight
+                                                                              .bold)),
+                                                              TextSpan(
+                                                                  text:
+                                                                      ' The menu item on the left leads to the AI Financial Advisor. Note that you need to be a subscribed user to access it. The menu item on the right leads to the Expense Tracker.\n\n'),
+                                                              TextSpan(
+                                                                  text:
+                                                                      '2. The Pie Chart:',
+                                                                  style: TextStyle(
+                                                                      fontWeight:
+                                                                          FontWeight
+                                                                              .bold)),
+                                                              TextSpan(
+                                                                  text:
+                                                                      ' This chart presents the ratio between necessary, discretionary, and debt expenses. The center of the pie chart displays the percentage ratio among the three categories, along with the amount of actual money you have left, which is based on the expenses added to the Expense Tracker.\n\n'),
+                                                              TextSpan(
+                                                                  text:
+                                                                      '3. Goal and Debt Trackers:',
+                                                                  style: TextStyle(
+                                                                      fontWeight:
+                                                                          FontWeight
+                                                                              .bold)),
+                                                              TextSpan(
+                                                                  text:
+                                                                      ' Towards the bottom of the screen, you have the option to add Goal and Debt Trackers. These tools can help you stay on track with your financial goals and manage your debts effectively. Using these trackers can provide a visual and proactive approach to reaching your financial goals and reducing debt.\n\n'),
+                                                              TextSpan(
+                                                                  text:
+                                                                      '4. Deleting a Tracker:',
+                                                                  style: TextStyle(
+                                                                      fontWeight:
+                                                                          FontWeight
+                                                                              .bold)),
+                                                              TextSpan(
+                                                                  text:
+                                                                      ' To delete a tracker, simply swipe up on it. This will remove the tracker from your view.\n\n'),
+                                                              TextSpan(
+                                                                  text:
+                                                                      'Remember, a good grasp of your financial situation is the key to effective budgeting. Make the most of these tools to manage your finances efficiently.'),
                                                             ],
                                                           ),
                                                         ),
-                                                        Padding(
-                                                          padding:
-                                                              EdgeInsets.all(
-                                                                  20),
-                                                          child:
-                                                              StatefulBuilder(
-                                                            builder: (BuildContext
-                                                                    context,
-                                                                StateSetter
-                                                                    setState) {
-                                                              List<
+                                                      ),
+                                                      Text(
+                                                        "",
+                                                        textAlign:
+                                                            TextAlign.center,
+                                                        style: AppStyle
+                                                            .txtManropeRegular14,
+                                                      ),
+                                                      FutureBuilder(
+                                                        future: _convertAndStoreTotals(
+                                                            selectedBudget
+                                                                .currency,
+                                                            necessaryTotal,
+                                                            discretionaryTotal),
+                                                        builder: (BuildContext
+                                                                context,
+                                                            AsyncSnapshot<
+                                                                    Map<String,
+                                                                        double>>
+                                                                snapshot) {
+                                                          if (snapshot
+                                                                  .connectionState ==
+                                                              ConnectionState
+                                                                  .waiting) {
+                                                            return LinearProgressIndicator();
+                                                          } else if (snapshot
+                                                              .hasError) {
+                                                            return Text(
+                                                                'Error: ${snapshot.error}');
+                                                          } else {
+                                                            final necessaryTotalUSD =
+                                                                snapshot.data![
+                                                                        'necessaryTotalUSD'] ??
+                                                                    0.0;
+                                                            final discretionaryTotalUSD =
+                                                                snapshot.data![
+                                                                        'discretionaryTotalUSD'] ??
+                                                                    0.0;
+
+                                                            return SpendingTypeProgressBar(
+                                                              totalNecessaryExpense:
+                                                                  necessaryTotalUSD,
+                                                              totalDiscretionaryExpense:
+                                                                  discretionaryTotalUSD,
+                                                            );
+                                                          }
+                                                        },
+                                                      ),
+                                                      Padding(
+                                                        padding:
+                                                            getPadding(top: 7),
+                                                        child: Row(
+                                                          mainAxisAlignment:
+                                                              MainAxisAlignment
+                                                                  .spaceBetween,
+                                                          children: [
+                                                            Text(
+                                                              'Necessary\n Spender',
+                                                              style: AppStyle
+                                                                  .txtManropeSemiBold10
+                                                                  .copyWith(
+                                                                color: ColorConstant
+                                                                    .blueGray800,
+                                                              ),
+                                                              overflow:
+                                                                  TextOverflow
+                                                                      .clip,
+                                                              softWrap: true,
+                                                            ),
+                                                            Text(
+                                                              'Balanced\n Spender',
+                                                              style: AppStyle
+                                                                  .txtManropeSemiBold10
+                                                                  .copyWith(
+                                                                color: ColorConstant
+                                                                    .blueGray800,
+                                                              ),
+                                                              overflow:
+                                                                  TextOverflow
+                                                                      .clip,
+                                                              softWrap: true,
+                                                            ),
+                                                            Text(
+                                                              'Impulsive\n Spender',
+                                                              style: AppStyle
+                                                                  .txtManropeSemiBold10
+                                                                  .copyWith(
+                                                                color: ColorConstant
+                                                                    .blueGray800,
+                                                              ),
+                                                              overflow:
+                                                                  TextOverflow
+                                                                      .clip,
+                                                              softWrap: true,
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                      Column(
+                                                        children: [
+                                                          SaverTypeProgressBar(
+                                                            spendingType:
+                                                                selectedBudget
+                                                                    .spendingType, // replace with the actual spending type
+                                                            savings:
+                                                                totalSavings, // replace with the actual savings amount
+                                                            salary: selectedBudget
+                                                                .salary, // replace with the actual salary amount
+                                                          ),
+                                                          Padding(
+                                                            padding: getPadding(
+                                                                top: 7),
+                                                            child: Row(
+                                                              mainAxisAlignment:
+                                                                  MainAxisAlignment
+                                                                      .spaceBetween,
+                                                              children: getSavingsLabels(
+                                                                  selectedBudget
+                                                                      .spendingType),
+                                                            ),
+                                                          )
+                                                        ],
+                                                      ),
+                                                      Column(
+                                                        children: [
+                                                          DebtTypeProgressBar(
+                                                            debt: debtTotal,
+                                                            income:
+                                                                selectedBudget
+                                                                    .salary,
+                                                          ),
+                                                          Padding(
+                                                            padding: getPadding(
+                                                                top: 7),
+                                                            child: Row(
+                                                              mainAxisAlignment:
+                                                                  MainAxisAlignment
+                                                                      .spaceBetween,
+                                                              children: [
+                                                                Text(
+                                                                  'Debt\nFree',
+                                                                  style: AppStyle
+                                                                      .txtManropeSemiBold10
+                                                                      .copyWith(
+                                                                    color: ColorConstant
+                                                                        .blueGray800,
+                                                                  ),
+                                                                  textAlign:
+                                                                      TextAlign
+                                                                          .center,
+                                                                  overflow:
+                                                                      TextOverflow
+                                                                          .clip,
+                                                                  softWrap:
+                                                                      true,
+                                                                ),
+                                                                Padding(
+                                                                  padding:
+                                                                      getPadding(
+                                                                          right:
+                                                                              16),
+                                                                  child: Text(
+                                                                    'Minimal\nDebt',
+                                                                    style: AppStyle
+                                                                        .txtManropeSemiBold10
+                                                                        .copyWith(
+                                                                      color: ColorConstant
+                                                                          .blueGray800,
+                                                                    ),
+                                                                    textAlign:
+                                                                        TextAlign
+                                                                            .center,
+                                                                    overflow:
+                                                                        TextOverflow
+                                                                            .clip,
+                                                                    softWrap:
+                                                                        true,
+                                                                  ),
+                                                                ),
+                                                                Padding(
+                                                                  padding:
+                                                                      getPadding(
+                                                                          right:
+                                                                              16),
+                                                                  child: Text(
+                                                                    'Moderate\nDebt',
+                                                                    style: AppStyle
+                                                                        .txtManropeSemiBold10
+                                                                        .copyWith(
+                                                                      color: ColorConstant
+                                                                          .blueGray800,
+                                                                    ),
+                                                                    textAlign:
+                                                                        TextAlign
+                                                                            .center,
+                                                                    overflow:
+                                                                        TextOverflow
+                                                                            .clip,
+                                                                    softWrap:
+                                                                        true,
+                                                                  ),
+                                                                ),
+                                                                Text(
+                                                                  'Danger\nZone',
+                                                                  style: AppStyle
+                                                                      .txtManropeSemiBold10
+                                                                      .copyWith(
+                                                                    color: ColorConstant
+                                                                        .blueGray800,
+                                                                  ),
+                                                                  textAlign:
+                                                                      TextAlign
+                                                                          .center,
+                                                                  overflow:
+                                                                      TextOverflow
+                                                                          .clip,
+                                                                  softWrap:
+                                                                      true,
+                                                                ),
+                                                                Text(
+                                                                  'High\nDebt',
+                                                                  style: AppStyle
+                                                                      .txtManropeSemiBold10
+                                                                      .copyWith(
+                                                                    color: ColorConstant
+                                                                        .blueGray800,
+                                                                  ),
+                                                                  textAlign:
+                                                                      TextAlign
+                                                                          .center,
+                                                                  overflow:
+                                                                      TextOverflow
+                                                                          .clip,
+                                                                  softWrap:
+                                                                      true,
+                                                                ),
+                                                              ],
+                                                            ),
+                                                          ),
+                                                          Padding(
+                                                            padding:
+                                                                EdgeInsets.all(
+                                                                    20),
+                                                            child:
+                                                                StatefulBuilder(
+                                                              builder: (BuildContext
+                                                                      context,
+                                                                  StateSetter
+                                                                      setState) {
+                                                                List<
+                                                                        DropdownMenuItem<
+                                                                            String>>
+                                                                    getCategoryItems() {
+                                                                  List<String>
+                                                                      categories =
+                                                                      [
+                                                                    // Add your categories here (spendingType, savingType, and debtType)
+                                                                    'Necessary Spender',
+                                                                    'Balanced Spender',
+                                                                    'Impulsive Spender',
+                                                                    'Cautious',
+                                                                    'Frugal',
+                                                                    'Prudent Saver',
+                                                                    'Limited Saver',
+                                                                    'Strategic',
+                                                                    'Balanced Saver',
+                                                                    'Debt Free',
+                                                                    'Minimal Debt',
+                                                                    'Moderate Debt',
+                                                                    'Danger Zone',
+                                                                    'High Debt',
+                                                                  ];
+
+                                                                  return categories.map<
                                                                       DropdownMenuItem<
-                                                                          String>>
-                                                                  getCategoryItems() {
-                                                                List<String>
-                                                                    categories =
-                                                                    [
-                                                                  // Add your categories here (spendingType, savingType, and debtType)
-                                                                  'Necessary Spender',
-                                                                  'Balanced Spender',
-                                                                  'Impulsive Spender',
-                                                                  'Cautious',
-                                                                  'Frugal',
-                                                                  'Prudent Saver',
-                                                                  'Limited Saver',
-                                                                  'Strategic',
-                                                                  'Balanced Saver',
-                                                                  'Debt Free',
-                                                                  'Minimal Debt',
-                                                                  'Moderate Debt',
-                                                                  'Danger Zone',
-                                                                  'High Debt',
-                                                                ];
-
-                                                                return categories.map<
-                                                                    DropdownMenuItem<
-                                                                        String>>((String
-                                                                    category) {
-                                                                  return DropdownMenuItem<
-                                                                      String>(
-                                                                    value:
-                                                                        category,
-                                                                    child: Text(
-                                                                        category),
-                                                                  );
-                                                                }).toList();
-                                                              }
-
-                                                              void updateExplanation(
-                                                                  String?
+                                                                          String>>((String
                                                                       category) {
-                                                                String
-                                                                    explanation =
-                                                                    '';
-
-                                                                // Update the explanation variable based on the selected category
-                                                                // Add explanations for each category
-                                                                switch (
-                                                                    category) {
-                                                                  case 'Necessary Spender':
-                                                                    explanation =
-                                                                        'A Necessary Spender is someone who primarily spends on essential expenses such as housing, utilities, food, and healthcare. They are cautious with their money and avoid unnecessary expenses.';
-                                                                    break;
-                                                                  case 'Balanced Spender':
-                                                                    explanation =
-                                                                        'A Balanced Spender is someone who manages their money well by covering essential expenses, saving for the future, and occasionally indulging in non-essential items or experiences. They maintain a healthy balance between needs and wants.';
-                                                                    break;
-                                                                  case 'Impulsive Spender':
-                                                                    explanation =
-                                                                        'An Impulsive Spender is someone who frequently makes unplanned purchases, often prioritizing immediate gratification over long-term financial goals. They may struggle with saving money and are more susceptible to impulse buys.';
-                                                                    break;
-                                                                  case 'Cautious':
-                                                                    explanation =
-                                                                        'A Cautious saver is someone who has some savings but has not yet reached a comfortable emergency fund. They may be working on increasing their savings to achieve financial security.';
-                                                                    break;
-                                                                  case 'Frugal':
-                                                                    explanation =
-                                                                        'A Frugal saver is someone who is very careful with their money and prioritizes saving over spending. They often have a substantial emergency fund and may also be saving for long-term goals like retirement or a down payment on a home.';
-                                                                    break;
-                                                                  case 'Prudent Saver':
-                                                                    explanation =
-                                                                        'A Prudent Saver is someone who consistently saves money and makes thoughtful decisions about their spending. They prioritize financial goals and have a strong safety net in case of emergencies.';
-                                                                    break;
-                                                                  case 'Limited Saver':
-                                                                    explanation =
-                                                                        'A Limited Saver is someone who saves some money but may struggle to consistently prioritize savings. They might have difficulty building an emergency fund or saving for long-term goals.';
-                                                                    break;
-                                                                  case 'Strategic':
-                                                                    explanation =
-                                                                        'A Strategic saver is someone who plans their savings and investments to achieve specific financial goals. They have a solid financial plan and allocate their money accordingly to maximize their financial potential.';
-                                                                    break;
-                                                                  case 'Balanced Saver':
-                                                                    explanation =
-                                                                        'A Balanced Saver is someone who saves a moderate amount of their income, focusing on both short-term and long-term financial goals. They maintain a balance between saving, investing, and spending on necessities and occasional wants.';
-                                                                    break;
-                                                                  case 'Debt Free':
-                                                                    explanation =
-                                                                        'Debt Free refers to a financial situation where an individual has no outstanding debts, such as credit card balances, student loans, or car loans. Being debt-free can provide financial flexibility and peace of mind.';
-                                                                    break;
-                                                                  case 'Minimal Debt':
-                                                                    explanation =
-                                                                        'Minimal Debt refers to a financial situation where an individual has a small amount of debt relative to their income and assets. This can make it easier to manage and pay off debts, as well as save and invest for the future.';
-                                                                    break;
-                                                                  case 'Moderate Debt':
-                                                                    explanation =
-                                                                        'Moderate Debt refers to a financial situation where an individual has a moderate amount of debt relative to their income and assets. This can make it more challenging to manage and pay off debts, as well as save and invest for the future.';
-                                                                    break;
-                                                                  case 'Danger Zone':
-                                                                    explanation =
-                                                                        'Danger Zone refers to a financial situation where an individual has a high amount of debt relative to their income and assets. This can create significant financial stress and make it difficult to manage debts, save, or invest. It may require a more aggressive debt repayment plan to regain financial stability.';
-                                                                    break;
-                                                                  case 'High Debt':
-                                                                    explanation =
-                                                                        'High Debt refers to a financial situation where an individual has an extremely high amount of debt relative to their income and assets. This can lead to severe financial strain and may necessitate drastic changes to spending habits or seeking professional help to regain control of their finances.';
-                                                                    break;
-                                                                  default:
-                                                                    explanation =
-                                                                        'Please select a category to see its explanation.';
+                                                                    return DropdownMenuItem<
+                                                                        String>(
+                                                                      value:
+                                                                          category,
+                                                                      child: Text(
+                                                                          category),
+                                                                    );
+                                                                  }).toList();
                                                                 }
 
-                                                                setState(() {
-                                                                  _explanation =
-                                                                      explanation;
-                                                                });
-                                                              }
+                                                                void updateExplanation(
+                                                                    String?
+                                                                        category) {
+                                                                  String
+                                                                      explanation =
+                                                                      '';
 
-                                                              return Column(
-                                                                children: [
-                                                                  Padding(
-                                                                    padding: EdgeInsets
-                                                                        .only(
-                                                                            top:
-                                                                                8),
-                                                                    child: Text(
-                                                                      'Use the dropdown below to learn more about each user category.',
-                                                                      textAlign:
-                                                                          TextAlign
-                                                                              .center,
-                                                                      style: AppStyle
-                                                                          .txtManropeSemiBold12
-                                                                          .copyWith(
-                                                                        color: ColorConstant
-                                                                            .blueGray800,
+                                                                  // Update the explanation variable based on the selected category
+                                                                  // Add explanations for each category
+                                                                  switch (
+                                                                      category) {
+                                                                    case 'Necessary Spender':
+                                                                      explanation =
+                                                                          'A Necessary Spender is someone who primarily spends on essential expenses such as housing, utilities, food, and healthcare. They are cautious with their money and avoid unnecessary expenses.';
+                                                                      break;
+                                                                    case 'Balanced Spender':
+                                                                      explanation =
+                                                                          'A Balanced Spender is someone who manages their money well by covering essential expenses, saving for the future, and occasionally indulging in non-essential items or experiences. They maintain a healthy balance between needs and wants.';
+                                                                      break;
+                                                                    case 'Impulsive Spender':
+                                                                      explanation =
+                                                                          'An Impulsive Spender is someone who frequently makes unplanned purchases, often prioritizing immediate gratification over long-term financial goals. They may struggle with saving money and are more susceptible to impulse buys.';
+                                                                      break;
+                                                                    case 'Cautious':
+                                                                      explanation =
+                                                                          'A Cautious saver is someone who has some savings but has not yet reached a comfortable emergency fund. They may be working on increasing their savings to achieve financial security.';
+                                                                      break;
+                                                                    case 'Frugal':
+                                                                      explanation =
+                                                                          'A Frugal saver is someone who is very careful with their money and prioritizes saving over spending. They often have a substantial emergency fund and may also be saving for long-term goals like retirement or a down payment on a home.';
+                                                                      break;
+                                                                    case 'Prudent Saver':
+                                                                      explanation =
+                                                                          'A Prudent Saver is someone who consistently saves money and makes thoughtful decisions about their spending. They prioritize financial goals and have a strong safety net in case of emergencies.';
+                                                                      break;
+                                                                    case 'Limited Saver':
+                                                                      explanation =
+                                                                          'A Limited Saver is someone who saves some money but may struggle to consistently prioritize savings. They might have difficulty building an emergency fund or saving for long-term goals.';
+                                                                      break;
+                                                                    case 'Strategic':
+                                                                      explanation =
+                                                                          'A Strategic saver is someone who plans their savings and investments to achieve specific financial goals. They have a solid financial plan and allocate their money accordingly to maximize their financial potential.';
+                                                                      break;
+                                                                    case 'Balanced Saver':
+                                                                      explanation =
+                                                                          'A Balanced Saver is someone who saves a moderate amount of their income, focusing on both short-term and long-term financial goals. They maintain a balance between saving, investing, and spending on necessities and occasional wants.';
+                                                                      break;
+                                                                    case 'Debt Free':
+                                                                      explanation =
+                                                                          'Debt Free refers to a financial situation where an individual has no outstanding debts, such as credit card balances, student loans, or car loans. Being debt-free can provide financial flexibility and peace of mind.';
+                                                                      break;
+                                                                    case 'Minimal Debt':
+                                                                      explanation =
+                                                                          'Minimal Debt refers to a financial situation where an individual has a small amount of debt relative to their income and assets. This can make it easier to manage and pay off debts, as well as save and invest for the future.';
+                                                                      break;
+                                                                    case 'Moderate Debt':
+                                                                      explanation =
+                                                                          'Moderate Debt refers to a financial situation where an individual has a moderate amount of debt relative to their income and assets. This can make it more challenging to manage and pay off debts, as well as save and invest for the future.';
+                                                                      break;
+                                                                    case 'Danger Zone':
+                                                                      explanation =
+                                                                          'Danger Zone refers to a financial situation where an individual has a high amount of debt relative to their income and assets. This can create significant financial stress and make it difficult to manage debts, save, or invest. It may require a more aggressive debt repayment plan to regain financial stability.';
+                                                                      break;
+                                                                    case 'High Debt':
+                                                                      explanation =
+                                                                          'High Debt refers to a financial situation where an individual has an extremely high amount of debt relative to their income and assets. This can lead to severe financial strain and may necessitate drastic changes to spending habits or seeking professional help to regain control of their finances.';
+                                                                      break;
+                                                                    default:
+                                                                      explanation =
+                                                                          'Please select a category to see its explanation.';
+                                                                  }
+
+                                                                  setState(() {
+                                                                    _explanation =
+                                                                        explanation;
+                                                                  });
+                                                                }
+
+                                                                return Column(
+                                                                  children: [
+                                                                    Padding(
+                                                                      padding: EdgeInsets
+                                                                          .only(
+                                                                              top: 8),
+                                                                      child:
+                                                                          Text(
+                                                                        'Use the dropdown below to learn more about each user category.',
+                                                                        textAlign:
+                                                                            TextAlign.center,
+                                                                        style: AppStyle
+                                                                            .txtManropeSemiBold12
+                                                                            .copyWith(
+                                                                          color:
+                                                                              ColorConstant.blueGray800,
+                                                                        ),
                                                                       ),
                                                                     ),
-                                                                  ),
-                                                                  Padding(
-                                                                    padding: EdgeInsets
-                                                                        .only(
-                                                                            top:
-                                                                                8),
-                                                                    child: DropdownButton<
-                                                                        String>(
-                                                                      hint: Text(
-                                                                          'Select a category'),
-                                                                      style: AppStyle
-                                                                          .txtManropeBold14
-                                                                          .copyWith(
-                                                                              color: ColorConstant.blueGray800),
-                                                                      value:
-                                                                          _selectedCategory,
-                                                                      items:
-                                                                          getCategoryItems(),
-                                                                      onChanged:
-                                                                          (String?
-                                                                              newValue) {
-                                                                        // print(
-                                                                        //     newValue);
-                                                                        setState(
-                                                                            () {
-                                                                          _selectedCategory =
-                                                                              newValue;
-                                                                        });
-                                                                        updateExplanation(
-                                                                            newValue);
-                                                                      },
-                                                                    ),
-                                                                  ),
-                                                                  Padding(
-                                                                    padding: EdgeInsets
-                                                                        .only(
-                                                                            top:
-                                                                                8),
-                                                                    child: Text(
-                                                                      _explanation,
-                                                                      textAlign:
-                                                                          TextAlign
-                                                                              .center,
-                                                                      style: AppStyle
-                                                                          .txtManropeRegular12
-                                                                          .copyWith(
-                                                                        color: ColorConstant
-                                                                            .blueGray800,
+                                                                    Padding(
+                                                                      padding: EdgeInsets
+                                                                          .only(
+                                                                              top: 8),
+                                                                      child: DropdownButton<
+                                                                          String>(
+                                                                        hint: Text(
+                                                                            'Select a category'),
+                                                                        style: AppStyle
+                                                                            .txtManropeBold14
+                                                                            .copyWith(color: ColorConstant.blueGray800),
+                                                                        value:
+                                                                            _selectedCategory,
+                                                                        items:
+                                                                            getCategoryItems(),
+                                                                        onChanged:
+                                                                            (String?
+                                                                                newValue) {
+                                                                          // print(
+                                                                          //     newValue);
+                                                                          setState(
+                                                                              () {
+                                                                            _selectedCategory =
+                                                                                newValue;
+                                                                          });
+                                                                          updateExplanation(
+                                                                              newValue);
+                                                                        },
                                                                       ),
                                                                     ),
-                                                                  ),
-                                                                ],
-                                                              );
-                                                            },
+                                                                    Padding(
+                                                                      padding: EdgeInsets
+                                                                          .only(
+                                                                              top: 8),
+                                                                      child:
+                                                                          Text(
+                                                                        _explanation,
+                                                                        textAlign:
+                                                                            TextAlign.left,
+                                                                        style: AppStyle
+                                                                            .txtManropeRegular14
+                                                                            .copyWith(
+                                                                          color:
+                                                                              ColorConstant.blueGray800,
+                                                                        ),
+                                                                      ),
+                                                                    ),
+                                                                  ],
+                                                                );
+                                                              },
+                                                            ),
                                                           ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ],
+                                                        ],
+                                                      ),
+                                                    ],
+                                                  ),
                                                 ),
                                                 actions: [
                                                   TextButton(
@@ -1379,10 +1454,76 @@ class BudgetScreen extends HookConsumerWidget {
                                             },
                                           );
                                         },
-                                        child: Container(
-                                          child: SvgPicture.asset(
-                                            ImageConstant.imgQuestion,
-                                          ),
+                                        child: Stack(
+                                          children: [
+                                            Align(
+                                              alignment: Alignment.center,
+                                              child: Container(
+                                                child: Neumorphic(
+                                                  style: NeumorphicStyle(
+                                                    shape:
+                                                        NeumorphicShape.convex,
+                                                    boxShape: NeumorphicBoxShape
+                                                        .circle(),
+                                                    depth: 0.9,
+                                                    intensity: 8,
+                                                    surfaceIntensity: 0.7,
+                                                    shadowLightColor:
+                                                        Colors.white,
+                                                    lightSource:
+                                                        LightSource.top,
+                                                    color: firstTime
+                                                        ? ColorConstant.blueA700
+                                                        : Colors.white,
+                                                  ),
+                                                  child: SvgPicture.asset(
+                                                    ImageConstant.imgQuestion,
+                                                    height: 24,
+                                                    width: 24,
+                                                    color: firstTime
+                                                        ? ColorConstant
+                                                            .whiteA700
+                                                        : ColorConstant
+                                                            .blueGray500,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                            Align(
+                                              alignment: Alignment.bottomCenter,
+                                              child: AnimatedBuilder(
+                                                animation: _animationController,
+                                                builder: (BuildContext context,
+                                                    Widget? child) {
+                                                  if (!firstTime ||
+                                                      _animationController
+                                                          .isCompleted)
+                                                    return SizedBox
+                                                        .shrink(); // This line ensures that the arrow disappears after the animation has completed
+
+                                                  return Transform.translate(
+                                                    offset: Offset(
+                                                        0,
+                                                        -5 *
+                                                            _animationController
+                                                                .value),
+                                                    child: Padding(
+                                                      padding:
+                                                          getPadding(top: 16),
+                                                      child: SvgPicture.asset(
+                                                        ImageConstant
+                                                            .imgArrowUp, // path to your arrow SVG image
+                                                        height: 24,
+                                                        width: 24,
+                                                        color: ColorConstant
+                                                            .blueA700,
+                                                      ),
+                                                    ),
+                                                  );
+                                                },
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ),
                                     ),
@@ -2793,7 +2934,7 @@ class BudgetScreen extends HookConsumerWidget {
                                                                       child:
                                                                           SizedBox(
                                                                         width: MediaQuery.of(context).size.width *
-                                                                            0.84,
+                                                                            0.86,
                                                                         child:
                                                                             DebtsListWidget(
                                                                           // Make sure to replace this with the appropriate Widget for showing a single Debt

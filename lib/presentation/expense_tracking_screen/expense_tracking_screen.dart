@@ -14,6 +14,7 @@ import 'package:noughtplan/core/budget/expense_tracker/controller/expense_tracke
 import 'package:noughtplan/core/budget/providers/budget_state_provider.dart';
 import 'package:noughtplan/core/constants/budgets.dart';
 import 'package:noughtplan/core/forms/form_validators.dart';
+import 'package:noughtplan/core/providers/first_time_provider.dart';
 import 'package:noughtplan/presentation/budget_screen/widgets/listchart_item_widget.dart';
 import 'package:noughtplan/presentation/budget_screen/widgets/listchart_item_widget_debt.dart';
 import 'package:noughtplan/presentation/budget_screen/widgets/listchart_item_widget_save.dart';
@@ -135,7 +136,14 @@ class ExpenseTrackingScreen extends HookConsumerWidget {
       );
     }
 
+    final _animationController =
+        useAnimationController(duration: const Duration(seconds: 1));
+
+    final firstTime = ref.watch(firstTimeProvider);
+
     useEffect(() {
+      budgetNotifier.fetchUserBudgets();
+      _animationController.repeat(reverse: true);
       updateExpensesOnLoad();
       return () {}; // Clean-up function
     }, []);
@@ -243,7 +251,7 @@ class ExpenseTrackingScreen extends HookConsumerWidget {
                       // Add your watch statements here if needed
                       return Container(
                         padding: EdgeInsets.only(
-                            top: 8, left: 24, right: 24, bottom: 20),
+                            top: 8, left: 16, right: 16, bottom: 20),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.only(
@@ -504,15 +512,15 @@ class ExpenseTrackingScreen extends HookConsumerWidget {
             alignment: Alignment.topCenter,
             children: [
               Positioned(
-                top: 0,
+                bottom: 0,
                 left: 0,
                 right: 0,
                 child: Transform(
                   transform: Matrix4.identity()..scale(1.0, 1.0, 0.1),
                   child: CustomImageView(
-                    imagePath: ImageConstant.imgTopographic7,
+                    imagePath: ImageConstant.expenseTop,
                     height: MediaQuery.of(context).size.height *
-                        1, // Set the height to 50% of the screen height
+                        0.8, // Set the height to 50% of the screen height
                     width: MediaQuery.of(context)
                         .size
                         .width, // Set the width to the full screen width
@@ -626,19 +634,67 @@ class ExpenseTrackingScreen extends HookConsumerWidget {
                                   builder: (BuildContext context) {
                                     return AlertDialog(
                                       title: Text(
-                                        'Please read the instructions below',
+                                        'Adding Actual Expenses',
                                         textAlign: TextAlign.center,
                                         style:
                                             AppStyle.txtHelveticaNowTextBold16,
                                       ),
-                                      content: Text(
-                                        "In this step, you'll be able to add discretionary categories to your budget. Follow the instructions below:\n\n"
-                                        "1. Browse through the available categories or use the search bar to find specific ones that match your interests and lifestyle.\n"
-                                        "2. Tap on a category to add it to your chosen categories list. You can always tap again to remove it if needed.\n"
-                                        "3. Once you've added all the discretionary categories you want, press the 'Next' button to move on to reviewing your budget.\n\n"
-                                        "Remember, these discretionary categories represent your non-essential expenses, such as entertainment, hobbies, and dining out. Adding them thoughtfully will help you create a balanced budget, allowing for personal enjoyment while still managing your finances effectively.",
-                                        textAlign: TextAlign.center,
-                                        style: AppStyle.txtManropeRegular14,
+                                      content: SingleChildScrollView(
+                                        physics: BouncingScrollPhysics(),
+                                        child: Container(
+                                          child: RichText(
+                                            textAlign: TextAlign.left,
+                                            text: TextSpan(
+                                              style: AppStyle
+                                                  .txtManropeRegular14
+                                                  .copyWith(
+                                                      color: ColorConstant
+                                                          .blueGray800),
+                                              children: <TextSpan>[
+                                                TextSpan(
+                                                    text:
+                                                        'Here are your steps for adding your actual expenses to your budget:\n\n'),
+                                                TextSpan(
+                                                    text:
+                                                        '1. Calendar Expense Tracker:',
+                                                    style: TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.bold)),
+                                                TextSpan(
+                                                    text:
+                                                        ' This feature allows you to efficiently add expenses based on the chosen day. It provides a visual representation of your expenses over time, enabling you to better understand and manage your spending patterns.\n\n'),
+                                                TextSpan(
+                                                    text:
+                                                        '2. Add Expenses or Income:',
+                                                    style: TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.bold)),
+                                                TextSpan(
+                                                    text:
+                                                        ' Use the minus (-) button on the bottom right to add an expense, or the plus (+) button on the bottom left to add extra income.\n\n'),
+                                                TextSpan(
+                                                    text: '3. Delete Expenses:',
+                                                    style: TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.bold)),
+                                                TextSpan(
+                                                    text:
+                                                        ' Swipe left to delete an expense. You can also use the "Exps. Week" and "Exps. Month" buttons to delete expenses for the respective time periods.\n\n'),
+                                                TextSpan(
+                                                    text: '4. View Progress:',
+                                                    style: TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.bold)),
+                                                TextSpan(
+                                                    text:
+                                                        ' Press the money button at the top right of the screen to view how much you\'ve spent in each category so far.\n\n'),
+                                                TextSpan(
+                                                    text:
+                                                        "These entries represent your daily, weekly, or monthly expenses. By thoroughly and accurately tracking them, you can gain a clear picture of your spending habits. This will help you create a realistic budget, allowing you to identify opportunities for savings and to better manage your finances effectively."),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
                                       ),
                                       actions: [
                                         TextButton(
@@ -651,10 +707,64 @@ class ExpenseTrackingScreen extends HookConsumerWidget {
                                   },
                                 );
                               },
-                              child: Container(
-                                child: SvgPicture.asset(
-                                  ImageConstant.imgQuestion,
-                                ),
+                              child: Stack(
+                                children: [
+                                  Align(
+                                    alignment: Alignment.center,
+                                    child: Container(
+                                      child: Neumorphic(
+                                        style: NeumorphicStyle(
+                                          shape: NeumorphicShape.convex,
+                                          boxShape: NeumorphicBoxShape.circle(),
+                                          depth: 0.9,
+                                          intensity: 8,
+                                          surfaceIntensity: 0.7,
+                                          shadowLightColor: Colors.white,
+                                          lightSource: LightSource.top,
+                                          color: firstTime
+                                              ? ColorConstant.blueA700
+                                              : Colors.white,
+                                        ),
+                                        child: SvgPicture.asset(
+                                          ImageConstant.imgQuestion,
+                                          height: 24,
+                                          width: 24,
+                                          color: firstTime
+                                              ? ColorConstant.whiteA700
+                                              : ColorConstant.blueGray500,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  Align(
+                                    alignment: Alignment.bottomCenter,
+                                    child: AnimatedBuilder(
+                                      animation: _animationController,
+                                      builder: (BuildContext context,
+                                          Widget? child) {
+                                        if (!firstTime ||
+                                            _animationController.isCompleted)
+                                          return SizedBox
+                                              .shrink(); // This line ensures that the arrow disappears after the animation has completed
+
+                                        return Transform.translate(
+                                          offset: Offset(0,
+                                              -5 * _animationController.value),
+                                          child: Padding(
+                                            padding: getPadding(top: 16),
+                                            child: SvgPicture.asset(
+                                              ImageConstant
+                                                  .imgArrowUp, // path to your arrow SVG image
+                                              height: 24,
+                                              width: 24,
+                                              color: ColorConstant.blueA700,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ),

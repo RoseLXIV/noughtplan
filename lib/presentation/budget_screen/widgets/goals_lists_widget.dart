@@ -23,9 +23,13 @@ class GoalsListWidget extends StatelessWidget {
     final discretionaryExpenseAmount =
         budget?.discretionaryExpense![goalData['category']];
 
+    final recurringAmount = goalData['recurringAmount'];
+
     final budgetAmount = necessaryExpenseAmount ??
         debtExpenseAmount ??
-        discretionaryExpenseAmount;
+        discretionaryExpenseAmount ??
+        recurringAmount;
+
     final formattedBudgetAmount =
         budgetAmount != null ? formatter.format(budgetAmount) : '0.00';
 
@@ -46,7 +50,11 @@ class GoalsListWidget extends StatelessWidget {
     DateTime calculateGoalEndDate(
         double remainingAmount, double paymentAmount, String paymentFrequency) {
       // Calculate the remaining number of payments
-      int remainingPayments = (remainingAmount / paymentAmount).ceil();
+      int remainingPayments = (remainingAmount != null &&
+              paymentAmount != null &&
+              paymentAmount != 0)
+          ? (remainingAmount / paymentAmount).ceil()
+          : 0; // or whatever default value you want to set when division is not possible
 
       // Calculate the number of weeks to the end
       int weeksToGoal;
@@ -80,14 +88,38 @@ class GoalsListWidget extends StatelessWidget {
     }
     String goalEndDateStr = "${DateFormat.yMMMM().format(goalEndDate)}";
 
+    String displayAmount = '0.00';
+
+    if (goalData['recurringAmount'] != null) {
+      displayAmount = formatter.format(goalData['recurringAmount']);
+    } else if (budget?.necessaryExpense![goalData['category']] != null) {
+      displayAmount =
+          formatter.format(budget?.necessaryExpense![goalData['category']]);
+    } else if (budget?.debtExpense![goalData['category']] != null) {
+      displayAmount =
+          formatter.format(budget?.debtExpense![goalData['category']]);
+    } else if (budget?.discretionaryExpense![goalData['category']] != null) {
+      displayAmount =
+          formatter.format(budget?.discretionaryExpense![goalData['category']]);
+    }
+
     String getGoalEndDateMessage(DateTime goalEndDate) {
       DateTime currentDate = DateTime.now();
       Duration remainingTime = goalEndDate.difference(currentDate);
-      String formattedBudgetAmount =
-          budget?.necessaryExpense![goalData['category']] != null
-              ? formatter
-                  .format(budget?.necessaryExpense![goalData['category']])
-              : '0.00';
+      String formattedBudgetAmount = '0.00';
+
+      if (goalData['recurringAmount'] != null) {
+        formattedBudgetAmount = formatter.format(goalData['recurringAmount']);
+      } else if (budget?.necessaryExpense![goalData['category']] != null) {
+        formattedBudgetAmount =
+            formatter.format(budget?.necessaryExpense![goalData['category']]);
+      } else if (budget?.debtExpense![goalData['category']] != null) {
+        formattedBudgetAmount =
+            formatter.format(budget?.debtExpense![goalData['category']]);
+      } else if (budget?.discretionaryExpense![goalData['category']] != null) {
+        formattedBudgetAmount = formatter
+            .format(budget?.discretionaryExpense![goalData['category']]);
+      }
 
       if (remainingTime.isNegative) {
         return "Hats off to you! You've achieved your goal. This is what determination looks like. Your future self is thanking you, and so am I!";
@@ -108,6 +140,7 @@ class GoalsListWidget extends StatelessWidget {
         }
       }
     }
+
     // print('totalSpent: $totalSpent');
     // print('Total: ${goalData['amount']}');
 
@@ -135,11 +168,14 @@ class GoalsListWidget extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Text(
-                    goalData['category'],
-                    overflow: TextOverflow.ellipsis,
-                    style: AppStyle.txtHelveticaNowTextBold14
-                        .copyWith(color: ColorConstant.gray900),
+                  Container(
+                    width: 180,
+                    child: Text(
+                      goalData['category'],
+                      overflow: TextOverflow.ellipsis,
+                      style: AppStyle.txtHelveticaNowTextBold14
+                          .copyWith(color: ColorConstant.gray900),
+                    ),
                   ),
                   Column(
                     mainAxisAlignment: MainAxisAlignment.end,
@@ -155,7 +191,7 @@ class GoalsListWidget extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Text(
-                            '\$${budget?.necessaryExpense![goalData['category']] != null ? formatter.format(budget?.necessaryExpense![goalData['category']]) : '0.00'}',
+                            '\$$displayAmount',
                             overflow: TextOverflow.ellipsis,
                             style: AppStyle.txtHelveticaNowTextBold14
                                 .copyWith(color: ColorConstant.gray900),
@@ -193,7 +229,7 @@ class GoalsListWidget extends StatelessWidget {
                     top: 0.1,
                     right: 4,
                     child: Text(
-                      '${formattedRemaining.startsWith('-') ? "+" : ""}\$${formattedRemaining.replaceAll('-', '')} / \$${formattedGoalAmount}',
+                      '${formattedRemaining.startsWith('-') ? "+" : ""}\$${formatter.format(totalSpent ?? 0.0)} / \$${formattedGoalAmount}',
                       textAlign: TextAlign.left,
                       style: AppStyle.txtManropeBold12
                           .copyWith(color: Colors.grey.shade800),

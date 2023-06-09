@@ -1,11 +1,13 @@
 import 'dart:ui';
 
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:flutter_neumorphic/flutter_neumorphic.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:noughtplan/core/budget/generate_salary/controller/generate_salary_controller.dart';
 import 'package:noughtplan/core/budget/models/budget_status.dart';
 import 'package:noughtplan/core/budget/providers/budget_state_provider.dart';
+import 'package:noughtplan/core/providers/first_time_provider.dart';
 import 'package:noughtplan/presentation/category_discretionary_screen/widgets/category_button_discretionary.dart';
 // import 'package:noughtplan/presentation/category_necessary_screen/category_necessary_screen.dart';
 import 'package:noughtplan/presentation/category_necessary_screen/widgets/category_button.dart';
@@ -336,6 +338,10 @@ final buttonListStateProviderDiscretionary =
 class CategoryDiscretionaryScreen extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final _animationController =
+        useAnimationController(duration: const Duration(seconds: 1));
+
+    final firstTime = ref.watch(firstTimeProvider);
     final searchController = useTextEditingController();
 
     final filteredCategories = ref.watch(categorySearchProviderDiscretionary);
@@ -364,6 +370,8 @@ class CategoryDiscretionaryScreen extends HookConsumerWidget {
     //   });
     //   return () {}; // Cleanup function
     // }, []);
+
+    _animationController.repeat(reverse: true);
 
     selectedCategories.forEach((parentCategory, buttonTexts) {
       buttonTexts.forEach((buttonText) {
@@ -544,7 +552,7 @@ class CategoryDiscretionaryScreen extends HookConsumerWidget {
                           mainAxisAlignment: MainAxisAlignment.start,
                           children: [
                             CustomAppBar(
-                              height: getVerticalSize(70),
+                              height: getVerticalSize(80),
                               leadingWidth: 25,
                               leading: CustomImageView(
                                 onTap: () {
@@ -580,20 +588,73 @@ class CategoryDiscretionaryScreen extends HookConsumerWidget {
                                           builder: (BuildContext context) {
                                             return AlertDialog(
                                               title: Text(
-                                                'Please read the instructions below',
+                                                'Adding Discretionary Categories',
                                                 textAlign: TextAlign.center,
                                                 style: AppStyle
                                                     .txtHelveticaNowTextBold16,
                                               ),
-                                              content: Text(
-                                                "In this step, you'll be able to add discretionary categories to your budget. Follow the instructions below:\n\n"
-                                                "1. Browse through the available categories or use the search bar to find specific ones that match your interests and lifestyle.\n"
-                                                "2. Tap on a category to add it to your chosen categories list. You can always tap again to remove it if needed.\n"
-                                                "3. Once you've added all the discretionary categories you want, press the 'Next' button to move on to reviewing your budget.\n\n"
-                                                "Remember, these discretionary categories represent your non-essential expenses, such as entertainment, hobbies, and dining out. Adding them thoughtfully will help you create a balanced budget, allowing for personal enjoyment while still managing your finances effectively.",
-                                                textAlign: TextAlign.center,
-                                                style: AppStyle
-                                                    .txtManropeRegular14,
+                                              content: SingleChildScrollView(
+                                                physics:
+                                                    BouncingScrollPhysics(),
+                                                child: Container(
+                                                  child: RichText(
+                                                    textAlign: TextAlign.left,
+                                                    text: TextSpan(
+                                                      style: AppStyle
+                                                          .txtManropeRegular14
+                                                          .copyWith(
+                                                              color: ColorConstant
+                                                                  .blueGray800),
+                                                      children: <TextSpan>[
+                                                        TextSpan(
+                                                            text:
+                                                                'To add discretionary categories for your budget, follow these steps:\n\n'),
+                                                        TextSpan(
+                                                            text:
+                                                                '1. Browse and Search:',
+                                                            style: TextStyle(
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold)),
+                                                        TextSpan(
+                                                            text:
+                                                                ' Scroll through the available categories or use the search bar to find specific ones that fit your expenses.\n\n'),
+                                                        TextSpan(
+                                                            text:
+                                                                '2. Add Custom Category:',
+                                                            style: TextStyle(
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold)),
+                                                        TextSpan(
+                                                            text:
+                                                                ' Need to add a unique expense not covered in our categories? Tap the plus (+) button at the top to create your own custom category.\n\n'),
+                                                        TextSpan(
+                                                            text:
+                                                                '3. Select and Deselect:',
+                                                            style: TextStyle(
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold)),
+                                                        TextSpan(
+                                                            text:
+                                                                ' Tap any category to add it to your chosen categories. If you want to remove a selected category, just tap on it again in the Chosen Category section.\n\n'),
+                                                        TextSpan(
+                                                            text: '4. Proceed:',
+                                                            style: TextStyle(
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold)),
+                                                        TextSpan(
+                                                            text:
+                                                                ' Once you\'ve added all your discretionary categories, click the \'Next\' button to proceed to the next stage.\n\n'),
+                                                        TextSpan(
+                                                            text:
+                                                                'Remember, discretionary categories represent non-essential expenses such as dining out, entertainment, and hobbies. Carefully selecting these categories will help create a realistic budget and improve your financial management.'),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ),
                                               ),
                                               actions: [
                                                 TextButton(
@@ -606,12 +667,73 @@ class CategoryDiscretionaryScreen extends HookConsumerWidget {
                                           },
                                         );
                                       },
-                                      child: Container(
-                                        child: SvgPicture.asset(
-                                          ImageConstant.imgQuestion,
-                                          height: 24,
-                                          width: 24,
-                                        ),
+                                      child: Stack(
+                                        children: [
+                                          Align(
+                                            alignment: Alignment.center,
+                                            child: Container(
+                                              child: Neumorphic(
+                                                style: NeumorphicStyle(
+                                                  shape: NeumorphicShape.convex,
+                                                  boxShape: NeumorphicBoxShape
+                                                      .circle(),
+                                                  depth: 0.9,
+                                                  intensity: 8,
+                                                  surfaceIntensity: 0.7,
+                                                  shadowLightColor:
+                                                      Colors.white,
+                                                  lightSource: LightSource.top,
+                                                  color: firstTime
+                                                      ? ColorConstant.blueA700
+                                                      : Colors.white,
+                                                ),
+                                                child: SvgPicture.asset(
+                                                  ImageConstant.imgQuestion,
+                                                  height: 24,
+                                                  width: 24,
+                                                  color: firstTime
+                                                      ? ColorConstant.whiteA700
+                                                      : ColorConstant
+                                                          .blueGray500,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          Align(
+                                            alignment: Alignment.bottomCenter,
+                                            child: AnimatedBuilder(
+                                              animation: _animationController,
+                                              builder: (BuildContext context,
+                                                  Widget? child) {
+                                                if (!firstTime ||
+                                                    _animationController
+                                                        .isCompleted)
+                                                  return SizedBox
+                                                      .shrink(); // This line ensures that the arrow disappears after the animation has completed
+
+                                                return Transform.translate(
+                                                  offset: Offset(
+                                                      0,
+                                                      -5 *
+                                                          _animationController
+                                                              .value),
+                                                  child: Padding(
+                                                    padding:
+                                                        getPadding(top: 16),
+                                                    child: SvgPicture.asset(
+                                                      ImageConstant
+                                                          .imgArrowUp, // path to your arrow SVG image
+                                                      height: 24,
+                                                      width: 24,
+                                                      color: ColorConstant
+                                                          .blueA700,
+                                                    ),
+                                                  ),
+                                                );
+                                              },
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   ],

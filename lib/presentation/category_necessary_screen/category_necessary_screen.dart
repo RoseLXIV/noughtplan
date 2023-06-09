@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:flutter_neumorphic/flutter_neumorphic.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -9,6 +10,7 @@ import 'package:noughtplan/core/budget/generate_salary/controller/generate_salar
 import 'package:noughtplan/core/budget/models/budget_status.dart';
 import 'package:noughtplan/core/budget/providers/budget_state_provider.dart';
 import 'package:noughtplan/core/budget_info/models/backend/budget_necessary_categories_storage.dart';
+import 'package:noughtplan/core/providers/first_time_provider.dart';
 import 'package:noughtplan/presentation/category_necessary_screen/widgets/category_button.dart';
 import 'package:noughtplan/widgets/custom_text_button.dart';
 
@@ -43,7 +45,8 @@ final Map<int, String> healthcareButtonTexts = {
   5: 'Physical Therapy',
   6: 'Medical Bills',
   7: 'Health Insurance',
-  8: 'General Healthcare Costs',
+  8: 'Life Insurance',
+  9: 'General Healthcare Costs',
 };
 
 final Map<int, String> utilitiesButtonTexts = {
@@ -346,6 +349,11 @@ final buttonListStateProvider =
 class CategoryNecessaryScreen extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final _animationController =
+        useAnimationController(duration: const Duration(seconds: 1));
+    _animationController.repeat(reverse: true);
+
+    final firstTime = ref.watch(firstTimeProvider);
     final searchController = useTextEditingController();
 
     final filteredCategories = ref.watch(categorySearchProvider);
@@ -357,13 +365,6 @@ class CategoryNecessaryScreen extends HookConsumerWidget {
     List<String> selectedButtonTexts =
         parentCategory != null ? selectedCategories[parentCategory] ?? [] : [];
     List<Widget> selectedButtons = [];
-
-    // useEffect(() {
-    //   Future.microtask(() {
-    //     ref.read(buttonListStateProvider.notifier).clearSelectedCategories();
-    //   });
-    //   return () {}; // Cleanup function
-    // }, []);
 
     selectedCategories.forEach((parentCategory, buttonTexts) {
       buttonTexts.forEach((buttonText) {
@@ -544,7 +545,7 @@ class CategoryNecessaryScreen extends HookConsumerWidget {
                           mainAxisAlignment: MainAxisAlignment.start,
                           children: [
                             CustomAppBar(
-                              height: getVerticalSize(70),
+                              height: getVerticalSize(80),
                               leadingWidth: 25,
                               leading: CustomImageView(
                                 onTap: () {
@@ -579,20 +580,73 @@ class CategoryNecessaryScreen extends HookConsumerWidget {
                                           builder: (BuildContext context) {
                                             return AlertDialog(
                                               title: Text(
-                                                'Please read the instructions below',
+                                                'Adding Necessary Categories',
                                                 textAlign: TextAlign.center,
                                                 style: AppStyle
                                                     .txtHelveticaNowTextBold16,
                                               ),
-                                              content: Text(
-                                                " In this step, you'll be able to add necessary categories to your budget. Follow the instructions below:\n\n"
-                                                "1. Browse through the available categories or use the search bar to find specific ones that match your needs.\n"
-                                                "2. Tap on a category to add it to your chosen categories list. You can always tap again to remove it if needed.\n"
-                                                "3. Once you've added all the necessary categories, press the 'Next' button to move on to adding discretionary categories.\n\n"
-                                                "Remember, these necessary categories represent your essential expenses, such as rent, utilities, and groceries. Adding them accurately will help you create a realistic budget and better manage your finances.",
-                                                textAlign: TextAlign.center,
-                                                style: AppStyle
-                                                    .txtManropeRegular14,
+                                              content: SingleChildScrollView(
+                                                physics:
+                                                    BouncingScrollPhysics(),
+                                                child: Container(
+                                                  child: RichText(
+                                                    textAlign: TextAlign.left,
+                                                    text: TextSpan(
+                                                      style: AppStyle
+                                                          .txtManropeRegular14
+                                                          .copyWith(
+                                                              color: ColorConstant
+                                                                  .blueGray800),
+                                                      children: <TextSpan>[
+                                                        TextSpan(
+                                                            text:
+                                                                "Creating necessary categories for your budget is a simple process. Here's how to do it:\n\n"),
+                                                        TextSpan(
+                                                            text:
+                                                                '1. Browse and Search:',
+                                                            style: TextStyle(
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold)),
+                                                        TextSpan(
+                                                            text:
+                                                                ' Review the available categories or use the search bar to locate the ones you need.\n\n'),
+                                                        TextSpan(
+                                                            text:
+                                                                '2. Add Custom Category:',
+                                                            style: TextStyle(
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold)),
+                                                        TextSpan(
+                                                            text:
+                                                                ' Have a unique expense not covered in our categories? Press the plus (+) button at the top to create your own custom category. This is also the place to add your debts, loans, and savings. Simply include "savings", "loan", or "debt" in the category name, and the app will recognize it appropriately.\n\n'),
+                                                        TextSpan(
+                                                            text:
+                                                                '3. Select and Deselect:',
+                                                            style: TextStyle(
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold)),
+                                                        TextSpan(
+                                                            text:
+                                                                ' Tap any category to add it to your list. Made an error? No problem, simply tap again to remove it. You can also deselect a category from the Chosen Category section.\n\n'),
+                                                        TextSpan(
+                                                            text: '4. Proceed:',
+                                                            style: TextStyle(
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold)),
+                                                        TextSpan(
+                                                            text:
+                                                                " Once you've chosen all the necessary categories, hit the \'Next\' button to proceed to discretionary categories.\n\n"),
+                                                        TextSpan(
+                                                            text:
+                                                                "Remember, necessary categories represent crucial expenses such as rent, utilities, groceries, debts, and savings. By selecting them accurately, you're paving the way towards a realistic budget and improved financial management."),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ),
                                               ),
                                               actions: [
                                                 TextButton(
@@ -605,43 +659,106 @@ class CategoryNecessaryScreen extends HookConsumerWidget {
                                           },
                                         );
                                       },
-                                      // height: getSize(24),
-                                      //     width: getSize(24),
-                                      //     svgPath: ImageConstant.imgQuestion,
-                                      //     margin: getMargin(bottom: 1)
-                                      child: Container(
-                                        child: SvgPicture.asset(
-                                          ImageConstant.imgQuestion,
-                                          height: 24,
-                                          width: 24,
-                                        ),
+                                      child: Stack(
+                                        children: [
+                                          Align(
+                                            alignment: Alignment.center,
+                                            child: Container(
+                                              child: Neumorphic(
+                                                style: NeumorphicStyle(
+                                                  shape: NeumorphicShape.convex,
+                                                  boxShape: NeumorphicBoxShape
+                                                      .circle(),
+                                                  depth: 0.9,
+                                                  intensity: 8,
+                                                  surfaceIntensity: 0.7,
+                                                  shadowLightColor:
+                                                      Colors.white,
+                                                  lightSource: LightSource.top,
+                                                  color: firstTime
+                                                      ? ColorConstant.blueA700
+                                                      : Colors.white,
+                                                ),
+                                                child: SvgPicture.asset(
+                                                  ImageConstant.imgQuestion,
+                                                  height: 24,
+                                                  width: 24,
+                                                  color: firstTime
+                                                      ? ColorConstant.whiteA700
+                                                      : ColorConstant
+                                                          .blueGray500,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          Align(
+                                            alignment: Alignment.bottomCenter,
+                                            child: AnimatedBuilder(
+                                              animation: _animationController,
+                                              builder: (BuildContext context,
+                                                  Widget? child) {
+                                                if (!firstTime ||
+                                                    _animationController
+                                                        .isCompleted)
+                                                  return SizedBox
+                                                      .shrink(); // This line ensures that the arrow disappears after the animation has completed
+
+                                                return Transform.translate(
+                                                  offset: Offset(
+                                                      0,
+                                                      -5 *
+                                                          _animationController
+                                                              .value),
+                                                  child: Padding(
+                                                    padding:
+                                                        getPadding(top: 16),
+                                                    child: SvgPicture.asset(
+                                                      ImageConstant
+                                                          .imgArrowUp, // path to your arrow SVG image
+                                                      height: 24,
+                                                      width: 24,
+                                                      color: ColorConstant
+                                                          .blueA700,
+                                                    ),
+                                                  ),
+                                                );
+                                              },
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   ],
                                 )
                               ],
                             ),
-                            CustomSearchView(
-                              focusNode: FocusNode(),
-                              controller: searchController,
-                              hintText: "Search...",
-                              prefix: Container(
-                                  margin: getMargin(
-                                      left: 16, top: 18, right: 12, bottom: 18),
-                                  child: CustomImageView(
-                                      svgPath: ImageConstant.imgSearch)),
-                              prefixConstraints: BoxConstraints(
-                                maxHeight: getVerticalSize(56),
+                            Padding(
+                              padding: getPadding(top: 0, bottom: 8),
+                              child: CustomSearchView(
+                                focusNode: FocusNode(),
+                                controller: searchController,
+                                hintText: "Search...",
+                                prefix: Container(
+                                    margin: getMargin(
+                                        left: 16,
+                                        top: 18,
+                                        right: 12,
+                                        bottom: 18),
+                                    child: CustomImageView(
+                                        svgPath: ImageConstant.imgSearch)),
+                                prefixConstraints: BoxConstraints(
+                                  maxHeight: getVerticalSize(56),
+                                ),
+                                onChanged: (query) {
+                                  ref
+                                      .read(categorySearchProvider.notifier)
+                                      .updateFilteredCategories(
+                                          context,
+                                          query,
+                                          mergeAllButtonTexts(),
+                                          selectedButtons.length);
+                                },
                               ),
-                              onChanged: (query) {
-                                ref
-                                    .read(categorySearchProvider.notifier)
-                                    .updateFilteredCategories(
-                                        context,
-                                        query,
-                                        mergeAllButtonTexts(),
-                                        selectedButtons.length);
-                              },
                             ),
                             Visibility(
                               visible: filteredCategories.isNotEmpty,

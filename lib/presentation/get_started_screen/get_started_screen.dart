@@ -4,6 +4,8 @@ import 'package:noughtplan/core/app_export.dart';
 import 'package:noughtplan/core/auth/models/auth_result.dart';
 
 import 'package:noughtplan/core/auth/providers/auth_state_provider.dart';
+import 'package:noughtplan/core/auth/providers/is_logged_in_provider.dart';
+import 'package:noughtplan/presentation/home_page_screen/home_page_screen.dart';
 import 'package:noughtplan/widgets/custom_button.dart';
 
 import 'dart:developer' as devtools show log;
@@ -15,6 +17,10 @@ extension Log on Object {
 class GetStartedScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isLoggedIn = ref.watch(isLoggedInProvider);
+    if (isLoggedIn) {
+      return HomePageScreen();
+    }
     return SafeArea(
       child: Scaffold(
         resizeToAvoidBottomInset: false,

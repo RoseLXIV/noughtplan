@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_neumorphic/flutter_neumorphic.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -13,6 +14,7 @@ import 'package:noughtplan/core/budget/models/budget_status.dart';
 import 'package:noughtplan/core/budget/providers/banner_ads_class_provider.dart';
 import 'package:noughtplan/core/budget/providers/budget_state_provider.dart';
 import 'package:noughtplan/core/constants/budgets.dart';
+import 'package:noughtplan/core/providers/first_time_provider.dart';
 import 'package:noughtplan/widgets/custom_text_form_field.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -134,8 +136,13 @@ class HomePageScreen extends HookConsumerWidget {
       return subscriptionInfo;
     }
 
+    final _animationController =
+        useAnimationController(duration: const Duration(seconds: 1));
+    final firstTime = ref.watch(firstTimeProvider);
+
     useEffect(() {
       Future.microtask(() async {
+        await budgetNotifier.deleteBudgetsWithNoName();
         await budgetNotifier.fetchBudgetCount();
         Future<void> fetchBudgets() async {
           final fetchedBudgets = await budgetNotifier.fetchUserBudgets();
@@ -153,10 +160,16 @@ class HomePageScreen extends HookConsumerWidget {
 
         checkIsSubscribed().then((value) {
           print('User is ${value ? 'Subscribed' : 'Not Subscribed'}');
+
+          if (firstTime) {
+            _animationController.repeat(reverse: true);
+          }
+
+          return _animationController.dispose;
         });
       });
       return () {};
-    }, []);
+    }, [firstTime]);
 
     final budgetCount =
         useValueListenable(budgetNotifier.budgetCountValueNotifier);
@@ -192,22 +205,23 @@ class HomePageScreen extends HookConsumerWidget {
     return SafeArea(
       child: WillPopScope(
         onWillPop: () async {
-          // await Purchases.logOut();
-          await ref.read(authStateProvider.notifier).logOut();
+          // // await Purchases.logOut();
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Logged out successfully!',
-                textAlign: TextAlign.center,
-                style: AppStyle.txtHelveticaNowTextBold16WhiteA700.copyWith(
-                  letterSpacing: getHorizontalSize(0.3),
-                ),
-              ),
-              backgroundColor: ColorConstant.blue900,
-            ),
-          );
-          // Navigator.pop(context);
+          // await ref.read(authStateProvider.notifier).logOut();
+
+          // ScaffoldMessenger.of(context).showSnackBar(
+          //   SnackBar(
+          //     content: Text(
+          //       'Logged out successfully!',
+          //       textAlign: TextAlign.center,
+          //       style: AppStyle.txtHelveticaNowTextBold16WhiteA700.copyWith(
+          //         letterSpacing: getHorizontalSize(0.3),
+          //       ),
+          //     ),
+          //     backgroundColor: ColorConstant.blue900,
+          //   ),
+          // );
+          // // Navigator.pop(context);
           return false;
         },
         child: Scaffold(
@@ -243,59 +257,247 @@ class HomePageScreen extends HookConsumerWidget {
                           children: [
                             CustomAppBar(
                               height: getVerticalSize(100),
-                              leadingWidth: 48,
-                              leading: Container(
-                                padding: getPadding(left: 24, top: 8),
-                                child: CustomImageView(
-                                  height: getSize(24),
-                                  width: getSize(24),
-                                  svgPath: ImageConstant.imgArrowleft,
-                                  onTap: () async {
-                                    // await Purchases.logOut();
-                                    await ref
-                                        .read(authStateProvider.notifier)
-                                        .logOut();
+                              // leadingWidth: 48,
+                              // leading: Container(
+                              //   padding: getPadding(left: 24, top: 8),
+                              //   child: CustomImageView(
+                              //     height: getSize(24),
+                              //     width: getSize(24),
+                              //     svgPath: ImageConstant.imgArrowleft,
+                              //     onTap: () async {
+                              //       // await Purchases.logOut();
 
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          'Logged out successfully!',
-                                          textAlign: TextAlign.center,
-                                          style: AppStyle
-                                              .txtHelveticaNowTextBold16WhiteA700
-                                              .copyWith(
-                                            letterSpacing:
-                                                getHorizontalSize(0.3),
-                                          ),
-                                        ),
-                                        backgroundColor: ColorConstant.blue900,
-                                      ),
-                                    );
-                                    // Navigator.pop(context);
-                                  },
-                                ),
-                              ),
-                              centerTitle: true,
+                              //       await ref
+                              //           .read(authStateProvider.notifier)
+                              //           .logOut();
+
+                              //       ScaffoldMessenger.of(context).showSnackBar(
+                              //         SnackBar(
+                              //           content: Text(
+                              //             'Logged out successfully!',
+                              //             textAlign: TextAlign.center,
+                              //             style: AppStyle
+                              //                 .txtHelveticaNowTextBold16WhiteA700
+                              //                 .copyWith(
+                              //               letterSpacing:
+                              //                   getHorizontalSize(0.3),
+                              //             ),
+                              //           ),
+                              //           backgroundColor: ColorConstant.blue900,
+                              //         ),
+                              //       );
+                              //       // Navigator.pop(context);
+                              //     },
+                              //   ),
+                              // ),
+                              // centerTitle: true,
                               title: AppbarImage(
                                 height: getSize(200),
                                 width: getSize(200),
                                 imagePath: ImageConstant.imgGroup18301,
-                                margin: getMargin(bottom: 1),
+                                margin: getMargin(bottom: 8, left: 17),
                               ),
                               actions: [
-                                Container(
-                                  padding: getPadding(right: 24, top: 8),
-                                  child: CustomImageView(
-                                    height: getSize(24),
-                                    width: getSize(24),
-                                    svgPath: ImageConstant.imgSettings,
-                                    onTap: () async {
-                                      Navigator.pushNamed(
-                                        context,
-                                        '/my_account_screen',
-                                      );
-                                    },
-                                  ),
+                                Row(
+                                  children: [
+                                    Padding(
+                                      padding: getPadding(bottom: 0, right: 24),
+                                      child: Row(
+                                        children: [
+                                          GestureDetector(
+                                            onTap: () {
+                                              showDialog(
+                                                context: context,
+                                                builder:
+                                                    (BuildContext context) {
+                                                  return AlertDialog(
+                                                    title: Text(
+                                                      'Creating and Viewing Your Budget',
+                                                      textAlign:
+                                                          TextAlign.center,
+                                                      style: AppStyle
+                                                          .txtHelveticaNowTextBold16,
+                                                    ),
+                                                    content:
+                                                        SingleChildScrollView(
+                                                      physics:
+                                                          BouncingScrollPhysics(),
+                                                      child: Container(
+                                                        child: RichText(
+                                                          text: TextSpan(
+                                                            style: AppStyle
+                                                                .txtManropeRegular14
+                                                                .copyWith(
+                                                                    color: ColorConstant
+                                                                        .blueGray800),
+                                                            children: <
+                                                                TextSpan>[
+                                                              TextSpan(
+                                                                  text:
+                                                                      'Welcome to the home page! Here are some simple steps to start managing your finances:\n\n'),
+                                                              TextSpan(
+                                                                  text:
+                                                                      '1. Start Creating Your Budget:',
+                                                                  style: TextStyle(
+                                                                      fontWeight:
+                                                                          FontWeight
+                                                                              .bold)),
+                                                              TextSpan(
+                                                                  text:
+                                                                      ' Tap on the plus (+) button to start creating your personalized budget plan. \n\n'),
+                                                              TextSpan(
+                                                                  text:
+                                                                      '2. View Your Budget:',
+                                                                  style: TextStyle(
+                                                                      fontWeight:
+                                                                          FontWeight
+                                                                              .bold)),
+                                                              TextSpan(
+                                                                  text:
+                                                                      ' Once you have created your budget, it will be displayed here. You can tap on each budget to view its details and features. \n\n'),
+                                                              TextSpan(
+                                                                  text:
+                                                                      '3. Deleting a Budget:',
+                                                                  style: TextStyle(
+                                                                      fontWeight:
+                                                                          FontWeight
+                                                                              .bold)),
+                                                              TextSpan(
+                                                                  text:
+                                                                      ' If you wish to delete a budget, just swipe left on the budget you want to remove. \n\n'),
+                                                              TextSpan(
+                                                                  text:
+                                                                      '4. Upgrade to Pro:',
+                                                                  style: TextStyle(
+                                                                      fontWeight:
+                                                                          FontWeight
+                                                                              .bold)),
+                                                              TextSpan(
+                                                                  text:
+                                                                      ' If you wish to access more features and details, consider subscribing to our Pro version. Just press the "Upgrade to Pro" button below. \n\n'),
+                                                              TextSpan(
+                                                                  text:
+                                                                      '5. Logout:',
+                                                                  style: TextStyle(
+                                                                      fontWeight:
+                                                                          FontWeight
+                                                                              .bold)),
+                                                              TextSpan(
+                                                                  text:
+                                                                      ' If you wish to log out, just press the back button. \n\n'),
+                                                              TextSpan(
+                                                                  text:
+                                                                      'Now you\'re all set! Enjoy managing your finances effortlessly.'),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    actions: [
+                                                      TextButton(
+                                                        onPressed: () =>
+                                                            Navigator.pop(
+                                                                context),
+                                                        child: Text('Close'),
+                                                      ),
+                                                    ],
+                                                  );
+                                                },
+                                              );
+                                            },
+                                            child: Stack(
+                                              children: [
+                                                Align(
+                                                  alignment: Alignment.center,
+                                                  child: Container(
+                                                    child: Neumorphic(
+                                                      style: NeumorphicStyle(
+                                                        shape: NeumorphicShape
+                                                            .convex,
+                                                        boxShape:
+                                                            NeumorphicBoxShape
+                                                                .circle(),
+                                                        depth: 0.9,
+                                                        intensity: 8,
+                                                        surfaceIntensity: 0.7,
+                                                        shadowLightColor:
+                                                            Colors.white,
+                                                        lightSource:
+                                                            LightSource.top,
+                                                        color: firstTime
+                                                            ? ColorConstant
+                                                                .blueA700
+                                                            : Colors.white,
+                                                      ),
+                                                      child: SvgPicture.asset(
+                                                        ImageConstant
+                                                            .imgQuestion,
+                                                        height: 24,
+                                                        width: 24,
+                                                        color: firstTime
+                                                            ? ColorConstant
+                                                                .whiteA700
+                                                            : ColorConstant
+                                                                .blueGray500,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                                Align(
+                                                  alignment:
+                                                      Alignment.bottomCenter,
+                                                  child: AnimatedBuilder(
+                                                    animation:
+                                                        _animationController,
+                                                    builder:
+                                                        (BuildContext context,
+                                                            Widget? child) {
+                                                      if (!firstTime ||
+                                                          _animationController
+                                                              .isCompleted)
+                                                        return SizedBox
+                                                            .shrink(); // This line ensures that the arrow disappears after the animation has completed
+
+                                                      return Transform
+                                                          .translate(
+                                                        offset: Offset(
+                                                            0,
+                                                            -20 *
+                                                                _animationController
+                                                                    .value),
+                                                        child: SvgPicture.asset(
+                                                          ImageConstant
+                                                              .imgArrowUp, // path to your arrow SVG image
+                                                          height: 24,
+                                                          width: 24,
+                                                          color: ColorConstant
+                                                              .blueA700,
+                                                        ),
+                                                      );
+                                                    },
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Container(
+                                      padding: getPadding(right: 17, top: 0),
+                                      child: CustomImageView(
+                                        height: getSize(24),
+                                        width: getSize(24),
+                                        svgPath: ImageConstant.imgSettings,
+                                        onTap: () async {
+                                          Navigator.pushNamed(
+                                            context,
+                                            '/my_account_screen',
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
@@ -339,7 +541,8 @@ class HomePageScreen extends HookConsumerWidget {
               ),
               Container(
                 width: double.maxFinite,
-                padding: getPadding(left: 30, right: 30, bottom: 11, top: 150),
+                height: double.maxFinite,
+                padding: getPadding(left: 30, right: 30, bottom: 11, top: 130),
                 child: RefreshIndicator(
                   onRefresh: refreshData,
                   child: SingleChildScrollView(
@@ -350,7 +553,7 @@ class HomePageScreen extends HookConsumerWidget {
                       mainAxisAlignment: MainAxisAlignment.start,
                       children: [
                         Padding(
-                          padding: getPadding(left: 0, bottom: 4),
+                          padding: getPadding(left: 0, bottom: 8, top: 8),
                           child: Text(
                             "$randomGreeting",
                             overflow: TextOverflow.ellipsis,
@@ -575,9 +778,10 @@ class HomePageScreen extends HookConsumerWidget {
                                                   },
                                                 );
                                               },
-                                              onDismissed: (direction) {
-                                                budgetNotifier.deleteBudget(
-                                                    budget.budgetId);
+                                              onDismissed: (direction) async {
+                                                await budgetNotifier
+                                                    .deleteBudget(
+                                                        budget.budgetId);
                                                 ref
                                                         .read(refreshKey.notifier)
                                                         .state =
@@ -586,6 +790,8 @@ class HomePageScreen extends HookConsumerWidget {
                                                             refreshKey.notifier)
                                                         .state;
                                                 _onDismissed(index);
+                                                await budgetNotifier
+                                                    .fetchUserBudgets();
                                               },
                                               child: InkWell(
                                                 onTap: () {
@@ -636,7 +842,7 @@ class HomePageScreen extends HookConsumerWidget {
                                                 image: DecorationImage(
                                                   image: AssetImage(
                                                       'assets/images/gradient_sub1.png'),
-                                                  fit: BoxFit.cover,
+                                                  fit: BoxFit.fill,
                                                 ),
                                                 color: Colors.white,
                                                 borderRadius: BorderRadius.all(
@@ -830,7 +1036,7 @@ class HomePageScreen extends HookConsumerWidget {
                                                                         .start,
                                                                 children: [
                                                                   Text(
-                                                                      'Weekly AI-generated Insights',
+                                                                      'More Trackers and Expenses',
                                                                       style: AppStyle
                                                                           .txtManropeSemiBold14
                                                                           .copyWith(
@@ -838,7 +1044,7 @@ class HomePageScreen extends HookConsumerWidget {
                                                                             .gray900,
                                                                       )),
                                                                   Text(
-                                                                    'Get weekly insights and recommendations to help you stay on track with your budget.',
+                                                                    'Unlock the ability to add more trackers, and record more expenses and income for your budget. This allows for a more comprehensive and detailed view of your finances.',
                                                                     style: AppStyle
                                                                         .txtManropeRegular12
                                                                         .copyWith(
@@ -1111,10 +1317,7 @@ class HomePageScreen extends HookConsumerWidget {
                                 } else {
                                   return Padding(
                                     padding: getPadding(
-                                        top: 70,
-                                        left: 16,
-                                        right: 16,
-                                        bottom: 8),
+                                        top: 45, left: 0, right: 0, bottom: 8),
                                     child: Column(
                                       mainAxisAlignment:
                                           MainAxisAlignment.center,
@@ -1145,20 +1348,25 @@ class HomePageScreen extends HookConsumerWidget {
                                             mainAxisAlignment:
                                                 MainAxisAlignment.center,
                                             children: [
-                                              Text(
-                                                "Subscription expires on: ",
-                                                style: AppStyle
-                                                    .txtManropeRegular14
-                                                    .copyWith(
-                                                        color: ColorConstant
-                                                            .blueGray500),
-                                              ),
-                                              Text(
-                                                "${DateFormat('EEEE, MMMM dd, yyyy').format(expiryDate?.toLocal() ?? DateTime.now())}",
-                                                style: AppStyle.txtManropeBold14
-                                                    .copyWith(
-                                                        color: ColorConstant
-                                                            .blueGray500),
+                                              Column(
+                                                children: [
+                                                  Text(
+                                                    "Subscription expires on: ",
+                                                    style: AppStyle
+                                                        .txtManropeRegular14
+                                                        .copyWith(
+                                                            color: ColorConstant
+                                                                .blueGray500),
+                                                  ),
+                                                  Text(
+                                                    "${DateFormat('EEEE, MMMM dd, yyyy').format(expiryDate?.toLocal() ?? DateTime.now())}",
+                                                    style: AppStyle
+                                                        .txtManropeBold14
+                                                        .copyWith(
+                                                            color: ColorConstant
+                                                                .blueGray500),
+                                                  ),
+                                                ],
                                               ),
                                             ],
                                           ),
@@ -1273,7 +1481,7 @@ class CustomFabLocation extends FloatingActionButtonLocation {
 
     final double offsetX = 16.0; // Horizontal offset from the right edge
     final double offsetY =
-        550.0 * screenFactor; // Vertical offset from the bottom edge
+        560.0 * screenFactor; // Vertical offset from the bottom edge
 
     return Offset(
       scaffoldGeometry.scaffoldSize.width -

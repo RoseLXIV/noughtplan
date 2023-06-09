@@ -1,8 +1,11 @@
 import 'dart:math';
 
+import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:flutter_neumorphic/flutter_neumorphic.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:noughtplan/core/budget/allocate_funds/controller/allocate_funds_controller.dart';
 import 'package:noughtplan/core/budget/allocate_funds/controller/remaining_funds_controller.dart';
 import 'package:noughtplan/core/budget/generate_salary/controller/generate_salary_controller.dart';
@@ -10,6 +13,7 @@ import 'package:noughtplan/core/budget/models/budget_status.dart';
 import 'package:noughtplan/core/budget/providers/budget_state_provider.dart';
 import 'package:noughtplan/core/forms/form_validators.dart';
 import 'package:noughtplan/core/posts/typedefs/budget_id.dart';
+import 'package:noughtplan/core/providers/first_time_provider.dart';
 import 'package:noughtplan/presentation/allocate_funds_screen/widgets/discretionary_categories_with_amount_notifier.dart';
 import 'package:noughtplan/presentation/allocate_funds_screen/widgets/listdebt_item_widget.dart';
 import 'package:noughtplan/presentation/allocate_funds_screen/widgets/listdiscretionary_item_widget.dart';
@@ -28,6 +32,8 @@ import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
+import 'widgets/loading_dialog_controller.dart';
+
 final executedOnceProvider = StateProvider<bool>((ref) => false);
 
 // String generateNewBudgetId() {
@@ -40,9 +46,14 @@ final isAllAmountsEnteredProvider = StateProvider<bool>((ref) {
   return false;
 });
 
-class AllocateFundsScreen extends ConsumerWidget {
+class AllocateFundsScreen extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final _animationController =
+        useAnimationController(duration: const Duration(seconds: 1));
+    _animationController.repeat(reverse: true);
+
+    final firstTime = ref.watch(firstTimeProvider);
     final Map<String, dynamic>? args =
         ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?;
 
@@ -260,6 +271,8 @@ class AllocateFundsScreen extends ConsumerWidget {
       return randomAmounts;
     }
 
+    final loadingDialogController = LoadingDialogController();
+
     // final allocateFundsState = ref.watch(allocateFundsProvider);
     // final bool isValidated = allocateFundsState.status.isValidated;
     // final allocateFundsController = ref.watch(allocateFundsProvider.notifier);
@@ -311,7 +324,7 @@ class AllocateFundsScreen extends ConsumerWidget {
                             mainAxisAlignment: MainAxisAlignment.start,
                             children: [
                               CustomAppBar(
-                                  height: getVerticalSize(70),
+                                  height: getVerticalSize(80),
                                   leadingWidth: 25,
                                   leading: CustomImageView(
                                     onTap: () {
@@ -334,20 +347,74 @@ class AllocateFundsScreen extends ConsumerWidget {
                                           builder: (BuildContext context) {
                                             return AlertDialog(
                                               title: Text(
-                                                'Allocate Funds Instructions',
+                                                'Allocate Your Expenses',
                                                 textAlign: TextAlign.center,
                                                 style: AppStyle
                                                     .txtHelveticaNowTextBold16,
                                               ),
-                                              content: Text(
-                                                "Let's allocate your funds! Here's how:\n\n"
-                                                "1. Fill in the amounts for each category. Press the reset button if you'd like to clear all inputs and start over.\n"
-                                                "2. Click the auto-assign discretionary button to distribute funds evenly among categories. Keep in mind that if you edit a field, you won't be able to auto-assign funds anymore.\n"
-                                                "3. Make sure to enter amounts for all categories, as any leftover funds won't be included in the final results.\n\n"
-                                                "Remember, allocating funds thoughtfully will help you create a well-balanced budget that suits your lifestyle and keeps your finances in check.",
-                                                textAlign: TextAlign.center,
-                                                style: AppStyle
-                                                    .txtManropeRegular14,
+                                              content: SingleChildScrollView(
+                                                physics:
+                                                    BouncingScrollPhysics(),
+                                                child: Container(
+                                                  child: RichText(
+                                                    textAlign: TextAlign.left,
+                                                    text: TextSpan(
+                                                      style: AppStyle
+                                                          .txtManropeRegular14
+                                                          .copyWith(
+                                                              color: ColorConstant
+                                                                  .blueGray800),
+                                                      children: <TextSpan>[
+                                                        TextSpan(
+                                                            text:
+                                                                'Here are the steps to allocate your funds effectively:\n\n'),
+                                                        TextSpan(
+                                                            text:
+                                                                '1. Fill In Amounts:',
+                                                            style: TextStyle(
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold)),
+                                                        TextSpan(
+                                                            text:
+                                                                ' Enter the amounts for each category. If you need to start over, simply press the reset button to clear all inputs.\n\n'),
+                                                        TextSpan(
+                                                            text:
+                                                                '2. Auto-Assign Discretionary Funds:',
+                                                            style: TextStyle(
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold)),
+                                                        TextSpan(
+                                                            text:
+                                                                ' Use the auto-assign discretionary button to distribute funds evenly across categories. Note that if you manually edit a field afterward, the auto-assign function will no longer be available.\n\n'),
+                                                        TextSpan(
+                                                            text:
+                                                                '3. Complete All Fields:',
+                                                            style: TextStyle(
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold)),
+                                                        TextSpan(
+                                                            text:
+                                                                ' Ensure that you enter amounts for all categories. Any leftover funds will not be included in the final budget results.\n\n'),
+                                                        TextSpan(
+                                                            text:
+                                                                '4. Name Your Budget:',
+                                                            style: TextStyle(
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold)),
+                                                        TextSpan(
+                                                            text:
+                                                                ' Once you are finished you will be asked to enter a name for your budget. This will help you identify it later if you need to make edits or review details.\n\n'),
+                                                        TextSpan(
+                                                            text:
+                                                                'Remember, carefully allocating funds across your budget will create a balanced plan that suits your lifestyle and helps manage your finances efficiently. All the values and settings can be edited later as per your needs.'),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ),
                                               ),
                                               actions: [
                                                 TextButton(
@@ -370,17 +437,73 @@ class AllocateFundsScreen extends ConsumerWidget {
                                           },
                                         );
                                       },
-                                      // height: getSize(24),
-                                      //     width: getSize(24),
-                                      //     svgPath: ImageConstant.imgQuestion,
-                                      //     margin: getMargin(bottom: 1)
-                                      child: Container(
-                                        margin: EdgeInsets.only(bottom: 7),
-                                        child: SvgPicture.asset(
-                                          ImageConstant.imgQuestion,
-                                          height: 24,
-                                          width: 24,
-                                        ),
+                                      child: Stack(
+                                        children: [
+                                          Align(
+                                            alignment: Alignment.center,
+                                            child: Container(
+                                              child: Neumorphic(
+                                                style: NeumorphicStyle(
+                                                  shape: NeumorphicShape.convex,
+                                                  boxShape: NeumorphicBoxShape
+                                                      .circle(),
+                                                  depth: 0.9,
+                                                  intensity: 8,
+                                                  surfaceIntensity: 0.7,
+                                                  shadowLightColor:
+                                                      Colors.white,
+                                                  lightSource: LightSource.top,
+                                                  color: firstTime
+                                                      ? ColorConstant.blueA700
+                                                      : Colors.white,
+                                                ),
+                                                child: SvgPicture.asset(
+                                                  ImageConstant.imgQuestion,
+                                                  height: 24,
+                                                  width: 24,
+                                                  color: firstTime
+                                                      ? ColorConstant.whiteA700
+                                                      : ColorConstant
+                                                          .blueGray500,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          Align(
+                                            alignment: Alignment.bottomCenter,
+                                            child: AnimatedBuilder(
+                                              animation: _animationController,
+                                              builder: (BuildContext context,
+                                                  Widget? child) {
+                                                if (!firstTime ||
+                                                    _animationController
+                                                        .isCompleted)
+                                                  return SizedBox
+                                                      .shrink(); // This line ensures that the arrow disappears after the animation has completed
+
+                                                return Transform.translate(
+                                                  offset: Offset(
+                                                      0,
+                                                      -5 *
+                                                          _animationController
+                                                              .value),
+                                                  child: Padding(
+                                                    padding:
+                                                        getPadding(top: 16),
+                                                    child: SvgPicture.asset(
+                                                      ImageConstant
+                                                          .imgArrowUp, // path to your arrow SVG image
+                                                      height: 24,
+                                                      width: 24,
+                                                      color: ColorConstant
+                                                          .blueA700,
+                                                    ),
+                                                  ),
+                                                );
+                                              },
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     )
                                   ]),
@@ -860,7 +983,7 @@ class AllocateFundsScreen extends ConsumerWidget {
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
                                           Text(
-                                            'Please confirm that your budget information is accurate and complete.\nYou will not be able to make changes to your budget once you confirm.',
+                                            'Please confirm that your budget information is accurate and complete.\nYou can always make changes later.',
                                             style: AppStyle.txtManropeRegular14
                                                 .copyWith(
                                               letterSpacing:
@@ -1157,6 +1280,8 @@ class AllocateFundsScreen extends ConsumerWidget {
                                                       'Extracted Debt Loan Categories: $individualAmountsDebt');
                                                   print(
                                                       'Spending Type: $spendingType');
+                                                  loadingDialogController
+                                                      .show(context);
 
                                                   await budgetState
                                                       .updateAmounts(
@@ -1201,17 +1326,12 @@ class AllocateFundsScreen extends ConsumerWidget {
 
                                                   await budgetState
                                                       .deleteBudgetsWithNoName();
+                                                  loadingDialogController
+                                                      .hide();
 
                                                   if (budgetState
                                                           .state.status ==
                                                       BudgetStatus.success) {
-                                                    // BudgetId newBudgetId = generateNewBudgetId();
-
-                                                    // await budgetState.saveBudgetId(
-                                                    //     budgetId: newBudgetId);
-
-                                                    // Show SnackBar with success message
-
                                                     ScaffoldMessenger.of(
                                                             context)
                                                         .showSnackBar(

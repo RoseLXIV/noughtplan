@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,6 +11,7 @@ import 'package:noughtplan/core/budget/expense_tracker/controller/income_tracker
 import 'package:noughtplan/core/constants/budgets.dart';
 import 'package:noughtplan/core/forms/form_validators.dart';
 import 'package:noughtplan/widgets/custom_button_form.dart';
+import 'package:purchases_flutter/purchases_flutter.dart';
 
 import 'calender_widget.dart';
 
@@ -25,8 +27,51 @@ void resetControllers() {
   amountController.clear();
 }
 
+Future<Map<String, dynamic>> getSubscriptionInfo() async {
+  final firebaseUser = FirebaseAuth.instance.currentUser;
+  Map<String, dynamic> subscriptionInfo = {
+    'isSubscribed': false,
+    'expiryDate': null
+  };
+
+  if (firebaseUser != null) {
+    try {
+      CustomerInfo customerInfo = await Purchases.getCustomerInfo();
+      bool isSubscribed =
+          customerInfo.entitlements.all['pro_features']?.isActive ?? false;
+
+      // parse the String into a DateTime
+      String? expiryDateString =
+          customerInfo.entitlements.all['pro_features']?.expirationDate;
+
+      String? managementUrl = customerInfo.managementURL;
+      DateTime? expiryDate;
+      if (expiryDateString != null) {
+        expiryDate = DateTime.parse(expiryDateString);
+      }
+
+      subscriptionInfo['isSubscribed'] = isSubscribed;
+      subscriptionInfo['expiryDate'] = expiryDate;
+      subscriptionInfo['managementUrl'] = managementUrl;
+    } catch (e) {
+      print('Failed to get customer info: $e');
+    }
+  }
+  return subscriptionInfo;
+}
+
+Future<int> getExpenseLimit() async {
+  var subscriptionInfo = await getSubscriptionInfo();
+  if (subscriptionInfo['isSubscribed']) {
+    return 180;
+  } else {
+    return 90;
+  }
+}
+
 Future<void> showAddIncomeModal(
     BuildContext context, Budget? budget, WidgetRef ref) async {
+  var expenseLimit = await getExpenseLimit();
   final categoryFocusNode = FocusNode();
   final amountFocusNode = FocusNode();
   final necessaryCategories = budget?.necessaryExpense ?? {};
@@ -425,11 +470,11 @@ Future<void> showAddIncomeModal(
                                           ),
                                           SizedBox(height: 16),
                                           CustomButtonForm(
-                                            onTap: () {
+                                            onTap: () async {
                                               if ((budget?.actualExpenses
                                                           .length ??
                                                       0) <
-                                                  1) {
+                                                  expenseLimit) {
                                                 submitForm();
                                               }
                                             },
@@ -438,13 +483,13 @@ Future<void> showAddIncomeModal(
                                             text: (budget?.actualExpenses
                                                             .length ??
                                                         0) >=
-                                                    1
+                                                    expenseLimit
                                                 ? "Max Income Reached"
                                                 : "Save",
                                             enabled: (budget?.actualExpenses
                                                             .length ??
                                                         0) <
-                                                    1 &&
+                                                    expenseLimit &&
                                                 isValidated,
                                           ),
                                         ],

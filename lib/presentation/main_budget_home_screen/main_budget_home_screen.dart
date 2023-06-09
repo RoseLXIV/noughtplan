@@ -9,6 +9,7 @@ import 'package:noughtplan/presentation/chat_bot_screen/chat_bot_screen.dart';
 import 'package:noughtplan/presentation/expense_tracking_screen/expense_tracking_screen.dart';
 import 'package:noughtplan/presentation/home_page_screen/home_page_screen.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class MainBudgetHomeScreen extends StatefulWidget {
   @override
@@ -97,14 +98,43 @@ class _MainBudgetHomeScreenState extends State<MainBudgetHomeScreen> {
     return subscriptionInfo;
   }
 
+  Future<void> startFreeTrial() async {
+    final prefs = await SharedPreferences.getInstance();
+    final currentTime = DateTime.now();
+    // Store the start of the trial
+    await prefs.setString('free_trial_start', currentTime.toIso8601String());
+
+    // Debugging line
+    print('Trial started at: ${prefs.getString('free_trial_start')}');
+  }
+
+  Future<bool?> isFreeTrialExpired() async {
+    final prefs = await SharedPreferences.getInstance();
+    final trialStartString = prefs.getString('free_trial_start');
+    if (trialStartString != null) {
+      final trialStart = DateTime.parse(trialStartString);
+      final trialEnd = trialStart.add(Duration(days: 1));
+      final currentTime = DateTime.now();
+      // Check if the current time is past the trial end time
+      if (currentTime.isAfter(trialEnd)) {
+        return true;
+      } else {
+        return false;
+      }
+    }
+    // If there's no trial start time, the trial hasn't started yet
+    return null;
+  }
+
   int _previousIndex = 1;
 
   void _onItemTapped(int index) async {
     if (index == 0) {
       // if ChatBotScreen is at index 0
       Map<String, dynamic> subscriptionInfo = await getSubscriptionInfo();
-      if (subscriptionInfo['isSubscribed'] != null &&
-          subscriptionInfo['isSubscribed']) {
+      bool? isTrialExpired = await isFreeTrialExpired();
+      if ((subscriptionInfo['isSubscribed'] as bool) ||
+          isTrialExpired == false) {
         _previousIndex =
             _currentIndex; // save the current index before navigating
         _pageController.animateToPage(
@@ -128,7 +158,7 @@ class _MainBudgetHomeScreenState extends State<MainBudgetHomeScreen> {
                     decoration: BoxDecoration(
                       image: DecorationImage(
                         image: AssetImage('assets/images/gradient_sub1.png'),
-                        fit: BoxFit.cover,
+                        fit: BoxFit.fill,
                       ),
                       color: Colors.white,
                       borderRadius: BorderRadius.all(
@@ -252,13 +282,13 @@ class _MainBudgetHomeScreenState extends State<MainBudgetHomeScreen> {
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        Text('Weekly AI-generated Insights',
+                                        Text('More Trackers and Expenses',
                                             style: AppStyle.txtManropeSemiBold14
                                                 .copyWith(
                                               color: ColorConstant.gray900,
                                             )),
                                         Text(
-                                          'Get weekly insights and recommendations to help you stay on track with your budget.',
+                                          'Unlock the ability to add more trackers, and record more expenses and income for your budget. This allows for a more comprehensive and detailed view of your finances.',
                                           style: AppStyle.txtManropeRegular12
                                               .copyWith(
                                             color: ColorConstant.blueGray500,
@@ -357,6 +387,59 @@ class _MainBudgetHomeScreenState extends State<MainBudgetHomeScreen> {
                                 ],
                               ),
                             ),
+                            Padding(
+                              padding: getPadding(top: 0),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  FutureBuilder<bool?>(
+                                      future: isFreeTrialExpired(),
+                                      builder: (BuildContext context,
+                                          AsyncSnapshot<bool?> snapshot) {
+                                        // While we're waiting for the future to resolve, show a loading spinner
+                                        if (snapshot.connectionState ==
+                                            ConnectionState.waiting) {
+                                          return CircularProgressIndicator();
+                                        } else if (snapshot.data == null ||
+                                            snapshot.data == false) {
+                                          return Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              TextButton(
+                                                onPressed: () async {
+                                                  // Start the free trial if button is pressed
+                                                  await startFreeTrial();
+                                                  // Close the dialog
+                                                  Navigator.pop(context);
+                                                  // Set the current page to ChatBotScreen
+                                                  setState(() {
+                                                    _currentIndex = index;
+                                                  });
+                                                  _pageController
+                                                      .jumpToPage(index);
+                                                },
+                                                child: Text(
+                                                  'Try AI Assistant for Free',
+                                                  style: AppStyle
+                                                      .txtHelveticaNowTextBold12
+                                                      .copyWith(
+                                                    color:
+                                                        ColorConstant.blueA700,
+                                                    decoration: TextDecoration
+                                                        .underline,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          );
+                                        } else {
+                                          return SizedBox.shrink();
+                                        }
+                                      }),
+                                ],
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -403,7 +486,13 @@ class _MainBudgetHomeScreenState extends State<MainBudgetHomeScreen> {
         onPageChanged: (index) async {
           if (index == 0) {
             Map<String, dynamic> subscriptionInfo = await getSubscriptionInfo();
-            if (!(subscriptionInfo['isSubscribed'] as bool)) {
+            bool? isTrialExpired = await isFreeTrialExpired();
+            if (subscriptionInfo['isSubscribed'] as bool ||
+                isTrialExpired == false) {
+              setState(() {
+                _currentIndex = index;
+              });
+            } else {
               // Show dialog
               showDialog(
                 context: context,
@@ -417,7 +506,7 @@ class _MainBudgetHomeScreenState extends State<MainBudgetHomeScreen> {
                             image: DecorationImage(
                               image:
                                   AssetImage('assets/images/gradient_sub1.png'),
-                              fit: BoxFit.cover,
+                              fit: BoxFit.fill,
                             ),
                             color: Colors.white,
                             borderRadius: BorderRadius.all(
@@ -552,8 +641,7 @@ class _MainBudgetHomeScreenState extends State<MainBudgetHomeScreen> {
                                             crossAxisAlignment:
                                                 CrossAxisAlignment.start,
                                             children: [
-                                              Text(
-                                                  'Weekly AI-generated Insights',
+                                              Text('More Trackers and Expenses',
                                                   style: AppStyle
                                                       .txtManropeSemiBold14
                                                       .copyWith(
@@ -561,7 +649,7 @@ class _MainBudgetHomeScreenState extends State<MainBudgetHomeScreen> {
                                                         ColorConstant.gray900,
                                                   )),
                                               Text(
-                                                'Get weekly insights and recommendations to help you stay on track with your budget.',
+                                                'Unlock the ability to add more trackers, and record more expenses and income for your budget. This allows for a more comprehensive and detailed view of your finances.',
                                                 style: AppStyle
                                                     .txtManropeRegular12
                                                     .copyWith(
@@ -670,6 +758,62 @@ class _MainBudgetHomeScreenState extends State<MainBudgetHomeScreen> {
                                       ],
                                     ),
                                   ),
+                                  Padding(
+                                    padding: getPadding(top: 0),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        FutureBuilder<bool?>(
+                                            future: isFreeTrialExpired(),
+                                            builder: (BuildContext context,
+                                                AsyncSnapshot<bool?> snapshot) {
+                                              // While we're waiting for the future to resolve, show a loading spinner
+                                              if (snapshot.connectionState ==
+                                                  ConnectionState.waiting) {
+                                                return CircularProgressIndicator();
+                                              } else if (snapshot.data ==
+                                                      null ||
+                                                  snapshot.data == false) {
+                                                return Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.center,
+                                                  children: [
+                                                    TextButton(
+                                                      onPressed: () async {
+                                                        // Start the free trial if button is pressed
+                                                        await startFreeTrial();
+                                                        // Close the dialog
+                                                        Navigator.pop(context);
+                                                        // Set the current page to ChatBotScreen
+                                                        setState(() {
+                                                          _currentIndex = index;
+                                                        });
+                                                        _pageController
+                                                            .jumpToPage(index);
+                                                      },
+                                                      child: Text(
+                                                        'Try AI Assistant for Free',
+                                                        style: AppStyle
+                                                            .txtHelveticaNowTextBold12
+                                                            .copyWith(
+                                                          color: ColorConstant
+                                                              .blueA700,
+                                                          decoration:
+                                                              TextDecoration
+                                                                  .underline,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                );
+                                              } else {
+                                                return SizedBox.shrink();
+                                              }
+                                            }),
+                                      ],
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
@@ -688,10 +832,11 @@ class _MainBudgetHomeScreenState extends State<MainBudgetHomeScreen> {
               );
               return;
             }
+          } else {
+            setState(() {
+              _currentIndex = index;
+            });
           }
-          setState(() {
-            _currentIndex = index;
-          });
         },
         children: [
           ChatBotScreen(),

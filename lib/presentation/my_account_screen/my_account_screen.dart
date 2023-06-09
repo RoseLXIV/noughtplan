@@ -1,20 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:flutter_neumorphic/flutter_neumorphic.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:noughtplan/core/app_export.dart';
 import 'package:noughtplan/core/auth/providers/auth_state_provider.dart';
 import 'package:noughtplan/core/budget/providers/budget_state_provider.dart';
+import 'package:noughtplan/core/providers/first_time_provider.dart';
+import 'package:noughtplan/views/components/constants/loading/loading_screen.dart';
 import 'package:noughtplan/widgets/app_bar/appbar_image.dart';
 import 'package:noughtplan/widgets/app_bar/appbar_title.dart';
 import 'package:noughtplan/widgets/app_bar/custom_app_bar.dart';
 import 'package:noughtplan/widgets/custom_button.dart';
 import 'package:noughtplan/widgets/custom_icon_button.dart';
 import 'package:noughtplan/widgets/custom_switch.dart';
+import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-class MyAccountScreen extends ConsumerWidget {
+class MyAccountScreen extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final _animationController =
+        useAnimationController(duration: const Duration(seconds: 1));
+    _animationController.repeat(reverse: true);
+    final firstTime = ref.watch(firstTimeProvider);
     final deleteController = TextEditingController();
 
     return SafeArea(
@@ -53,14 +64,80 @@ class MyAccountScreen extends ConsumerWidget {
                               builder: (BuildContext context) {
                                 return AlertDialog(
                                   title: Text(
-                                    'Welcome to The Nought Plan',
+                                    'Settings',
                                     textAlign: TextAlign.center,
                                     style: AppStyle.txtHelveticaNowTextBold16,
                                   ),
-                                  content: Text(
-                                    'To get started, please enter your monthly salary and select your preferred currency from the dropdown menu below. Our smart algorithms will take care of the rest, providing you with a personalized budget plan to help you save and manage your finances.',
-                                    textAlign: TextAlign.center,
-                                    style: AppStyle.txtManropeRegular14,
+                                  content: SingleChildScrollView(
+                                    physics: BouncingScrollPhysics(),
+                                    child: Container(
+                                      child: RichText(
+                                        textAlign: TextAlign.left,
+                                        text: TextSpan(
+                                          style: AppStyle.txtManropeRegular14
+                                              .copyWith(
+                                                  color: ColorConstant
+                                                      .blueGray800),
+                                          children: <TextSpan>[
+                                            TextSpan(
+                                                text:
+                                                    "Welcome to the Settings page! Here's what you can do:\n\n"),
+                                            TextSpan(
+                                                text: '1. Dark Mode:',
+                                                style: TextStyle(
+                                                    fontWeight:
+                                                        FontWeight.bold)),
+                                            TextSpan(
+                                                text:
+                                                    ' Enhance your app experience with a dark theme. This feature is coming soon, so stay tuned!\n\n'),
+                                            TextSpan(
+                                                text: '2. Push Notifications:',
+                                                style: TextStyle(
+                                                    fontWeight:
+                                                        FontWeight.bold)),
+                                            TextSpan(
+                                                text:
+                                                    ' Keep up-to-date with important updates and alerts. This feature is also on its way.\n\n'),
+                                            TextSpan(
+                                                text: '3. Help Center:',
+                                                style: TextStyle(
+                                                    fontWeight:
+                                                        FontWeight.bold)),
+                                            TextSpan(
+                                                text:
+                                                    ' Need assistance? Our Help Center is under development and will be available soon.\n\n'),
+                                            TextSpan(
+                                                text: '4. About Page:',
+                                                style: TextStyle(
+                                                    fontWeight:
+                                                        FontWeight.bold)),
+                                            TextSpan(
+                                                text:
+                                                    ' Learn more about our app and its features.\n\n'),
+                                            TextSpan(
+                                                text:
+                                                    '5. Terms and Conditions:',
+                                                style: TextStyle(
+                                                    fontWeight:
+                                                        FontWeight.bold)),
+                                            TextSpan(
+                                                text:
+                                                    ' Get to know your rights and responsibilities when using our app.\n\n'),
+                                            TextSpan(
+                                                text: '6. Privacy Policy:',
+                                                style: TextStyle(
+                                                    fontWeight:
+                                                        FontWeight.bold)),
+                                            TextSpan(
+                                                text:
+                                                    " Understand how we handle your data to respect your privacy.\n\n"),
+                                            TextSpan(
+                                                text:
+                                                    "We're always working to improve your experience. Look forward to the 'Coming Soon' features and more updates in the future!"),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
                                   ),
                                   actions: [
                                     TextButton(
@@ -72,17 +149,61 @@ class MyAccountScreen extends ConsumerWidget {
                               },
                             );
                           },
-                          // height: getSize(24),
-                          //     width: getSize(24),
-                          //     svgPath: ImageConstant.imgQuestion,
-                          //     margin: getMargin(bottom: 1)
-                          child: Container(
-                            margin: EdgeInsets.only(bottom: 0),
-                            child: SvgPicture.asset(
-                              ImageConstant.imgQuestion,
-                              height: 24,
-                              width: 24,
-                            ),
+                          child: Stack(
+                            children: [
+                              Align(
+                                alignment: Alignment.center,
+                                child: Container(
+                                  child: Neumorphic(
+                                    style: NeumorphicStyle(
+                                      shape: NeumorphicShape.convex,
+                                      boxShape: NeumorphicBoxShape.circle(),
+                                      depth: 0.9,
+                                      intensity: 8,
+                                      surfaceIntensity: 0.7,
+                                      shadowLightColor: Colors.white,
+                                      lightSource: LightSource.top,
+                                      color: firstTime
+                                          ? ColorConstant.blueA700
+                                          : Colors.white,
+                                    ),
+                                    child: SvgPicture.asset(
+                                      ImageConstant.imgQuestion,
+                                      height: 24,
+                                      width: 24,
+                                      color: firstTime
+                                          ? ColorConstant.whiteA700
+                                          : ColorConstant.blueGray500,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Align(
+                                alignment: Alignment.bottomCenter,
+                                child: AnimatedBuilder(
+                                  animation: _animationController,
+                                  builder:
+                                      (BuildContext context, Widget? child) {
+                                    if (!firstTime ||
+                                        _animationController.isCompleted)
+                                      return SizedBox
+                                          .shrink(); // This line ensures that the arrow disappears after the animation has completed
+
+                                    return Transform.translate(
+                                      offset: Offset(
+                                          0, -10 * _animationController.value),
+                                      child: SvgPicture.asset(
+                                        ImageConstant
+                                            .imgArrowUp, // path to your arrow SVG image
+                                        height: 24,
+                                        width: 24,
+                                        color: ColorConstant.blueA700,
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ],
                           ),
                         )
                       ]),
@@ -537,7 +658,8 @@ class MyAccountScreen extends ConsumerWidget {
                       child: CustomButton(
                           onTap: () async {
                             await ref.read(authStateProvider.notifier).logOut();
-                            Navigator.pop(context);
+                            //  Navigator.pop(context);
+                            Navigator.pushNamed(context, '/get_started_screen');
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(
@@ -559,6 +681,111 @@ class MyAccountScreen extends ConsumerWidget {
                           variant: ButtonVariant.FillIndigo5001,
                           fontStyle:
                               ButtonFontStyle.HelveticaNowTextBold16BlueA700),
+                    ),
+                    Padding(
+                      padding:
+                          getPadding(top: 16, left: 16, right: 16, bottom: 0),
+                      child: CustomButton(
+                          onTap: () {
+                            showDialog(
+                              context: context,
+                              builder: (BuildContext context) {
+                                return AlertDialog(
+                                  title: Text('Restore Purchase',
+                                      style: AppStyle
+                                          .txtHelveticaNowTextBold16Gray900
+                                          .copyWith(
+                                              letterSpacing:
+                                                  getHorizontalSize(0.3))),
+                                  content: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        "Are you sure you want to restore your previous purchases?",
+                                        style: AppStyle.txtManropeRegular12
+                                            .copyWith(
+                                                letterSpacing:
+                                                    getHorizontalSize(0.3)),
+                                      ),
+                                    ],
+                                  ),
+                                  actions: <Widget>[
+                                    TextButton(
+                                      child: Text('Confirm'),
+                                      onPressed: () async {
+                                        LoadingScreen.instance().show(
+                                            context:
+                                                context); // show loading screen
+                                        try {
+                                          CustomerInfo customerInfo =
+                                              await Purchases
+                                                  .restorePurchases();
+                                          // ... check restored purchaserInfo to see if entitlement is now active
+                                          // Log the user out
+                                          Navigator.of(context).pop();
+
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                'Purchases restored successfully',
+                                                textAlign: TextAlign.center,
+                                                style: AppStyle
+                                                    .txtHelveticaNowTextBold16WhiteA700
+                                                    .copyWith(
+                                                  letterSpacing:
+                                                      getHorizontalSize(0.3),
+                                                ),
+                                              ),
+                                              backgroundColor:
+                                                  ColorConstant.blue900,
+                                            ),
+                                          );
+                                        } on PlatformException catch (e) {
+                                          // Error restoring purchases
+                                          print(
+                                              'Error restoring purchases: $e');
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                'There was an error restoring your purchases. Please contact support.',
+                                                textAlign: TextAlign.center,
+                                                style: AppStyle
+                                                    .txtHelveticaNowTextBold16WhiteA700
+                                                    .copyWith(
+                                                  letterSpacing:
+                                                      getHorizontalSize(0.3),
+                                                ),
+                                              ),
+                                              backgroundColor:
+                                                  ColorConstant.redA700,
+                                            ),
+                                          );
+                                        } finally {
+                                          LoadingScreen.instance()
+                                              .hide(); // hide loading screen
+                                        }
+                                      },
+                                    ),
+                                    TextButton(
+                                      child: Text('Cancel'),
+                                      onPressed: () {
+                                        Navigator.of(context).pop();
+                                      },
+                                    ),
+                                  ],
+                                );
+                              },
+                            );
+                          },
+                          height: getVerticalSize(56),
+                          text: "Restore Purchase",
+                          margin: getMargin(left: 24, right: 24),
+                          variant: ButtonVariant.FillBlueA700,
+                          fontStyle: ButtonFontStyle.HelveticaNowTextBold16),
                     ),
                     Padding(
                       padding:

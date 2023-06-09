@@ -25,6 +25,10 @@ class ImageConstant {
 
   static String imgArrowUp = 'assets/images/chevron-up.svg';
 
+  static String imgArrowRight = 'assets/images/chevron-right.svg';
+
+  static String imgArrowLeft = 'assets/images/chevron-left.svg';
+
   static String imgBudgetDetails = 'assets/images/businessplan.svg';
 
   static String imgBudgetDetails1 = 'assets/images/Group.svg';
@@ -304,6 +308,12 @@ class ImageConstant {
       'assets/images/img_icon_blue_gray_300_40x40.svg';
 
   static String imgTopographic7 = 'assets/images/img_topographic7.png';
+
+  static String chatTopo = 'assets/images/chatTopo.png';
+
+  static String budgetTopo = 'assets/images/budgetTopo.png';
+
+  static String expenseTop = 'assets/images/expenseTopo.png';
 
   static String imgArrowdownPink400 =
       'assets/images/img_arrowdown_pink_400.svg';

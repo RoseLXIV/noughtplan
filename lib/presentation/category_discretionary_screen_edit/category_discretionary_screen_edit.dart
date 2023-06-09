@@ -1,12 +1,14 @@
 import 'dart:ui';
 
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:flutter_neumorphic/flutter_neumorphic.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:noughtplan/core/budget/generate_salary/controller/generate_salary_controller.dart';
 import 'package:noughtplan/core/budget/models/budget_status.dart';
 import 'package:noughtplan/core/budget/providers/budget_state_provider.dart';
 import 'package:noughtplan/core/constants/budgets.dart';
+import 'package:noughtplan/core/providers/first_time_provider.dart';
 import 'package:noughtplan/presentation/category_discretionary_screen/widgets/category_button_discretionary.dart';
 import 'package:noughtplan/presentation/category_discretionary_screen_edit/widgets/category_button_discretionary_edit.dart';
 // import 'package:noughtplan/presentation/category_necessary_screen/category_necessary_screen.dart';
@@ -339,6 +341,11 @@ final buttonListStateProviderDiscretionaryEdit =
 class CategoryDiscretionaryScreenEdit extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final _animationController =
+        useAnimationController(duration: const Duration(seconds: 1));
+    _animationController.repeat(reverse: true);
+
+    final firstTime = ref.watch(firstTimeProvider);
     final Map<String, dynamic> args =
         ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
 
@@ -554,7 +561,7 @@ class CategoryDiscretionaryScreenEdit extends HookConsumerWidget {
                           mainAxisAlignment: MainAxisAlignment.start,
                           children: [
                             CustomAppBar(
-                              height: getVerticalSize(70),
+                              height: getVerticalSize(80),
                               leadingWidth: 25,
                               leading: CustomImageView(
                                 onTap: () {
@@ -590,22 +597,73 @@ class CategoryDiscretionaryScreenEdit extends HookConsumerWidget {
                                           builder: (BuildContext context) {
                                             return AlertDialog(
                                               title: Text(
-                                                'Please read the instructions below',
+                                                'Editing Discretionary Categories',
                                                 textAlign: TextAlign.center,
                                                 style: AppStyle
                                                     .txtHelveticaNowTextBold16,
                                               ),
-                                              content: Text(
-                                                "In this step, you'll be able to add and edit discretionary categories to your budget. Follow the instructions below:\n\n"
-                                                "1. Browse through the available categories or use the search bar to find specific ones that match your needs.\n"
-                                                "2. Tap on a category to add it to your chosen categories list. You can always tap again to remove it if needed.\n"
-                                                "3. To add a custom category, tap on the '+' icon, enter the category name in the text field, and press 'Save'.\n"
-                                                "4. Please note that custom categories containing the words 'Debt' or 'Loan' will not be considered as discretionary expenses.\n"
-                                                "5. Once you've added and edited all the discretionary categories, press the 'Next' button to move on to reviewing your budget.\n\n"
-                                                "Remember, discretionary categories represent your non-essential expenses, such as entertainment, dining out, and hobbies. Adding them accurately will help you create a realistic budget and better manage your finances.",
-                                                textAlign: TextAlign.center,
-                                                style: AppStyle
-                                                    .txtManropeRegular14,
+                                              content: SingleChildScrollView(
+                                                physics:
+                                                    BouncingScrollPhysics(),
+                                                child: Container(
+                                                  child: RichText(
+                                                    textAlign: TextAlign.left,
+                                                    text: TextSpan(
+                                                      style: AppStyle
+                                                          .txtManropeRegular14
+                                                          .copyWith(
+                                                              color: ColorConstant
+                                                                  .blueGray800),
+                                                      children: <TextSpan>[
+                                                        TextSpan(
+                                                            text:
+                                                                "Editing discretionary categories for your budget is a straightforward process. Here's how:\n\n"),
+                                                        TextSpan(
+                                                            text:
+                                                                '1. Browse and Search:',
+                                                            style: TextStyle(
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold)),
+                                                        TextSpan(
+                                                            text:
+                                                                ' Review the available categories or use the search bar to find the ones you wish to modify.\n\n'),
+                                                        TextSpan(
+                                                            text:
+                                                                '2. Add or Remove Category:',
+                                                            style: TextStyle(
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold)),
+                                                        TextSpan(
+                                                            text:
+                                                                ' Tap any category to add it to your list. If you want to remove it, simply tap again.\n\n'),
+                                                        TextSpan(
+                                                            text:
+                                                                '3. Modify Custom Category:',
+                                                            style: TextStyle(
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold)),
+                                                        TextSpan(
+                                                            text:
+                                                                ' To modify a custom category, tap on the "+" icon, edit the category name in the text field, and press "Save". Note that custom categories containing the words "Debt" or "Loan" will not be considered as discretionary expenses.\n\n'),
+                                                        TextSpan(
+                                                            text: '4. Proceed:',
+                                                            style: TextStyle(
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold)),
+                                                        TextSpan(
+                                                            text:
+                                                                " Once you've made all the desired adjustments, hit the \'Next\' button to review your budget.\n\n"),
+                                                        TextSpan(
+                                                            text:
+                                                                "Remember, discretionary categories represent non-essential expenses, such as entertainment, dining out, and hobbies. Accurately editing these will help you maintain a realistic budget and better manage your finances. If a category remains unchanged, the old value will automatically be used."),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ),
                                               ),
                                               actions: [
                                                 TextButton(
@@ -618,16 +676,73 @@ class CategoryDiscretionaryScreenEdit extends HookConsumerWidget {
                                           },
                                         );
                                       },
-                                      // height: getSize(24),
-                                      //     width: getSize(24),
-                                      //     svgPath: ImageConstant.imgQuestion,
-                                      //     margin: getMargin(bottom: 1)
-                                      child: Container(
-                                        child: SvgPicture.asset(
-                                          ImageConstant.imgQuestion,
-                                          height: 24,
-                                          width: 24,
-                                        ),
+                                      child: Stack(
+                                        children: [
+                                          Align(
+                                            alignment: Alignment.center,
+                                            child: Container(
+                                              child: Neumorphic(
+                                                style: NeumorphicStyle(
+                                                  shape: NeumorphicShape.convex,
+                                                  boxShape: NeumorphicBoxShape
+                                                      .circle(),
+                                                  depth: 0.9,
+                                                  intensity: 8,
+                                                  surfaceIntensity: 0.7,
+                                                  shadowLightColor:
+                                                      Colors.white,
+                                                  lightSource: LightSource.top,
+                                                  color: firstTime
+                                                      ? ColorConstant.blueA700
+                                                      : Colors.white,
+                                                ),
+                                                child: SvgPicture.asset(
+                                                  ImageConstant.imgQuestion,
+                                                  height: 24,
+                                                  width: 24,
+                                                  color: firstTime
+                                                      ? ColorConstant.whiteA700
+                                                      : ColorConstant
+                                                          .blueGray500,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          Align(
+                                            alignment: Alignment.bottomCenter,
+                                            child: AnimatedBuilder(
+                                              animation: _animationController,
+                                              builder: (BuildContext context,
+                                                  Widget? child) {
+                                                if (!firstTime ||
+                                                    _animationController
+                                                        .isCompleted)
+                                                  return SizedBox
+                                                      .shrink(); // This line ensures that the arrow disappears after the animation has completed
+
+                                                return Transform.translate(
+                                                  offset: Offset(
+                                                      0,
+                                                      -5 *
+                                                          _animationController
+                                                              .value),
+                                                  child: Padding(
+                                                    padding:
+                                                        getPadding(top: 16),
+                                                    child: SvgPicture.asset(
+                                                      ImageConstant
+                                                          .imgArrowUp, // path to your arrow SVG image
+                                                      height: 24,
+                                                      width: 24,
+                                                      color: ColorConstant
+                                                          .blueA700,
+                                                    ),
+                                                  ),
+                                                );
+                                              },
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   ],

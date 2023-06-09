@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -12,9 +13,11 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import 'package:noughtplan/core/app_export.dart';
 import 'package:noughtplan/core/constants/budgets.dart';
+import 'package:noughtplan/core/providers/first_time_provider.dart';
 import 'package:noughtplan/presentation/budget_screen/widgets/call_chat_gpt_highlights.dart';
 import 'package:noughtplan/presentation/budget_screen/widgets/selected_budget_id.dart';
 import 'package:noughtplan/presentation/chat_bot_screen/widgets/dancing_dots.dart';
+import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:async/async.dart';
 
@@ -62,10 +65,24 @@ void _scrollToBottom() {
   });
 }
 
+void _scrollToBottomMessage() {
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 100),
+        curve: Curves.easeOut,
+      );
+    }
+  });
+}
+
 void _initialScrollToBottom() {
   WidgetsBinding.instance.addPostFrameCallback((_) {
     if (_scrollController.hasClients) {
-      _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+      _scrollController.positions.forEach((position) {
+        position.jumpTo(position.maxScrollExtent);
+      });
     }
   });
 }
@@ -256,6 +273,10 @@ class ChatBotScreen extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final _animationController =
+        useAnimationController(duration: const Duration(seconds: 1));
+
+    final firstTime = ref.watch(firstTimeProvider);
     final Map<String, dynamic> args =
         ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
     final Budget selectedBudget = args['budget'];
@@ -267,13 +288,85 @@ class ChatBotScreen extends HookConsumerWidget {
     FocusNode _textFieldFocusNode = FocusNode();
 
     useEffect(() {
-      ref.read(chatBotProvider.notifier)._loadMessages(selectedBudget.budgetId);
-      _initialScrollToBottom();
+      Future.microtask(() {
+        _animationController.repeat(reverse: true);
+        ref
+            .read(chatBotProvider.notifier)
+            ._loadMessages(selectedBudget.budgetId);
+        _initialScrollToBottom();
 
-      return null;
+        return null;
+      });
     }, []);
 
     late Timer _timer;
+
+    Future<int> getRemainingTrialTime() async {
+      final prefs = await SharedPreferences.getInstance();
+      final trialStartTimeStr = prefs.getString('free_trial_start');
+      if (trialStartTimeStr != null) {
+        final trialStart = DateTime.parse(trialStartTimeStr);
+        // Calculate the end of the trial
+        final trialEnd = trialStart.add(Duration(days: 1));
+        final currentTime = DateTime.now();
+        if (trialEnd.isAfter(currentTime)) {
+          final remainingTime = trialEnd.difference(currentTime);
+          return remainingTime.inSeconds;
+        }
+      }
+      return 0;
+    }
+
+    Stream<String> remainingTrialTime() async* {
+      while (true) {
+        final remainingTime = await getRemainingTrialTime();
+        final totalHours = remainingTime ~/ Duration.secondsPerHour;
+        final totalMinutes = (remainingTime % Duration.secondsPerHour) ~/
+            Duration.secondsPerMinute;
+        final seconds = remainingTime % Duration.secondsPerMinute;
+
+        final days = totalHours ~/ Duration.hoursPerDay;
+        final hoursLeft = totalHours % Duration.hoursPerDay;
+        final minutes = totalMinutes % Duration.minutesPerHour;
+
+        yield "${days}D ${hoursLeft.toString().padLeft(2, '0')}H:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')} left";
+
+        await Future.delayed(Duration(seconds: 1));
+      }
+    }
+
+    Future<Map<String, dynamic>> getSubscriptionInfo() async {
+      final firebaseUser = FirebaseAuth.instance.currentUser;
+      Map<String, dynamic> subscriptionInfo = {
+        'isSubscribed': false,
+        'expiryDate': null
+      };
+
+      if (firebaseUser != null) {
+        try {
+          CustomerInfo customerInfo = await Purchases.getCustomerInfo();
+          bool isSubscribed =
+              customerInfo.entitlements.all['pro_features']?.isActive ?? false;
+
+          // parse the String into a DateTime
+          String? expiryDateString =
+              customerInfo.entitlements.all['pro_features']?.expirationDate;
+
+          String? managementUrl = customerInfo.managementURL;
+          DateTime? expiryDate;
+          if (expiryDateString != null) {
+            expiryDate = DateTime.parse(expiryDateString);
+          }
+
+          subscriptionInfo['isSubscribed'] = isSubscribed;
+          subscriptionInfo['expiryDate'] = expiryDate;
+          subscriptionInfo['managementUrl'] = managementUrl;
+        } catch (e) {
+          print('Failed to get customer info: $e');
+        }
+      }
+      return subscriptionInfo;
+    }
 
     return SafeArea(
       child: Scaffold(
@@ -290,7 +383,7 @@ class ChatBotScreen extends HookConsumerWidget {
                 child: Transform(
                   transform: Matrix4.identity()..scale(1.0, 1.0, 0.1),
                   child: CustomImageView(
-                    imagePath: ImageConstant.imgTopographic7,
+                    imagePath: ImageConstant.chatTopo,
                     height: MediaQuery.of(context).size.height *
                         1, // Set the height to 50% of the screen height
                     width: MediaQuery.of(context)
@@ -329,129 +422,268 @@ class ChatBotScreen extends HookConsumerWidget {
                                   '/home_page_screen',
                                 );
                               }),
-                          Align(
-                            alignment: Alignment.center,
-                            child: Row(
-                              children: [
-                                Padding(
-                                  padding: getPadding(
-                                    right: 17,
-                                    top: 0,
-                                  ),
-                                  child: IconButton(
-                                    icon: CustomImageView(
-                                      svgPath: ImageConstant.imgTrashNew,
-                                      color: ColorConstant.redA700,
-                                      height: getSize(
-                                        24,
-                                      ),
-                                      width: getSize(
-                                        24,
-                                      ),
-                                    ), // Replace with your desired icon
-                                    onPressed: () async {
-                                      showDialog(
-                                        context: context,
-                                        builder: (BuildContext context) {
-                                          return AlertDialog(
-                                            title: Text(
-                                              'Clear chat',
-                                              style: AppStyle
-                                                  .txtHelveticaNowTextBold18
-                                                  .copyWith(letterSpacing: 0.2),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Padding(
+                                padding: getPadding(
+                                  right: 0,
+                                  top: 6,
+                                ),
+                              ),
+                              Padding(
+                                padding: getPadding(
+                                  right: 17,
+                                  top: 0,
+                                ),
+                                child: IconButton(
+                                  icon: CustomImageView(
+                                    svgPath: ImageConstant.imgTrashNew,
+                                    color: ColorConstant.redA700,
+                                    height: getSize(
+                                      24,
+                                    ),
+                                    width: getSize(
+                                      24,
+                                    ),
+                                  ), // Replace with your desired icon
+                                  onPressed: () async {
+                                    showDialog(
+                                      context: context,
+                                      builder: (BuildContext context) {
+                                        return AlertDialog(
+                                          title: Text(
+                                            'Clear chat',
+                                            style: AppStyle
+                                                .txtHelveticaNowTextBold18
+                                                .copyWith(letterSpacing: 0.2),
+                                          ),
+                                          content: Text(
+                                            'Are you sure you want to clear the chat?',
+                                            style: AppStyle.txtManropeRegular14
+                                                .copyWith(letterSpacing: 0.2),
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                              child: Text('Cancel',
+                                                  style: AppStyle
+                                                      .txtHelveticaNowTextBold14
+                                                      .copyWith(
+                                                          letterSpacing: 0.2)),
+                                              onPressed: () {
+                                                Navigator.of(context).pop();
+                                              },
                                             ),
-                                            content: Text(
-                                              'Are you sure you want to clear the chat?',
+                                            TextButton(
+                                              child: Text('Clear',
+                                                  style: AppStyle
+                                                      .txtHelveticaNowTextBold14
+                                                      .copyWith(
+                                                          letterSpacing: 0.2,
+                                                          color: ColorConstant
+                                                              .redA700)),
+                                              onPressed: () async {
+                                                await ref
+                                                    .read(chatBotProvider
+                                                        .notifier)
+                                                    .clearChat(selectedBudget
+                                                        .budgetId);
+                                                Navigator.of(context).pop();
+                                              },
+                                            ),
+                                          ],
+                                        );
+                                      },
+                                    );
+                                  },
+                                ),
+                              ),
+                              Padding(
+                                padding: getPadding(
+                                  right: 17,
+                                  top: 0,
+                                ),
+                                child: GestureDetector(
+                                  onTap: () {
+                                    showDialog(
+                                      context: context,
+                                      builder: (BuildContext context) {
+                                        return AlertDialog(
+                                          title: Text(
+                                            'A.I. Financial Assistant',
+                                            textAlign: TextAlign.center,
+                                            style: AppStyle
+                                                .txtHelveticaNowTextBold16,
+                                          ),
+                                          content: RichText(
+                                            textAlign: TextAlign.left,
+                                            text: TextSpan(
                                               style: AppStyle
                                                   .txtManropeRegular14
-                                                  .copyWith(letterSpacing: 0.2),
+                                                  .copyWith(
+                                                      color: ColorConstant
+                                                          .blueGray800),
+                                              children: <TextSpan>[
+                                                TextSpan(
+                                                    text:
+                                                        "Welcome to your A.I. Financial Advisor! Here's how to interact:\n\n"),
+                                                TextSpan(
+                                                    text: '1. Ask a Question:',
+                                                    style: TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.bold)),
+                                                TextSpan(
+                                                    text:
+                                                        ' Simply input any finance-related question you may have into the text field. \n\n'),
+                                                TextSpan(
+                                                    text:
+                                                        '2. Continue Using the App:',
+                                                    style: TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.bold)),
+                                                TextSpan(
+                                                    text:
+                                                        ' After submitting your question, feel free to continue using the app. Your response will be generated even while you navigate other parts of the app. \n\n'),
+                                                TextSpan(
+                                                    text:
+                                                        '3. Check the Response:',
+                                                    style: TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.bold)),
+                                                TextSpan(
+                                                    text:
+                                                        ' Return to the A.I. Financial Advisor screen to see the response to your question. Please note, there may be a brief wait for the response. \n\n'),
+                                                TextSpan(
+                                                    text: '4. Clear the Chat:',
+                                                    style: TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.bold)),
+                                                TextSpan(
+                                                    text:
+                                                        ' If you wish to clear the chat history, simply tap on the trash icon at the top of the screen.\n\n'),
+                                                TextSpan(
+                                                    text:
+                                                        'Please remember that this A.I. Financial Advisor is designed to provide general financial guidance based on the information available. It should not replace advice from a professional financial advisor. If you require more detailed advice, please consider contacting a certified financial advisor.'),
+                                              ],
                                             ),
-                                            actions: [
-                                              TextButton(
-                                                child: Text('Cancel',
-                                                    style: AppStyle
-                                                        .txtHelveticaNowTextBold14
-                                                        .copyWith(
-                                                            letterSpacing:
-                                                                0.2)),
-                                                onPressed: () {
-                                                  Navigator.of(context).pop();
-                                                },
-                                              ),
-                                              TextButton(
-                                                child: Text('Clear',
-                                                    style: AppStyle
-                                                        .txtHelveticaNowTextBold14
-                                                        .copyWith(
-                                                            letterSpacing: 0.2,
-                                                            color: ColorConstant
-                                                                .redA700)),
-                                                onPressed: () async {
-                                                  await ref
-                                                      .read(chatBotProvider
-                                                          .notifier)
-                                                      .clearChat(selectedBudget
-                                                          .budgetId);
-                                                  Navigator.of(context).pop();
-                                                },
-                                              ),
-                                            ],
-                                          );
-                                        },
-                                      );
-                                    },
-                                  ),
-                                ),
-                                Padding(
-                                  padding: getPadding(
-                                    right: 17,
-                                    top: 0,
-                                  ),
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      showDialog(
-                                        context: context,
-                                        builder: (BuildContext context) {
-                                          return AlertDialog(
-                                            title: Text(
-                                              'Please read the instructions below',
-                                              textAlign: TextAlign.center,
-                                              style: AppStyle
-                                                  .txtHelveticaNowTextBold16,
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(context),
+                                              child: Text('Close'),
                                             ),
-                                            content: Text(
-                                              "In this step, you'll be able to add discretionary categories to your budget. Follow the instructions below:\n\n"
-                                              "1. Browse through the available categories or use the search bar to find specific ones that match your interests and lifestyle.\n"
-                                              "2. Tap on a category to add it to your chosen categories list. You can always tap again to remove it if needed.\n"
-                                              "3. Once you've added all the discretionary categories you want, press the 'Next' button to move on to reviewing your budget.\n\n"
-                                              "Remember, these discretionary categories represent your non-essential expenses, such as entertainment, hobbies, and dining out. Adding them thoughtfully will help you create a balanced budget, allowing for personal enjoyment while still managing your finances effectively.",
-                                              textAlign: TextAlign.center,
-                                              style:
-                                                  AppStyle.txtManropeRegular14,
+                                          ],
+                                        );
+                                      },
+                                    );
+                                  },
+                                  child: Stack(
+                                    children: [
+                                      Align(
+                                        alignment: Alignment.center,
+                                        child: Container(
+                                          child: Neumorphic(
+                                            style: NeumorphicStyle(
+                                              shape: NeumorphicShape.convex,
+                                              boxShape:
+                                                  NeumorphicBoxShape.circle(),
+                                              depth: 0.9,
+                                              intensity: 8,
+                                              surfaceIntensity: 0.7,
+                                              shadowLightColor: Colors.white,
+                                              lightSource: LightSource.top,
+                                              color: firstTime
+                                                  ? ColorConstant.blueA700
+                                                  : Colors.white,
                                             ),
-                                            actions: [
-                                              TextButton(
-                                                onPressed: () =>
-                                                    Navigator.pop(context),
-                                                child: Text('Close'),
-                                              ),
-                                            ],
-                                          );
-                                        },
-                                      );
-                                    },
-                                    child: Container(
-                                      child: SvgPicture.asset(
-                                        ImageConstant.imgQuestion,
+                                            child: SvgPicture.asset(
+                                              ImageConstant.imgQuestion,
+                                              height: 24,
+                                              width: 24,
+                                              color: firstTime
+                                                  ? ColorConstant.whiteA700
+                                                  : ColorConstant.blueGray500,
+                                            ),
+                                          ),
+                                        ),
                                       ),
-                                    ),
+                                      Align(
+                                        alignment: Alignment.bottomCenter,
+                                        child: AnimatedBuilder(
+                                          animation: _animationController,
+                                          builder: (BuildContext context,
+                                              Widget? child) {
+                                            if (!firstTime ||
+                                                _animationController
+                                                    .isCompleted)
+                                              return SizedBox
+                                                  .shrink(); // This line ensures that the arrow disappears after the animation has completed
+
+                                            return Transform.translate(
+                                              offset: Offset(
+                                                  0,
+                                                  -5 *
+                                                      _animationController
+                                                          .value),
+                                              child: Padding(
+                                                padding: getPadding(top: 16),
+                                                child: SvgPicture.asset(
+                                                  ImageConstant
+                                                      .imgArrowUp, // path to your arrow SVG image
+                                                  height: 24,
+                                                  width: 24,
+                                                  color: ColorConstant.blueA700,
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
+                    ),
+                    FutureBuilder<Map<String, dynamic>>(
+                      future: getSubscriptionInfo(),
+                      builder: (context, subscriptionSnapshot) {
+                        if (subscriptionSnapshot.hasData) {
+                          if (subscriptionSnapshot.data!['isSubscribed']
+                              as bool) {
+                            // If the user is a subscriber, don't show the timer
+                            return SizedBox.shrink();
+                          } else {
+                            // If the user isn't a subscriber, show the timer
+                            return StreamBuilder<String>(
+                              stream: remainingTrialTime(),
+                              builder: (BuildContext context,
+                                  AsyncSnapshot<String> snapshot) {
+                                if (snapshot.hasData) {
+                                  return Padding(
+                                    padding: getPadding(bottom: 8),
+                                    child: Text(snapshot.data!,
+                                        style: AppStyle
+                                            .txtHelveticaNowTextBold12
+                                            .copyWith(
+                                                letterSpacing: 0.2,
+                                                color: ColorConstant.gray900)),
+                                  );
+                                } else {
+                                  return SizedBox.shrink();
+                                }
+                              },
+                            );
+                          }
+                        } else {
+                          // While loading the subscription info, don't show the timer
+                          return CircularProgressIndicator();
+                        }
+                      },
                     ),
                     Flexible(
                       child: ListView.builder(
@@ -629,7 +861,7 @@ class ChatBotScreen extends HookConsumerWidget {
                           if (message.isNotEmpty) {
                             ref.read(chatBotProvider.notifier).sendMessage(
                                 message, firstName, selectedBudget,
-                                onBotResponse: _scrollToBottom);
+                                onBotResponse: _scrollToBottomMessage);
                             _controller.clear();
                             // Clear the text field without closing the keyboard
                             _scrollToBottom();
@@ -647,7 +879,7 @@ class ChatBotScreen extends HookConsumerWidget {
                         _controller.clear();
                         ref.read(chatBotProvider.notifier).sendMessage(
                             text, firstName, selectedBudget,
-                            onBotResponse: _scrollToBottom);
+                            onBotResponse: _scrollToBottomMessage);
                         _scrollToBottom();
 
                         _textFieldFocusNode.requestFocus();

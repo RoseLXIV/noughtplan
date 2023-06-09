@@ -47,31 +47,49 @@ class DebtsListWidget extends StatelessWidget {
 
     String formattedRemaining = formatter.format(remaining);
 
-    double calculateTotalPayments(
-        double loanBalance, double monthlyPayment, double annualInterestRate) {
+    double calculateTotalPayments(double loanBalance, double paymentAmount,
+        double annualInterestRate, String paymentFrequency) {
+      int paymentFrequencyPerYear;
+
+      switch (paymentFrequency) {
+        case 'Weekly':
+          paymentFrequencyPerYear = 52;
+          break;
+        case 'Bi-Weekly':
+          paymentFrequencyPerYear = 26;
+          break;
+        case 'Monthly':
+        default:
+          paymentFrequencyPerYear = 12;
+      }
+
       if (annualInterestRate == 0.0) {
         // If interest rate is 0, total payments is simply loan amount divided by payment amount
         // Using ceil to round up to nearest whole number
-        return (loanBalance / monthlyPayment).ceilToDouble();
+        return (loanBalance / paymentAmount).ceilToDouble();
       } else {
         // Existing code when interest rate is not zero
-        double monthlyInterestRate = annualInterestRate / 12 / 100;
+        double periodicInterestRate =
+            annualInterestRate / paymentFrequencyPerYear / 100;
 
-        // Calculate the total number of payments (months)
-        double numerator = log(monthlyPayment) -
-            log(monthlyPayment - loanBalance * monthlyInterestRate);
-        double denominator = log(1 + monthlyInterestRate);
+        // Calculate the total number of payments (periods)
+        double numerator = log(paymentAmount) -
+            log(paymentAmount - loanBalance * periodicInterestRate);
+        double denominator = log(1 + periodicInterestRate);
 
         return numerator / denominator;
       }
     }
 
-    double loanBalance = debtData['outstanding'];
-    double monthlyPayment = debtData['amount'];
-    double annualInterestRate = debtData['interest'];
+    double loanBalance = (debtData['outstanding'] as num).toDouble();
+    double monthlyPayment = (debtData['amount'] as num).toDouble();
+    double annualInterestRate = (debtData['interest'] as num).toDouble();
+    String paymentFrequency = debtData['frequency'];
 
-    double totalPayments =
-        calculateTotalPayments(loanBalance, monthlyPayment, annualInterestRate);
+    double totalPayments = calculateTotalPayments(
+        loanBalance, monthlyPayment, annualInterestRate, paymentFrequency);
+
+    print('totalPayments: $totalPayments');
 
     double totalInterest;
     if (annualInterestRate == 0.0) {
@@ -101,35 +119,34 @@ class DebtsListWidget extends StatelessWidget {
     }
 
     DateTime startDate = DateTime.now(); // or whenever the loan starts
-    String paymentFrequency = debtData['frequency'];
 
     DateTime endDate =
         calculateEndDate(startDate, totalPayments, paymentFrequency);
 
-    DateTime roundUpDate(DateTime date) {
-      int year = date.year;
-      int month = date.month;
+//     DateTime roundUpDate(DateTime date) {
+//       int year = date.year;
+//       int month = date.month;
 
-      if (date.day > 15) {
-        // add one month
-        month++;
-        // if month overflow, reset month and increment year
-        if (month > 12) {
-          month = 1;
-          year++;
-        }
-      }
+//       if (date.day > 30) {
+//         // add one month
+//         month++;
+//         // if month overflow, reset month and increment year
+//         if (month > 12) {
+//           month = 1;
+//           year++;
+//         }
+//       }
 
-      return DateTime(year, month);
-    }
+//       return DateTime(year, month);
+//     }
 
-// use this function to round up endDate
-    DateTime roundedEndDate = roundUpDate(endDate);
+// // use this function to round up endDate
+    DateTime roundedEndDate = (endDate);
 
     // For a 5% increase
     double monthlyPaymentIncreased5 = monthlyPayment * 1.05;
-    double totalPaymentsIncreased5 = calculateTotalPayments(
-        loanBalance, monthlyPaymentIncreased5, annualInterestRate);
+    double totalPaymentsIncreased5 = calculateTotalPayments(loanBalance,
+        monthlyPaymentIncreased5, annualInterestRate, paymentFrequency);
     double totalInterestIncreased5;
     if (annualInterestRate == 0.0) {
       totalInterestIncreased5 = 0.0; // No interest if interest rate is 0%
@@ -139,12 +156,12 @@ class DebtsListWidget extends StatelessWidget {
     }
     DateTime endDateIncreased5 =
         calculateEndDate(startDate, totalPaymentsIncreased5, paymentFrequency);
-    DateTime roundedEndDateIncreased5 = roundUpDate(endDateIncreased5);
+    DateTime roundedEndDateIncreased5 = (endDateIncreased5);
 
 // For a 10% increase
     double monthlyPaymentIncreased10 = monthlyPayment * 1.10;
-    double totalPaymentsIncreased10 = calculateTotalPayments(
-        loanBalance, monthlyPaymentIncreased10, annualInterestRate);
+    double totalPaymentsIncreased10 = calculateTotalPayments(loanBalance,
+        monthlyPaymentIncreased10, annualInterestRate, paymentFrequency);
     double totalInterestIncreased10;
     if (annualInterestRate == 0.0) {
       totalInterestIncreased10 = 0.0; // No interest if interest rate is 0%
@@ -154,12 +171,12 @@ class DebtsListWidget extends StatelessWidget {
     }
     DateTime endDateIncreased10 =
         calculateEndDate(startDate, totalPaymentsIncreased10, paymentFrequency);
-    DateTime roundedEndDateIncreased10 = roundUpDate(endDateIncreased10);
+    DateTime roundedEndDateIncreased10 = (endDateIncreased10);
 
 // For a 20% increase
     double monthlyPaymentIncreased20 = monthlyPayment * 1.20;
-    double totalPaymentsIncreased20 = calculateTotalPayments(
-        loanBalance, monthlyPaymentIncreased20, annualInterestRate);
+    double totalPaymentsIncreased20 = calculateTotalPayments(loanBalance,
+        monthlyPaymentIncreased20, annualInterestRate, paymentFrequency);
     double totalInterestIncreased20;
     if (annualInterestRate == 0.0) {
       totalInterestIncreased20 = 0.0; // No interest if interest rate is 0%
@@ -169,7 +186,7 @@ class DebtsListWidget extends StatelessWidget {
     }
     DateTime endDateIncreased20 =
         calculateEndDate(startDate, totalPaymentsIncreased20, paymentFrequency);
-    DateTime roundedEndDateIncreased20 = roundUpDate(endDateIncreased20);
+    DateTime roundedEndDateIncreased20 = (endDateIncreased20);
 
     String formatMillions(double number) {
       if (number >= 1000000) {
@@ -200,12 +217,15 @@ class DebtsListWidget extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Text(
-                  debtData['category'],
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.start,
-                  style: AppStyle.txtHelveticaNowTextBold14
-                      .copyWith(color: ColorConstant.gray900),
+                Container(
+                  width: 140,
+                  child: Text(
+                    debtData['category'],
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.start,
+                    style: AppStyle.txtHelveticaNowTextBold14
+                        .copyWith(color: ColorConstant.gray900),
+                  ),
                 ),
                 Column(
                   mainAxisAlignment: MainAxisAlignment.end,
@@ -277,7 +297,7 @@ class DebtsListWidget extends StatelessWidget {
             ),
           ),
           Container(
-            padding: getPadding(left: 12, right: 12, top: 12, bottom: 16),
+            padding: getPadding(left: 8, right: 8, top: 12, bottom: 16),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.end,
@@ -340,7 +360,13 @@ class DebtsListWidget extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Monthly\nPayment',
+                      '${debtData['frequency']}',
+                      textAlign: TextAlign.left,
+                      style: AppStyle.txtManropeRegular12
+                          .copyWith(color: ColorConstant.blueGray800),
+                    ),
+                    Text(
+                      'Payment',
                       textAlign: TextAlign.left,
                       style: AppStyle.txtManropeRegular12
                           .copyWith(color: ColorConstant.blueGray800),

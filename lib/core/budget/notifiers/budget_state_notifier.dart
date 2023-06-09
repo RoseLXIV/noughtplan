@@ -1042,6 +1042,38 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
     }
   }
 
+  Future<void> addCustomCategoryToNecessaryExpense({
+    required BudgetId budgetId,
+    required String newCategory,
+    required double newAmount,
+  }) async {
+    final userId = _authenticator.userId;
+    state = state.copiedWithIsLoading(true);
+
+    final result = await _budgetInfoStorage.addCustomCategoryToNecessaryExpense(
+      budgetId: budgetId,
+      newCategory: newCategory,
+      newAmount: newAmount,
+    );
+
+    if (result) {
+      // You may want to fetch the updated necessaryExpense and update the state with it here
+      state = BudgetState(
+        status: BudgetStatus.success,
+        isLoading: false,
+        userId: userId,
+        budgets: [], // Update this with the fetched budgets
+      );
+    } else {
+      state = BudgetState(
+        status: BudgetStatus.failure,
+        isLoading: false,
+        userId: userId,
+        budgets: [],
+      );
+    }
+  }
+
   Future<void> addDebt(
       {required String? budgetId,
       required Map<String, dynamic> debtData,

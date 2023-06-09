@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:flutter_neumorphic/flutter_neumorphic.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -15,6 +16,7 @@ import 'package:noughtplan/core/budget/generate_salary/controller/generate_salar
 import 'package:noughtplan/core/budget/providers/banner_ads_class_provider.dart';
 import 'package:noughtplan/core/constants/budgets.dart';
 import 'package:noughtplan/core/forms/form_validators.dart';
+import 'package:noughtplan/core/providers/first_time_provider.dart';
 import 'package:noughtplan/widgets/app_bar/appbar_image.dart';
 import 'package:noughtplan/widgets/app_bar/appbar_title.dart';
 import 'package:noughtplan/widgets/app_bar/custom_app_bar.dart';
@@ -119,6 +121,9 @@ class GeneratorSalaryScreenEdit extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final _animationController =
+        useAnimationController(duration: const Duration(seconds: 1));
+    final firstTime = ref.watch(firstTimeProvider);
     final Map<String, dynamic> args =
         ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
     final Budget? selectedBudget = args['selectedBudget'];
@@ -147,6 +152,7 @@ class GeneratorSalaryScreenEdit extends HookConsumerWidget {
 
     useEffect(() {
       Future.microtask(() {
+        _animationController.repeat(reverse: true);
         generateSalaryController.initializeSalary(selectedBudget?.salary ?? 0);
         generateSalaryController
             .initializeCurrency(selectedBudget?.currency ?? '');
@@ -154,7 +160,7 @@ class GeneratorSalaryScreenEdit extends HookConsumerWidget {
             .initializeBudgetType(selectedBudget?.budgetType ?? '');
       });
       return () {}; // Cleanup function
-    }, []);
+    }, [firstTime]);
 
     Future<Map<String, dynamic>> getSubscriptionInfo() async {
       final firebaseUser = FirebaseAuth.instance.currentUser;
@@ -256,16 +262,83 @@ class GeneratorSalaryScreenEdit extends HookConsumerWidget {
                                           builder: (BuildContext context) {
                                             return AlertDialog(
                                               title: Text(
-                                                'Welcome to The Nought Plan',
+                                                'Editing Your Budget',
                                                 textAlign: TextAlign.center,
                                                 style: AppStyle
                                                     .txtHelveticaNowTextBold16,
                                               ),
-                                              content: Text(
-                                                'To get started, please enter your monthly salary and select your preferred currency from the dropdown menu below. Our smart algorithms will take care of the rest, providing you with a personalized budget plan to help you save and manage your finances.',
-                                                textAlign: TextAlign.center,
-                                                style: AppStyle
-                                                    .txtManropeRegular14,
+                                              content: SingleChildScrollView(
+                                                physics:
+                                                    BouncingScrollPhysics(),
+                                                child: Container(
+                                                  child: RichText(
+                                                    text: TextSpan(
+                                                      style: AppStyle
+                                                          .txtManropeRegular14
+                                                          .copyWith(
+                                                              color: ColorConstant
+                                                                  .blueGray800),
+                                                      children: <TextSpan>[
+                                                        TextSpan(
+                                                            text:
+                                                                'Follow these simple steps to edit your personalized budget details:\n\n'),
+                                                        TextSpan(
+                                                            text:
+                                                                '1. Edit Your Salary/Income:',
+                                                            style: TextStyle(
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold)),
+                                                        TextSpan(
+                                                            text:
+                                                                ' You have the option to update your monthly salary or total income. If you decide not to make changes, your previous salary/income value will automatically be used.\n\n'),
+                                                        TextSpan(
+                                                            text:
+                                                                "2. Edit Your Currency:",
+                                                            style: TextStyle(
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold)),
+                                                        TextSpan(
+                                                            text:
+                                                                " Feel free to change your preferred currency. If you don't select a new currency, your old one will be kept. This selected currency will be used in all your budget plans.\n\n"),
+                                                        TextSpan(
+                                                            text:
+                                                                "3. Edit Your Budget Type:",
+                                                            style: TextStyle(
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold)),
+                                                        TextSpan(
+                                                            text:
+                                                                " If your financial priorities or circumstances have changed, consider switching between "),
+                                                        TextSpan(
+                                                            text:
+                                                                "Zero Based Budgeting",
+                                                            style: TextStyle(
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold)),
+                                                        TextSpan(
+                                                            text:
+                                                                ". (More Budget Types will be added soon)If you decide not to choose, your previous budgeting method will continue. Here’s a quick reminder of what each entails:\n\n"),
+                                                        TextSpan(
+                                                            text:
+                                                                "  - Zero Based Budgeting:",
+                                                            style: TextStyle(
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold)),
+                                                        TextSpan(
+                                                            text:
+                                                                " This budgeting method requires that every dollar has a purpose. It’s called 'zero-based' because it encourages you to account for all of your money and start each month at zero.\n\n"),
+                                                        TextSpan(
+                                                            text:
+                                                                "\nRemember, it's okay to leave things unchanged if they still suit your needs. The old values will automatically be used. Maintaining an accurate and up-to-date budget is key to effective financial management. Stay on the path to financial fitness!"),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ),
                                               ),
                                               actions: [
                                                 TextButton(
@@ -278,16 +351,69 @@ class GeneratorSalaryScreenEdit extends HookConsumerWidget {
                                           },
                                         );
                                       },
-                                      // height: getSize(24),
-                                      //     width: getSize(24),
-                                      //     svgPath: ImageConstant.imgQuestion,
-                                      //     margin: getMargin(bottom: 1)
-                                      child: Container(
-                                        child: SvgPicture.asset(
-                                          ImageConstant.imgQuestion,
-                                          height: 24,
-                                          width: 24,
-                                        ),
+                                      child: Stack(
+                                        children: [
+                                          Align(
+                                            alignment: Alignment.center,
+                                            child: Container(
+                                              child: Neumorphic(
+                                                style: NeumorphicStyle(
+                                                  shape: NeumorphicShape.convex,
+                                                  boxShape: NeumorphicBoxShape
+                                                      .circle(),
+                                                  depth: 0.9,
+                                                  intensity: 8,
+                                                  surfaceIntensity: 0.7,
+                                                  shadowLightColor:
+                                                      Colors.white,
+                                                  lightSource: LightSource.top,
+                                                  color: firstTime
+                                                      ? ColorConstant.blueA700
+                                                      : Colors.white,
+                                                ),
+                                                child: SvgPicture.asset(
+                                                  ImageConstant.imgQuestion,
+                                                  height: 24,
+                                                  width: 24,
+                                                  color: firstTime
+                                                      ? ColorConstant.whiteA700
+                                                      : ColorConstant
+                                                          .blueGray500,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          Align(
+                                            alignment: Alignment.bottomCenter,
+                                            child: AnimatedBuilder(
+                                              animation: _animationController,
+                                              builder: (BuildContext context,
+                                                  Widget? child) {
+                                                if (!firstTime ||
+                                                    _animationController
+                                                        .isCompleted)
+                                                  return SizedBox
+                                                      .shrink(); // This line ensures that the arrow disappears after the animation has completed
+
+                                                return Transform.translate(
+                                                  offset: Offset(
+                                                      0,
+                                                      -10 *
+                                                          _animationController
+                                                              .value),
+                                                  child: SvgPicture.asset(
+                                                    ImageConstant
+                                                        .imgArrowUp, // path to your arrow SVG image
+                                                    height: 24,
+                                                    width: 24,
+                                                    color:
+                                                        ColorConstant.blueA700,
+                                                  ),
+                                                );
+                                              },
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   ],

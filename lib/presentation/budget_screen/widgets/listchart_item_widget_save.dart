@@ -62,7 +62,7 @@ class ListDebtChartItemWidgetSave extends HookWidget {
             children: [
               Container(
                 height: 30,
-                width: 150,
+                width: 100,
                 child: Padding(
                   padding: getPadding(bottom: 3),
                   child: Text(
@@ -92,7 +92,7 @@ class ListDebtChartItemWidgetSave extends HookWidget {
                   Stack(
                     children: [
                       Container(
-                        width: 132,
+                        width: 135,
                         child: ClipRRect(
                           borderRadius: BorderRadius.all(Radius.circular(8.0)),
                           child: ReversedLinearProgressIndicator(
@@ -121,39 +121,37 @@ class ListDebtChartItemWidgetSave extends HookWidget {
           ),
           Padding(
             padding: getPadding(top: 30),
-            child: Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.end,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    "Amount Saved",
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  "Amount Saved",
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.right,
+                  style: AppStyle.txtManropeSemiBold10Bluegray300.copyWith(
+                    letterSpacing: getHorizontalSize(
+                      0.2,
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: getPadding(
+                    top: 1,
+                  ),
+                  child: Text(
+                    formattedRemainingAmount,
                     overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.right,
-                    style: AppStyle.txtManropeSemiBold10Bluegray300.copyWith(
+                    textAlign: TextAlign.left,
+                    style: AppStyle.txtHelveticaNowTextBold16.copyWith(
                       letterSpacing: getHorizontalSize(
                         0.2,
                       ),
+                      color: amountTextColor,
                     ),
                   ),
-                  Padding(
-                    padding: getPadding(
-                      top: 1,
-                    ),
-                    child: Text(
-                      formattedRemainingAmount,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.left,
-                      style: AppStyle.txtHelveticaNowTextBold16.copyWith(
-                        letterSpacing: getHorizontalSize(
-                          0.2,
-                        ),
-                        color: amountTextColor,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
           // Padding(

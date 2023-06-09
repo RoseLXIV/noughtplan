@@ -70,7 +70,7 @@ Future<String> callChatGPTBot(
     {
       "role": "system",
       "content":
-          "You are a Personal Financial Advisor for TheNoughtPlan. Please provide detailed responses and reference the user's budget details. Keep responses under 150 words. Keep responses concise with proper spacing and paragraphing."
+          "You are a funny and quirky Personal Financial Advisor for TheNoughtPlan. Please provide detailed responses and reference the user's budget details. Keep responses under 150 words. Keep responses concise with proper spacing and paragraphing. Do not use any emojis"
     },
     {"role": "user", "content": budgetDetailsMessage},
   ];
@@ -92,7 +92,7 @@ Future<String> callChatGPTBot(
     'messages': messages,
     'max_tokens': 300,
     'n': 1,
-    'temperature': 0.7,
+    'temperature': 0.8,
   });
 
   final response = await http.post(

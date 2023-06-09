@@ -681,6 +681,45 @@ class BudgetInfoStorage {
     }
   }
 
+  Future<bool> addCustomCategoryToNecessaryExpense({
+    required String budgetId,
+    required String newCategory,
+    required double newAmount,
+  }) async {
+    try {
+      final budgetInfo = await FirebaseFirestore.instance
+          .collection(FirebaseCollectionName.budgets)
+          .where(FirebaseFieldName.budget_id, isEqualTo: budgetId)
+          .limit(1)
+          .get();
+
+      if (budgetInfo.docs.isNotEmpty) {
+        DocumentSnapshot budgetDoc = budgetInfo.docs.first;
+
+        Map<String, dynamic>? budgetData =
+            budgetDoc.data() as Map<String, dynamic>?;
+        Map<String, dynamic> currentNecessaryExpense =
+            budgetData?['necessaryExpense'] != null
+                ? Map<String, dynamic>.from(budgetData!['necessaryExpense'])
+                : {};
+
+        currentNecessaryExpense[newCategory] = newAmount;
+
+        await budgetDoc.reference.update({
+          'necessaryExpense': currentNecessaryExpense,
+        });
+
+        print('Custom Category added: $newCategory with Amount: $newAmount');
+        return true;
+      }
+
+      return false;
+    } catch (e) {
+      print('Failed to add custom category to necessary expense: $e');
+      return false;
+    }
+  }
+
   Future<bool> addDebt({
     required String budgetId,
     required Map<String, dynamic> debtData,

@@ -34,10 +34,14 @@ void main() async {
   await Purchases.setDebugLogsEnabled(true);
 
   if (Platform.isIOS || Platform.isMacOS) {
+    // ignore: deprecated_member_use
     await Purchases.setDebugLogsEnabled(true);
+    // ignore: deprecated_member_use
     await Purchases.setup("");
   } else if (Platform.isAndroid) {
+    // ignore: deprecated_member_use
     await Purchases.setDebugLogsEnabled(true);
+    // ignore: deprecated_member_use
     await Purchases.setup("goog_WNqIbnoSnknuWlqySENzrOKiubP");
   }
 
