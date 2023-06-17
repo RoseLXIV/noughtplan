@@ -142,9 +142,12 @@ class ExpenseTrackingScreen extends HookConsumerWidget {
     final firstTime = ref.watch(firstTimeProvider);
 
     useEffect(() {
-      budgetNotifier.fetchUserBudgets();
-      _animationController.repeat(reverse: true);
-      updateExpensesOnLoad();
+      Future.microtask(() async {
+        await budgetNotifier.fetchUserBudgets();
+        _animationController.repeat(reverse: true);
+        updateExpensesOnLoad();
+      });
+
       return () {}; // Clean-up function
     }, []);
 

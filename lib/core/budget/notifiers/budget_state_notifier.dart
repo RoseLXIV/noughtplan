@@ -205,6 +205,47 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
     }
   }
 
+  Future<void> updateBudgetInfoSubscriberSalary({
+    required BudgetId budgetId,
+    required double salary,
+  }) async {
+    state = state.copiedWithIsLoading(true);
+
+    // Get the user ID from the Authenticator
+    final userId = await _authenticator.userId;
+
+    // Ensure userId and deviceId are not null before proceeding
+    if (userId == null) {
+      state = BudgetState(
+        status: BudgetStatus.failure,
+        isLoading: false,
+        userId: null,
+        budgets: [],
+      );
+      return;
+    }
+
+    final result = await _budgetInfoStorage.updateBudgetInfoSubscriberSalary(
+      budgetId: budgetId,
+      salary: salary,
+    );
+    if (result) {
+      state = BudgetState(
+        status: BudgetStatus.success,
+        isLoading: false,
+        userId: userId,
+        budgets: [],
+      );
+    } else {
+      state = BudgetState(
+        status: BudgetStatus.failure,
+        isLoading: false,
+        userId: userId,
+        budgets: [],
+      );
+    }
+  }
+
   // Future<void> fetchSalary() async {
   //   state = state.copiedWithIsLoading(true);
 
@@ -246,8 +287,18 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
 
     final userId = _authenticator.userId;
     print(userId);
+    print('Budget ID: $budgetId');
 
     if (userId == null) {
+      state = BudgetState(
+        status: BudgetStatus.failure,
+        isLoading: false,
+        userId: null,
+        budgets: [],
+      );
+      return;
+    }
+    if (budgetId == null) {
       state = BudgetState(
         status: BudgetStatus.failure,
         isLoading: false,
@@ -260,6 +311,56 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
     final result = await _budgetNecessaryInfoStorage.saveBudgetNecessaryInfo(
       budgetId: budgetId,
       necessaryExpense: necessaryExpense,
+    );
+    if (result) {
+      state = BudgetState(
+        status: BudgetStatus.success,
+        isLoading: false,
+        userId: userId,
+        budgets: [],
+      );
+    } else {
+      state = BudgetState(
+        status: BudgetStatus.failure,
+        isLoading: false,
+        userId: userId,
+        budgets: [],
+      );
+    }
+  }
+
+  Future<void> saveSavingsNecessaryInfo({
+    required budgetId,
+    required Map<String, double> savings,
+  }) async {
+    state = state.copiedWithIsLoading(true);
+
+    final userId = _authenticator.userId;
+    print(userId);
+    print('Budget ID: $budgetId');
+
+    if (userId == null) {
+      state = BudgetState(
+        status: BudgetStatus.failure,
+        isLoading: false,
+        userId: null,
+        budgets: [],
+      );
+      return;
+    }
+    if (budgetId == null) {
+      state = BudgetState(
+        status: BudgetStatus.failure,
+        isLoading: false,
+        userId: null,
+        budgets: [],
+      );
+      return;
+    }
+
+    final result = await _budgetNecessaryInfoStorage.saveSavingsNecessaryInfo(
+      budgetId: budgetId,
+      savings: savings,
     );
     if (result) {
       state = BudgetState(
@@ -461,6 +562,44 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
     final result = await _budgetDebtInfoStorage.updateDebtAmounts(
       budgetId: budgetId,
       debtAmounts: debtAmounts,
+    );
+    if (result) {
+      state = BudgetState(
+        status: BudgetStatus.success,
+        isLoading: false,
+        userId: userId,
+        budgets: [],
+      );
+    } else {
+      state = BudgetState(
+        status: BudgetStatus.failure,
+        isLoading: false,
+        userId: userId,
+        budgets: [],
+      );
+    }
+  }
+
+  Future<void> updateSavingsAmounts(
+      {required String? budgetId, required Map<String, double> savings}) async {
+    state = state.copiedWithIsLoading(true);
+
+    final userId = _authenticator.userId;
+    print(budgetId);
+
+    if (budgetId == null) {
+      state = BudgetState(
+        status: BudgetStatus.failure,
+        isLoading: false,
+        userId: null,
+        budgets: [],
+      );
+      return;
+    }
+
+    final result = await _budgetDebtInfoStorage.updateSavingsAmounts(
+      budgetId: budgetId,
+      savings: savings,
     );
     if (result) {
       state = BudgetState(
@@ -919,6 +1058,7 @@ class BudgetStateNotifier extends StateNotifier<BudgetState> {
   }
 
   Future<String> getCurrency({required String? budgetId}) async {
+    print('budgetId in get Currency: $budgetId');
     try {
       final currency =
           await _budgetInfoStorage.fetchCurrency(budgetId: budgetId ?? '');

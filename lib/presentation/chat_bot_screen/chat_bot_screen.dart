@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -77,7 +78,7 @@ void _scrollToBottomMessage() {
   });
 }
 
-void _initialScrollToBottom() {
+Future<void> _initialScrollToBottom() async {
   WidgetsBinding.instance.addPostFrameCallback((_) {
     if (_scrollController.hasClients) {
       _scrollController.positions.forEach((position) {
@@ -132,7 +133,7 @@ class ChatBotNotifier extends StateNotifier<List<Message>> {
   }
 
   Future<void> simulateTyping(
-      String chatbotResponse, Budget selectedBudget) async {
+      String chatbotResponse, Budget selectedBudget, WidgetRef ref) async {
     final delayDuration = Duration(milliseconds: 10); // Adjust typing speed
     String currentMessage = '';
 
@@ -141,6 +142,7 @@ class ChatBotNotifier extends StateNotifier<List<Message>> {
     for (int i = 0; i < chatbotResponse.length; i++) {
       // If the message was cancelled, stop simulating typing
       if (!(_timer?.isActive ?? false)) {
+        ref.read(typingNotifierProvider.notifier).stopTyping();
         break;
       }
 
@@ -169,7 +171,8 @@ class ChatBotNotifier extends StateNotifier<List<Message>> {
   // Update the sendMessage method accordingly
   Future<void> sendMessage(
       String message, String firstName, Budget selectedBudget,
-      {required VoidCallback onBotResponse}) async {
+      {required VoidCallback onBotResponse, required WidgetRef ref}) async {
+    ref.read(typingNotifierProvider.notifier).startTyping();
     // Start a timer that will cancel the message after 60 seconds
     _timer = Timer(Duration(seconds: 60), () {
       state.removeLast();
@@ -212,9 +215,9 @@ class ChatBotNotifier extends StateNotifier<List<Message>> {
 
       // If the message wasn't cancelled, simulate typing and add chatbot response
       if (_timer?.isActive ?? false) {
-        await simulateTyping(chatbotResponse, selectedBudget);
+        await simulateTyping(chatbotResponse, selectedBudget, ref);
       }
-
+      ref.read(typingNotifierProvider.notifier).stopTyping();
       // Cancel the timer if it's still active
       _timer?.cancel();
 
@@ -238,6 +241,7 @@ class ChatBotNotifier extends StateNotifier<List<Message>> {
     } catch (e) {
       // Handle error in fetching response
       print("Chat Message Failed: $e");
+      ref.read(typingNotifierProvider.notifier).stopTyping();
     }
   }
 
@@ -268,6 +272,70 @@ final chatBotProvider = StateNotifierProvider<ChatBotNotifier, List<Message>>(
   },
 );
 
+class TypingNotifier extends StateNotifier<bool> {
+  TypingNotifier() : super(false);
+
+  void startTyping() {
+    state = true;
+  }
+
+  void stopTyping() {
+    state = false;
+  }
+}
+
+final typingNotifierProvider = StateNotifierProvider<TypingNotifier, bool>(
+  (ref) => TypingNotifier(),
+);
+
+class QuestionsNotifier extends StateNotifier<List<String>> {
+  QuestionsNotifier() : super([]) {
+    state = _getRandomQuestions();
+  }
+
+  final List<String> questions = [
+    "What's my current budget balance?",
+    "Rate my budget out of 10",
+    "How much am I saving monthly?",
+    "How can I cut costs?",
+    "What's my biggest expense?",
+    "How fast can I pay off my debt?",
+    "What if my income increased by 10%?",
+    "How to build an emergency fund?",
+    "Impact of buying a new car?",
+    "Can I afford a vacation?",
+    "Can I afford a new house?",
+    "How to reduce discretionary spending?",
+    "Can I save more?",
+    "Timeline to pay off my loans?",
+    "Can I make a big purchase soon?",
+  ];
+
+  List<String> _getRandomQuestions() {
+    var rng = new Random();
+    List<String> randomQuestions = [];
+
+    for (var i = 0; i < 3; i++) {
+      String question = questions[rng.nextInt(questions.length)];
+      while (randomQuestions.contains(question)) {
+        question = questions[rng.nextInt(questions.length)];
+      }
+      randomQuestions.add(question);
+    }
+
+    return randomQuestions;
+  }
+
+  void refreshQuestions() {
+    state = _getRandomQuestions();
+  }
+}
+
+final questionsProvider =
+    StateNotifierProvider<QuestionsNotifier, List<String>>(
+  (ref) => QuestionsNotifier(),
+);
+
 class ChatBotScreen extends HookConsumerWidget {
   const ChatBotScreen({super.key});
 
@@ -288,15 +356,16 @@ class ChatBotScreen extends HookConsumerWidget {
     FocusNode _textFieldFocusNode = FocusNode();
 
     useEffect(() {
-      Future.microtask(() {
+      Future.microtask(() async {
         _animationController.repeat(reverse: true);
-        ref
+        await ref
             .read(chatBotProvider.notifier)
             ._loadMessages(selectedBudget.budgetId);
-        _initialScrollToBottom();
+        await _initialScrollToBottom();
 
         return null;
       });
+      return null;
     }, []);
 
     late Timer _timer;
@@ -307,7 +376,7 @@ class ChatBotScreen extends HookConsumerWidget {
       if (trialStartTimeStr != null) {
         final trialStart = DateTime.parse(trialStartTimeStr);
         // Calculate the end of the trial
-        final trialEnd = trialStart.add(Duration(days: 1));
+        final trialEnd = trialStart.add(Duration(minutes: 30));
         final currentTime = DateTime.now();
         if (trialEnd.isAfter(currentTime)) {
           final remainingTime = trialEnd.difference(currentTime);
@@ -367,6 +436,9 @@ class ChatBotScreen extends HookConsumerWidget {
       }
       return subscriptionInfo;
     }
+
+    final displayedQuestions = ref.watch(questionsProvider);
+    final isTyping = ref.watch(typingNotifierProvider);
 
     return SafeArea(
       child: Scaffold(
@@ -833,12 +905,58 @@ class ChatBotScreen extends HookConsumerWidget {
             ),
           ),
           child: Container(
-            padding: getPadding(left: 16, right: 16, top: 8, bottom: 8),
-            child: Row(
+            padding: getPadding(left: 8, right: 8, top: 4, bottom: 10),
+            height: 100,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                AbsorbPointer(
+                  absorbing: isTyping,
+                  child: Container(
+                    height: 50,
+                    width: double.infinity,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: displayedQuestions.length,
+                      itemBuilder: (BuildContext context, int index) {
+                        return GestureDetector(
+                          onTap: () {
+                            String message = displayedQuestions[index];
+                            _controller.text = message;
+                            ref.read(chatBotProvider.notifier).sendMessage(
+                                message, firstName, selectedBudget,
+                                onBotResponse: _scrollToBottomMessage,
+                                ref: ref);
+                            _scrollToBottom();
+
+                            ref
+                                .read(questionsProvider.notifier)
+                                .refreshQuestions();
+                          },
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 3.0),
+                            child: Chip(
+                              label: Text(displayedQuestions[index],
+                                  style: AppStyle.txtHelveticaNowTextBold12
+                                      .copyWith(color: ColorConstant.blueA700)),
+                              backgroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                side: BorderSide(
+                                    color: ColorConstant.blueA700, width: 1),
+                                borderRadius: BorderRadius.circular(30),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
                 Expanded(
                   child: TextField(
-                    focusNode: _textFieldFocusNode,
+                    focusNode: isTyping ? null : _textFieldFocusNode,
+                    enabled: !isTyping,
                     controller: _controller,
                     decoration: InputDecoration(
                       hintText: 'Type your message...',
@@ -861,7 +979,8 @@ class ChatBotScreen extends HookConsumerWidget {
                           if (message.isNotEmpty) {
                             ref.read(chatBotProvider.notifier).sendMessage(
                                 message, firstName, selectedBudget,
-                                onBotResponse: _scrollToBottomMessage);
+                                onBotResponse: _scrollToBottomMessage,
+                                ref: ref);
                             _controller.clear();
                             // Clear the text field without closing the keyboard
                             _scrollToBottom();
@@ -879,7 +998,7 @@ class ChatBotScreen extends HookConsumerWidget {
                         _controller.clear();
                         ref.read(chatBotProvider.notifier).sendMessage(
                             text, firstName, selectedBudget,
-                            onBotResponse: _scrollToBottomMessage);
+                            onBotResponse: _scrollToBottomMessage, ref: ref);
                         _scrollToBottom();
 
                         _textFieldFocusNode.requestFocus();

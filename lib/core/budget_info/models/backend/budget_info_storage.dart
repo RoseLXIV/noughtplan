@@ -123,13 +123,52 @@ class BudgetInfoStorage {
         budgetType: budgetType,
         deviceId: deviceId,
       );
-      await FirebaseFirestore.instance
+
+      final budgetInfo = await FirebaseFirestore.instance
           .collection(FirebaseCollectionName.budgets)
-          .add(payload);
+          .where(FirebaseFieldName.budget_id, isEqualTo: budgetId.toString())
+          .limit(1)
+          .get();
+
+      if (budgetInfo.docs.isNotEmpty) {
+        await budgetInfo.docs.first.reference.update({
+          FirebaseFieldName.salary: salary,
+          FirebaseFieldName.currency: currency,
+          FirebaseFieldName.budget_type: budgetType,
+        });
+      } else {
+        await FirebaseFirestore.instance
+            .collection(FirebaseCollectionName.budgets)
+            .add(payload);
+      }
 
       return true;
     } catch (e) {
       return false;
+    }
+  }
+
+  Future<bool> updateBudgetInfoSubscriberSalary({
+    required BudgetId budgetId,
+    required double salary,
+  }) async {
+    try {
+      final budgetInfo = await FirebaseFirestore.instance
+          .collection(FirebaseCollectionName.budgets)
+          .where(FirebaseFieldName.budget_id, isEqualTo: budgetId.toString())
+          .limit(1)
+          .get();
+
+      if (budgetInfo.docs.isNotEmpty) {
+        await budgetInfo.docs.first.reference.update({
+          FirebaseFieldName.salary: salary,
+        });
+        return true;
+      }
+
+      return false; // Budget with the specified budgetId not found
+    } catch (e) {
+      return false; // Error occurred during the update
     }
   }
 
@@ -180,7 +219,7 @@ class BudgetInfoStorage {
 
       if (budgetInfo.docs.isNotEmpty) {
         await budgetInfo.docs.first.reference.update({
-          'necessaryExpense.Surplus': remainingFunds,
+          'savings.Surplus': remainingFunds,
         });
         return true;
       }
@@ -763,7 +802,7 @@ class BudgetInfoStorage {
     try {
       final budgetInfo = await FirebaseFirestore.instance
           .collection(FirebaseCollectionName.budgets)
-          .where(FirebaseFieldName.budget_id, isEqualTo: budgetId.toString())
+          .where(FirebaseFieldName.budget_id, isEqualTo: budgetId)
           .limit(1)
           .get();
 

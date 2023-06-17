@@ -69,6 +69,30 @@ class BudgetDebtInfoStorage {
     }
   }
 
+  Future<bool> updateSavingsAmounts({
+    required BudgetId budgetId,
+    required Map<String, double> savings,
+  }) async {
+    try {
+      final budgetInfo = await FirebaseFirestore.instance
+          .collection(FirebaseCollectionName.budgets)
+          .where(FirebaseFieldName.budget_id, isEqualTo: budgetId.toString())
+          .limit(1)
+          .get();
+
+      if (budgetInfo.docs.isNotEmpty) {
+        await budgetInfo.docs.first.reference.update({
+          FirebaseFieldName.savings: savings,
+        });
+        return true;
+      }
+
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
   Future<bool> deleteZeroValueDebtCategories(
       {required BudgetId budgetId}) async {
     try {

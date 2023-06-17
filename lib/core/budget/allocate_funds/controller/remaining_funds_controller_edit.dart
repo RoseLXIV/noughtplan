@@ -75,7 +75,9 @@ class RemainingFundsControllerEdit extends StateNotifier<double> {
   Future<void> updateInitialValue(double value) async {
     if (mounted) {
       await Future.delayed(Duration.zero);
-      state = value;
+      if (mounted) {
+        state = value;
+      }
     }
   }
 

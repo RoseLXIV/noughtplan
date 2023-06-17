@@ -1,6 +1,6 @@
 name: noughtplan
 description: A new Flutter project.
-version: 1.0.11+11
+version: 1.0.15+15
 environment: 
   sdk: '>=2.17.0 <3.0.0'
 dependencies: 
@@ -40,6 +40,8 @@ dependencies:
   purchases_flutter: ^4.12.0
   flutter_launcher_icons: ^0.13.1
   device_info_plus: ^8.2.2
+  carousel_slider: ^4.2.1
+  flutter_keyboard_visibility: ^5.4.1
  
 dev_dependencies: 
   flutter_test: 

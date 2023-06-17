@@ -159,7 +159,7 @@ Map<int, String> mergeAllButtonTexts() {
   return allButtonTexts;
 }
 
-List<Map<String, dynamic>> gridItems = [
+List<Map<String, dynamic>> gridItemsDiscretionary = [
   {
     'text': 'Entertainment',
     'iconPath': ImageConstant.imgEntertainment,
@@ -889,14 +889,17 @@ class CategoryDiscretionaryScreen extends HookConsumerWidget {
                               ),
                             ),
                             Padding(
-                                padding: getPadding(top: 16),
-                                child: Text("Budget Category Sectors",
-                                    overflow: TextOverflow.ellipsis,
-                                    textAlign: TextAlign.left,
-                                    style: AppStyle.txtHelveticaNowTextBold16
-                                        .copyWith(
-                                            letterSpacing:
-                                                getHorizontalSize(0.4)))),
+                              padding: getPadding(top: 16),
+                              child: Text(
+                                "Budget Category Sectors",
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.left,
+                                style:
+                                    AppStyle.txtHelveticaNowTextBold16.copyWith(
+                                  letterSpacing: getHorizontalSize(0.4),
+                                ),
+                              ),
+                            ),
                             Padding(
                               padding: getPadding(top: 15),
                               child: Row(
@@ -950,27 +953,33 @@ class CategoryDiscretionaryScreen extends HookConsumerWidget {
                                       mainAxisSpacing: getHorizontalSize(8),
                                       crossAxisSpacing: getHorizontalSize(8),
                                     ),
-                                    itemCount: gridItems.length,
+                                    itemCount: gridItemsDiscretionary.length,
                                     itemBuilder: (context, index) {
                                       return GridtrendingupItemWidget(
-                                        text: gridItems[index]['text'],
-                                        iconPath: gridItems[index]['iconPath'],
+                                        text: gridItemsDiscretionary[index]
+                                            ['text'],
+                                        iconPath: gridItemsDiscretionary[index]
+                                            ['iconPath'],
                                         onTap: () {
-                                          final buttonTexts =
+                                          final buttonTextsDiscretionary =
                                               getButtonTextsForGridItem(
-                                                  gridItems[index]['text']);
-                                          String parentCategory =
-                                              gridItems[index]['text'];
+                                                  gridItemsDiscretionary[index]
+                                                      ['text']);
+                                          String parentCategoryDiscretionary =
+                                              gridItemsDiscretionary[index]
+                                                  ['text'];
                                           ref
                                               .read(
                                                   buttonListStateProviderDiscretionary
                                                       .notifier)
                                               .setCurrentParentCategory(
-                                                  parentCategory);
-                                          _showModalBottomSheet(context,
-                                              buttonTexts, parentCategory);
+                                                  parentCategoryDiscretionary);
+                                          _showModalBottomSheetDiscretionary(
+                                              context,
+                                              buttonTextsDiscretionary,
+                                              parentCategoryDiscretionary);
                                           print(
-                                              '${gridItems[index]['text']} tapped');
+                                              '${gridItemsDiscretionary[index]['text']} tapped');
                                         },
                                       );
                                     },
@@ -993,10 +1002,6 @@ class CategoryDiscretionaryScreen extends HookConsumerWidget {
                   mainAxisSize: MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
-                    CustomImageView(
-                      svgPath: ImageConstant.imgCarousel3,
-                      margin: getMargin(bottom: 10),
-                    ),
                     CustomButton(
                       height: getVerticalSize(56),
                       text: "Next",
@@ -1098,7 +1103,7 @@ class CategoryDiscretionaryScreen extends HookConsumerWidget {
   }
 }
 
-void _showModalBottomSheet(
+void _showModalBottomSheetDiscretionary(
     BuildContext context, Map<int, String> buttonTexts, String parentCategory) {
   showModalBottomSheet(
     context: context,

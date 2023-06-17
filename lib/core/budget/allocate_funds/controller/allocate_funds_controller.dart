@@ -80,6 +80,17 @@ class AllocateFundsController extends StateNotifier<AllocateFundsState> {
     );
   }
 
+  void resetValidationSavings() {
+    state = state.copyWith(
+      amount: const Amount.pure(),
+      status: Formz.validate([
+        state.necessaryAmount,
+        state.discretionaryAmount,
+        const Amount.pure()
+      ]),
+    );
+  }
+
   void initialValidationNecessary(String inputAmount) {
     if (inputAmount.isNotEmpty && double.parse(inputAmount) > 0) {
       final necessaryAmount = NecessaryAmount.dirty(inputAmount);

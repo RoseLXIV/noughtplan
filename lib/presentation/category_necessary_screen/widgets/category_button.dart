@@ -30,14 +30,15 @@ class CategoryButton extends ConsumerWidget {
       onTap: () {
         if (isFromSearchResults) {
           if (!isSelected) {
-            ref.read(buttonListStateProvider.notifier).addCategory(text);
+            ref.read(buttonListStateProvider.notifier).addCategory(
+                  text,
+                  ref,
+                );
           }
         } else {
-          ref.read(buttonListStateProvider.notifier).toggleButton(
-                context,
-                index,
-                text,
-              );
+          ref
+              .read(buttonListStateProvider.notifier)
+              .toggleButton(context, index, text, ref);
         }
         print('index: $index, text: $text, isSelected: $isSelected');
       },

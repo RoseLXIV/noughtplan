@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:equatable/equatable.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -9,7 +11,13 @@ import 'package:uuid/uuid.dart'; // Replace with the correct path
 
 part 'generate_salary_state_edit.dart';
 
-final generateSalaryProviderEdit = StateNotifierProvider.autoDispose<
+// Define a debounce duration
+const Duration _debounceDuration = Duration(milliseconds: 300);
+
+// Create a Timer instance
+Timer? _debounceTimer;
+
+final generateSalaryProviderEdit = StateNotifierProvider<
     GenerateSalaryControllerEdit, GenerateSalaryStateEdit>(
   (ref) => GenerateSalaryControllerEdit(
     ref.read(budgetStateProvider.notifier),
@@ -47,27 +55,43 @@ class GenerateSalaryControllerEdit
   }
 
   void onSalaryChange(String value) {
-    print('onSalaryChange: $value');
-    if (value.isNotEmpty) {
-      // Remove commas from the salary value
-      String sanitizedValue = value.replaceAll(',', '');
+    // Cancel the previous timer if it's still active
+    _debounceTimer?.cancel();
 
-      // Only update the state if the value actually changes
-      if (sanitizedValue != state.salary.value) {
-        final salary = Salary.dirty(sanitizedValue);
+    // Start a new timer to debounce the execution
+    _debounceTimer = Timer(_debounceDuration, () {
+      print('onSalaryChange: $value');
+      if (value.isNotEmpty) {
+        // Remove commas from the salary value
+        String sanitizedValue = value.replaceAll(',', '');
+
+        // Only update the state if the value actually changes
+        if (mounted && sanitizedValue != state.salary.value) {
+          final salary = Salary.dirty(sanitizedValue);
+
+          // Check if the sanitized value is zero or invalid
+          if (sanitizedValue == "0" || salary.invalid) {
+            state = state.copyWith(
+              salary: salary,
+              status: FormzStatus.invalid,
+            );
+          } else {
+            state = state.copyWith(
+              salary: salary,
+              status:
+                  Formz.validate([salary, state.currency, state.budgetType]),
+            );
+          }
+        }
+      } else {
+        // If the value is empty, set the salary to empty and mark as invalid
+        final salary = Salary.dirty(value);
         state = state.copyWith(
           salary: salary,
-          status: Formz.validate([salary, state.currency, state.budgetType]),
+          status: FormzStatus.invalid,
         );
       }
-    } else {
-      // If the value is empty, set the salary to empty
-      final salary = Salary.dirty(value);
-      state = state.copyWith(
-        salary: salary,
-        status: Formz.validate([salary, state.currency, state.budgetType]),
-      );
-    }
+    });
   }
 
   void onCurrencyChange(String value) {

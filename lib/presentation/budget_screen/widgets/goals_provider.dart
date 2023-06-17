@@ -13,7 +13,7 @@ class GoalsNotifier extends StateNotifier<List<Map<String, dynamic>>> {
 
   GoalsNotifier({required this.budgetNotifier}) : super([]) {}
 
-  void loadGoals(String? budgetId) async {
+  Future<void> loadGoals(String? budgetId) async {
     // Assuming your BudgetStateNotifier class has a method to get the goals.
     final budgets = await budgetNotifier.fetchUserBudgets();
 

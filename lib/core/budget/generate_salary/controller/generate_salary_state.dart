@@ -7,6 +7,7 @@ class GenerateSalaryState extends Equatable {
   final FormzStatus status;
   final String? errorMessage;
   final String? budgetId;
+  final bool? saveAndContinuePressed;
 
   const GenerateSalaryState({
     this.salary = const Salary.pure(),
@@ -15,6 +16,7 @@ class GenerateSalaryState extends Equatable {
     this.status = FormzStatus.pure,
     this.errorMessage,
     this.budgetId,
+    this.saveAndContinuePressed,
   });
 
   GenerateSalaryState copyWith({
@@ -24,6 +26,7 @@ class GenerateSalaryState extends Equatable {
     FormzStatus? status,
     String? errorMessage,
     String? budgetId,
+    bool? saveAndContinuePressed,
   }) {
     return GenerateSalaryState(
       salary: salary ?? this.salary,
@@ -32,6 +35,8 @@ class GenerateSalaryState extends Equatable {
       status: status ?? this.status,
       errorMessage: errorMessage ?? this.errorMessage,
       budgetId: budgetId ?? this.budgetId,
+      saveAndContinuePressed:
+          saveAndContinuePressed ?? this.saveAndContinuePressed,
     );
   }
 
@@ -43,5 +48,6 @@ class GenerateSalaryState extends Equatable {
         status,
         errorMessage,
         budgetId,
+        saveAndContinuePressed,
       ];
 }

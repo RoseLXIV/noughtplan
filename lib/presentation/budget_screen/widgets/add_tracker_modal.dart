@@ -83,8 +83,7 @@ Future<void> showAddTrackerModal(
   final debtController = ref.watch(debtTrackerProvider.notifier);
   final customGoalController = ref.watch(customGoalTrackerProvider.notifier);
 
-  Future<void> loadAndShowRewardedAd(
-      BuildContext context, WidgetRef ref) async {
+  Future<void> loadAndShowRewardedAd(BuildContext context) async {
     RewardedAd? rewardedAd;
     await RewardedAd.load(
       adUnitId:
@@ -564,7 +563,7 @@ Future<void> showAddTrackerModal(
                                                                     dialogContext)
                                                                 .pop();
                                                             await loadAndShowRewardedAd(
-                                                                context, ref);
+                                                                context);
 
                                                             // Add the code to add trackers here
                                                             await goalController
@@ -770,7 +769,7 @@ Future<void> showAddTrackerModal(
                                                                     dialogContext)
                                                                 .pop();
                                                             await loadAndShowRewardedAd(
-                                                                context, ref);
+                                                                context);
 
                                                             // Add the code to add trackers here
                                                             await debtController
@@ -881,7 +880,7 @@ Future<void> showAddTrackerModal(
                                                                     dialogContext)
                                                                 .pop();
                                                             await loadAndShowRewardedAd(
-                                                                context, ref);
+                                                                context);
 
                                                             // Add the code to add trackers here
                                                             await customGoalController

@@ -17,12 +17,14 @@ import 'package:noughtplan/core/budget/providers/banner_ads_class_provider.dart'
 import 'package:noughtplan/core/constants/budgets.dart';
 import 'package:noughtplan/core/forms/form_validators.dart';
 import 'package:noughtplan/core/providers/first_time_provider.dart';
+import 'package:noughtplan/presentation/budget_creation_page_view_edit/budget_creation_page_view_edit.dart';
 import 'package:noughtplan/widgets/app_bar/appbar_image.dart';
 import 'package:noughtplan/widgets/app_bar/appbar_title.dart';
 import 'package:noughtplan/widgets/app_bar/custom_app_bar.dart';
 import 'package:noughtplan/widgets/custom_button.dart';
 import 'package:noughtplan/widgets/custom_button_form.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 @immutable
 class CurrencyTypes {
@@ -116,27 +118,73 @@ final ValueNotifier<bool> isValidatedNotifier = ValueNotifier(false);
 final ValueNotifier<String> salaryValueNotifier = ValueNotifier<String>('');
 
 class GeneratorSalaryScreenEdit extends HookConsumerWidget {
+  final Budget selectedBudget;
+
+  GeneratorSalaryScreenEdit({required this.selectedBudget});
   final salaryFocusNode = FocusNode();
   final currencyFocusNode = FocusNode();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // print(
+    //     'Amount of Budgets in Generator Edit $selectedBudget.budgetId.length');
     final _animationController =
         useAnimationController(duration: const Duration(seconds: 1));
     final firstTime = ref.watch(firstTimeProvider);
-    final Map<String, dynamic> args =
-        ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
-    final Budget? selectedBudget = args['selectedBudget'];
+    // final Map<String, dynamic> args =
+    //     ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+    // final Budget? selectedBudget = args['selectedBudget'];
 
-    // print('selectedBudget: $selectedBudget');
+    final salaryValueEdit = useState('');
+
+    print('selectedBudget: ${selectedBudget.budgetId}');
+
+    final salaryController = useTextEditingController();
+
+    // salaryController.text = salaryValue.value;
+
+    print('salaryValue on Load: ${salaryValueEdit.value}');
+
+    Future<void> saveSalaryValue(String value) async {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setString('salaryValueEdit', value);
+    }
+
+    Future<String?> getSavedSalaryValue() async {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      return prefs.getString('salaryValueEdit');
+    }
+
+    final currencyValue = useState('');
+    final budgetTypeValue = useState('');
+
+    Future<void> saveCurrencyValue(String value) async {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setString('currencyValue', value);
+    }
+
+    Future<String?> getSavedCurrencyValue() async {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      return prefs.getString('currencyValue');
+    }
+
+    Future<void> saveBudgetTypeValue(String value) async {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setString('budgetTypeValue', value);
+    }
+
+    Future<String?> getSavedBudgetTypeValue() async {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      return prefs.getString('budgetTypeValue');
+    }
 
     final data = ref.watch(dataProvider);
     final dataBudgets = ref.watch(dataProviderBudgets);
     final selectedCurrency =
-        data.getCurrencyTypeByName(selectedBudget?.currency);
+        data.getCurrencyTypeByName(selectedBudget.currency);
     final selectedCurrencyState = useState<CurrencyTypes>(selectedCurrency);
     final selectedBudgetType =
-        dataBudgets.getBudgetTypeByName(selectedBudget?.budgetType);
+        dataBudgets.getBudgetTypeByName(selectedBudget.budgetType);
     final selectedBudgetTypeState = useState<BudgetTypes>(selectedBudgetType);
     final currencyList = data.currencyList;
     final budgetList = dataBudgets.budgetList;
@@ -151,13 +199,20 @@ class GeneratorSalaryScreenEdit extends HookConsumerWidget {
     // generateSalaryController.initializeSalary(selectedBudget.salary);
 
     useEffect(() {
-      Future.microtask(() {
-        _animationController.repeat(reverse: true);
-        generateSalaryController.initializeSalary(selectedBudget?.salary ?? 0);
+      Future.microtask(() async {
+        final savedSalaryValue = await getSavedSalaryValue();
+        // print('SavedSalaryValue $savedSalaryValue');
+        salaryValueEdit.value = savedSalaryValue ?? '';
+        String sanitizedValue = salaryValueEdit.value.replaceAll(',', '');
+        double? salary = double.tryParse(sanitizedValue);
+        print('salary in generator: ${salary}');
+        final selectedCurrency = data._selectedCurrency?.name ?? '';
+        final selectedBudgetType = dataBudgets._selectedType?.types ?? '';
+        print('Salary on Generator: $salary');
+        generateSalaryController.initializeSalary(salary ?? 0.0);
+        generateSalaryController.initializeCurrency(selectedBudget.currency);
         generateSalaryController
-            .initializeCurrency(selectedBudget?.currency ?? '');
-        generateSalaryController
-            .initializeBudgetType(selectedBudget?.budgetType ?? '');
+            .initializeBudgetType(selectedBudget.budgetType);
       });
       return () {}; // Cleanup function
     }, [firstTime]);
@@ -195,7 +250,9 @@ class GeneratorSalaryScreenEdit extends HookConsumerWidget {
       return subscriptionInfo;
     }
 
-    final salaryController = TextEditingController();
+    final numberFormat = NumberFormat("#,##0.00", "en_US");
+
+    // final salaryController = TextEditingController();
     return WillPopScope(
       onWillPop: () {
         Navigator.pushNamed(context, '/home_page_screen');
@@ -211,11 +268,20 @@ class GeneratorSalaryScreenEdit extends HookConsumerWidget {
               width: double.maxFinite,
               child: Stack(
                 children: [
-                  CustomImageView(
-                      imagePath: ImageConstant.imgTopographic5,
-                      height: getVerticalSize(290),
-                      width: getHorizontalSize(375),
-                      alignment: Alignment.topCenter),
+                  Transform(
+                    transform: Matrix4.identity()..scale(1.0, 1.0, 0.1),
+                    // alignment: Alignment.center,
+                    child: CustomImageView(
+                      imagePath: ImageConstant.chatTopo,
+                      height: MediaQuery.of(context).size.height *
+                          0.5, // Set the height to 50% of the screen height
+                      width: MediaQuery.of(context)
+                          .size
+                          .width, // Set the width to the full screen width
+                      // alignment: Alignment.bottomCenter,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
                   Padding(
                       padding: getPadding(left: 24, right: 24),
                       child: Column(
@@ -440,8 +506,8 @@ class GeneratorSalaryScreenEdit extends HookConsumerWidget {
                                           ),
                                         ),
                                         TextField(
-                                            // controller: salaryController,
-                                            focusNode: salaryFocusNode,
+                                            controller: salaryController,
+                                            // focusNode: salaryFocusNode,
                                             maxLength: 12,
                                             keyboardType:
                                                 TextInputType.numberWithOptions(
@@ -450,16 +516,17 @@ class GeneratorSalaryScreenEdit extends HookConsumerWidget {
                                               ThousandsFormatter(),
                                             ],
                                             onChanged: (salary) {
-                                              generateSalaryController
-                                                  .onSalaryChange(salary);
-                                              print(salary);
-                                              print(salary);
                                               if (salary.isEmpty) {
+                                                String defaultSalary =
+                                                    numberFormat.format(
+                                                        selectedBudget.salary);
                                                 generateSalaryController
-                                                    .initializeSalary(
-                                                        selectedBudget
-                                                                ?.salary ??
-                                                            0);
+                                                    .onSalaryChange(
+                                                        defaultSalary);
+                                              } else {
+                                                salaryValueEdit.value = salary;
+                                                generateSalaryController
+                                                    .onSalaryChange(salary);
                                               }
                                             },
                                             decoration: InputDecoration(
@@ -479,9 +546,8 @@ class GeneratorSalaryScreenEdit extends HookConsumerWidget {
                                               prefix: Text('\$'),
                                               prefixStyle: AppStyle
                                                   .txtHelveticaNowTextBold40,
-                                              hintText: NumberFormat('#,##0.00')
-                                                  .format(
-                                                      selectedBudget?.salary),
+                                              hintText: numberFormat.format(
+                                                  selectedBudget.salary),
                                               hintStyle: AppStyle
                                                   .txtHelveticaNowTextBold40
                                                   .copyWith(
@@ -723,74 +789,118 @@ class GeneratorSalaryScreenEdit extends HookConsumerWidget {
                                     },
                                   ),
                                 ),
-                                CustomImageView(
-                                  svgPath: ImageConstant.imgCarousel1,
-                                  margin: getMargin(top: 10, bottom: 10),
-                                ),
                                 Container(
                                   margin: EdgeInsets.only(
                                       bottom: MediaQuery.of(context)
                                           .viewInsets
                                           .bottom),
-                                  child: CustomButtonForm(
-                                    alignment: Alignment.bottomCenter,
-                                    height: getVerticalSize(56),
-                                    text: "Next",
-                                    onTap: isValidated
-                                        ? () async {
-                                            final budgetId =
-                                                selectedBudget?.budgetId;
-                                            final result =
-                                                await generateSalaryController
-                                                    .saveBudgetInfoUpdate(
-                                              budgetId ?? '',
-                                            );
-                                            if (result == true) {
-                                              Navigator.pushNamed(context,
-                                                  '/category_necessary_screen_edit',
-                                                  arguments: selectedBudget);
-                                              ScaffoldMessenger.of(context)
-                                                  .showSnackBar(
-                                                SnackBar(
-                                                  content: Text(
-                                                    'Information saved successfully!',
-                                                    textAlign: TextAlign.center,
-                                                    style: AppStyle
-                                                        .txtHelveticaNowTextBold16WhiteA700
-                                                        .copyWith(
-                                                      letterSpacing:
-                                                          getHorizontalSize(
-                                                              0.3),
+                                  child: Column(
+                                    children: [
+                                      Padding(
+                                        padding: getPadding(bottom: 8),
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.center,
+                                          children: [
+                                            CustomImageView(
+                                              svgPath:
+                                                  ImageConstant.imgAlertcircle,
+                                              height: getSize(16),
+                                              width: getSize(16),
+                                              color: ColorConstant.amber600,
+                                            ),
+                                            Padding(
+                                              padding: getPadding(left: 6),
+                                              child: Text(
+                                                  'Remember to save your information!',
+                                                  style: AppStyle
+                                                      .txtManropeSemiBold12
+                                                      .copyWith(
+                                                          color: ColorConstant
+                                                              .amber600)),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      CustomButtonForm(
+                                        alignment: Alignment.bottomCenter,
+                                        height: getVerticalSize(56),
+                                        text: "Save & Continue",
+                                        onTap: isValidated
+                                            ? () async {
+                                                saveSalaryValue(
+                                                    salaryValueEdit.value);
+                                                saveCurrencyValue(
+                                                    currencyValue.value);
+                                                saveBudgetTypeValue(
+                                                    budgetTypeValue.value);
+                                                final budgetId =
+                                                    selectedBudget.budgetId;
+                                                final result =
+                                                    await generateSalaryController
+                                                        .saveBudgetInfoUpdate(
+                                                  budgetId,
+                                                );
+                                                if (result == true) {
+                                                  Navigator.push(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                      builder: (context) =>
+                                                          BudgetCreationPageViewEdit(
+                                                        initialIndex: 1,
+                                                        selectedBudget:
+                                                            selectedBudget,
+                                                      ),
                                                     ),
-                                                  ),
-                                                  backgroundColor:
-                                                      ColorConstant.blue900,
-                                                ),
-                                              );
-                                            } else {
-                                              ScaffoldMessenger.of(context)
-                                                  .showSnackBar(
-                                                SnackBar(
-                                                  content: Text(
-                                                    'Please fill in all the fields!',
-                                                    textAlign: TextAlign.center,
-                                                    style: AppStyle
-                                                        .txtHelveticaNowTextBold16WhiteA700
-                                                        .copyWith(
-                                                      letterSpacing:
-                                                          getHorizontalSize(
-                                                              0.3),
+                                                  );
+                                                  ScaffoldMessenger.of(context)
+                                                      .showSnackBar(
+                                                    SnackBar(
+                                                      content: Text(
+                                                        'Information saved successfully!',
+                                                        textAlign:
+                                                            TextAlign.center,
+                                                        style: AppStyle
+                                                            .txtHelveticaNowTextBold16WhiteA700
+                                                            .copyWith(
+                                                          letterSpacing:
+                                                              getHorizontalSize(
+                                                                  0.3),
+                                                        ),
+                                                      ),
+                                                      backgroundColor:
+                                                          ColorConstant.blue900,
                                                     ),
-                                                  ),
-                                                  backgroundColor:
-                                                      ColorConstant.redA700,
-                                                ),
-                                              );
-                                            }
-                                            print(result);
-                                          }
-                                        : null,
-                                    enabled: isValidated,
+                                                  );
+                                                } else {
+                                                  ScaffoldMessenger.of(context)
+                                                      .showSnackBar(
+                                                    SnackBar(
+                                                      content: Text(
+                                                        'Please fill in all the fields!',
+                                                        textAlign:
+                                                            TextAlign.center,
+                                                        style: AppStyle
+                                                            .txtHelveticaNowTextBold16WhiteA700
+                                                            .copyWith(
+                                                          letterSpacing:
+                                                              getHorizontalSize(
+                                                                  0.3),
+                                                        ),
+                                                      ),
+                                                      backgroundColor:
+                                                          ColorConstant.redA700,
+                                                    ),
+                                                  );
+                                                }
+                                                print(result);
+                                              }
+                                            : null,
+                                        enabled: isValidated,
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ],

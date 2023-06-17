@@ -10,7 +10,10 @@ class Salary extends FormzInput<String, SalaryValidationError> {
 
   @override
   SalaryValidationError? validator(String value) {
-    return _salaryRegExp.hasMatch(value) ? null : SalaryValidationError.invalid;
+    if (!_salaryRegExp.hasMatch(value) || double.parse(value) == 0) {
+      return SalaryValidationError.invalid;
+    }
+    return null;
   }
 
   static String? showSalaryErrorMessage(SalaryValidationError? error) {

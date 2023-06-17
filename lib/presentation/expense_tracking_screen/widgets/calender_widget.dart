@@ -40,7 +40,7 @@ class CalendarController extends StateNotifier<CalendarState> {
     state = state.copyWith(calendarFormat: format);
   }
 
-  void setSelectedDay(DateTime day) {
+  Future<void> setSelectedDay(DateTime day) async {
     Future.microtask(() {
       state = state.copyWith(selectedDay: day);
     });
@@ -86,21 +86,29 @@ class CalendarWidget extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     useEffect(() {
-      onLoad();
+      Future.microtask(() async {
+        onLoad();
 
-      // Schedule the setSelectedDay method to be called after the frame is built
-      SchedulerBinding.instance.addPostFrameCallback((_) {
-        ref.read(calendarProvider.notifier).setSelectedDay(DateTime.now());
+        // Schedule the setSelectedDay method to be called after the frame is built
+        SchedulerBinding.instance.addPostFrameCallback((_) async {
+          await ref
+              .read(calendarProvider.notifier)
+              .setSelectedDay(DateTime.now());
+        });
+
+        await ref
+            .read(calendarProvider.notifier)
+            .setSelectedDay(DateTime.now());
       });
 
       return () {}; // Clean-up function
     }, []);
 
-    useEffect(() {
-      // Set the current date as the selected day when the page is loaded
-      ref.read(calendarProvider.notifier).setSelectedDay(DateTime.now());
-      return () {}; // Clean-up function
-    }, []);
+    // useEffect(() {
+    //   // Set the current date as the selected day when the page is loaded
+
+    //   return () {}; // Clean-up function
+    // }, []);
     final calendarController = ref.watch(calendarProvider.notifier);
     final calendarState = ref.watch(calendarProvider);
     final selectedDate = calendarState.selectedDay;

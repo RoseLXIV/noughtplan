@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:noughtplan/presentation/category_necessary_screen_edit/category_necessary_screen_edit.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../widgets/custom_text_button.dart';
 
@@ -31,10 +32,18 @@ class CategoryButtonEdit extends ConsumerWidget {
     return CustomTextButton(
       height: 40,
       text: text,
-      onTap: () {
+      onTap: () async {
         if (isFromSearchResults) {
           if (!isSelected) {
             ref.read(buttonListStateProviderEdit.notifier).addCategory(text);
+            final prefs = await SharedPreferences.getInstance();
+            List<String>? searchCategories =
+                prefs.getStringList('searchCategories');
+            if (searchCategories == null) {
+              searchCategories = [];
+            }
+            searchCategories.add(text);
+            await prefs.setStringList('searchCategories', searchCategories);
           }
         } else {
           ref.read(buttonListStateProviderEdit.notifier).toggleButton(

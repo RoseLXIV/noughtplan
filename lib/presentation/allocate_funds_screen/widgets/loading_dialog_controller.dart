@@ -32,8 +32,9 @@ class LoadingDialogController {
                       stream: _stream(),
                       builder: (context, snapshot) {
                         return Text(snapshot.data ?? '',
-                            style: AppStyle.txtHelveticaNowTextBold16
-                                .copyWith(color: ColorConstant.blue90001));
+                            textAlign: TextAlign.center,
+                            style: AppStyle.txtManropeBold14
+                                .copyWith(color: ColorConstant.gray900));
                       },
                     ),
                   ],
@@ -54,16 +55,16 @@ class LoadingDialogController {
   }
 
   Stream<String> _stream() async* {
-    yield 'Warming up the calculators...'; // Initial value
+    yield 'The maths is mathsing...🤔'; // Initial value
     while (true) {
       await Future.delayed(Duration(seconds: 2));
-      yield 'Doing the number crunch dance...';
+      yield 'The numbers are crunching...⚙️';
       await Future.delayed(Duration(seconds: 2));
-      yield 'Building your budget like a boss...';
+      yield 'The money is moneying...💰';
       await Future.delayed(Duration(seconds: 2));
-      yield 'Turning your coins into cool charts...';
+      yield 'The figures are figuring...🧮';
       await Future.delayed(Duration(seconds: 2));
-      yield "Your budget's in the oven, baking...";
+      yield "The savings are saving...📈";
       await Future.delayed(Duration(seconds: 2));
       yield 'Almost done, hold your breath...';
       await Future.delayed(Duration(seconds: 2));

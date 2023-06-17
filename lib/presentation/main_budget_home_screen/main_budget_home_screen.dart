@@ -2,6 +2,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_neumorphic/flutter_neumorphic.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:noughtplan/core/app_export.dart';
 import 'package:noughtplan/core/budget/providers/budget_state_provider.dart';
 import 'package:noughtplan/presentation/budget_screen/budget_screen.dart';
@@ -17,6 +19,7 @@ class MainBudgetHomeScreen extends StatefulWidget {
 }
 
 class _MainBudgetHomeScreenState extends State<MainBudgetHomeScreen> {
+  final container = ProviderContainer();
   late PageController _pageController;
   int _currentIndex = 1;
 
@@ -28,6 +31,7 @@ class _MainBudgetHomeScreenState extends State<MainBudgetHomeScreen> {
 
   @override
   void dispose() {
+    container.dispose();
     _pageController.dispose();
     super.dispose();
   }
@@ -98,6 +102,50 @@ class _MainBudgetHomeScreenState extends State<MainBudgetHomeScreen> {
     return subscriptionInfo;
   }
 
+  Future<void> loadAndShowRewardedAd(BuildContext context) async {
+    RewardedAd? rewardedAd;
+    await RewardedAd.load(
+      adUnitId:
+          'ca-app-pub-9181910622688491/9213189503', // Replace with your own AdUnitID
+      request: AdRequest(),
+      rewardedAdLoadCallback: RewardedAdLoadCallback(
+        onAdLoaded: (RewardedAd ad) {
+          print('RewardedAd loaded: ${ad.adUnitId}');
+          rewardedAd = ad;
+
+          rewardedAd?.fullScreenContentCallback = FullScreenContentCallback(
+            onAdDismissedFullScreenContent: (RewardedAd ad) {
+              // Perform the action after ad is completed
+              // Generate insights here
+              ad.dispose();
+            },
+            onAdFailedToShowFullScreenContent: (RewardedAd ad, AdError error) {
+              print('$ad onAdFailedToShowFullScreenContent: $error');
+              ad.dispose();
+            },
+            onAdShowedFullScreenContent: (RewardedAd ad) {
+              print('$ad onAdShowedFullScreenContent.');
+            },
+            onAdImpression: (RewardedAd ad) {
+              print('$ad onAdImpression.');
+            },
+          );
+
+          rewardedAd?.show(
+            onUserEarnedReward: (AdWithoutView ad, RewardItem reward) {
+              print(
+                  '$ad with reward $RewardItem(${reward.amount}, ${reward.type})');
+              // You can also perform any action needed when the user earns a reward here
+            },
+          );
+        },
+        onAdFailedToLoad: (LoadAdError error) {
+          print('RewardedAd failed to load: $error');
+        },
+      ),
+    );
+  }
+
   Future<void> startFreeTrial() async {
     final prefs = await SharedPreferences.getInstance();
     final currentTime = DateTime.now();
@@ -113,7 +161,7 @@ class _MainBudgetHomeScreenState extends State<MainBudgetHomeScreen> {
     final trialStartString = prefs.getString('free_trial_start');
     if (trialStartString != null) {
       final trialStart = DateTime.parse(trialStartString);
-      final trialEnd = trialStart.add(Duration(days: 1));
+      final trialEnd = trialStart.add(Duration(minutes: 30));
       final currentTime = DateTime.now();
       // Check if the current time is past the trial end time
       if (currentTime.isAfter(trialEnd)) {
@@ -393,50 +441,110 @@ class _MainBudgetHomeScreenState extends State<MainBudgetHomeScreen> {
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   FutureBuilder<bool?>(
-                                      future: isFreeTrialExpired(),
-                                      builder: (BuildContext context,
-                                          AsyncSnapshot<bool?> snapshot) {
-                                        // While we're waiting for the future to resolve, show a loading spinner
-                                        if (snapshot.connectionState ==
-                                            ConnectionState.waiting) {
-                                          return CircularProgressIndicator();
-                                        } else if (snapshot.data == null ||
-                                            snapshot.data == false) {
-                                          return Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: [
-                                              TextButton(
-                                                onPressed: () async {
-                                                  // Start the free trial if button is pressed
-                                                  await startFreeTrial();
-                                                  // Close the dialog
-                                                  Navigator.pop(context);
-                                                  // Set the current page to ChatBotScreen
-                                                  setState(() {
-                                                    _currentIndex = index;
-                                                  });
-                                                  _pageController
-                                                      .jumpToPage(index);
-                                                },
-                                                child: Text(
-                                                  'Try AI Assistant for Free',
-                                                  style: AppStyle
-                                                      .txtHelveticaNowTextBold12
-                                                      .copyWith(
-                                                    color:
-                                                        ColorConstant.blueA700,
-                                                    decoration: TextDecoration
-                                                        .underline,
-                                                  ),
+                                    future: isFreeTrialExpired(),
+                                    builder: (BuildContext context,
+                                        AsyncSnapshot<bool?> snapshot) {
+                                      // While we're waiting for the future to resolve, show a loading spinner
+                                      if (snapshot.connectionState ==
+                                          ConnectionState.waiting) {
+                                        return CircularProgressIndicator();
+                                      } else if (snapshot.data == null ||
+                                          snapshot.data == false) {
+                                        return Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            TextButton(
+                                              onPressed: () async {
+                                                await showDialog(
+                                                  context: context,
+                                                  builder: (BuildContext
+                                                      dialogContext) {
+                                                    return AlertDialog(
+                                                      title: Text(
+                                                        'Watch an ad to try AI Assistant for Free',
+                                                        style: AppStyle
+                                                            .txtManropeRegular14
+                                                            .copyWith(
+                                                                color: ColorConstant
+                                                                    .blueGray500,
+                                                                letterSpacing:
+                                                                    0.2),
+                                                      ),
+                                                      actions: <Widget>[
+                                                        TextButton(
+                                                          child: Text(
+                                                            'OK',
+                                                            style: AppStyle
+                                                                .txtHelveticaNowTextBold14
+                                                                .copyWith(
+                                                                    letterSpacing:
+                                                                        0.2,
+                                                                    color: ColorConstant
+                                                                        .blueA700),
+                                                          ),
+                                                          onPressed: () async {
+                                                            Navigator.of(
+                                                                    dialogContext)
+                                                                .pop();
+                                                            await loadAndShowRewardedAd(
+                                                                context);
+
+                                                            // Start the free trial here
+                                                            await startFreeTrial();
+                                                            // Close the dialog
+                                                            Navigator.pop(
+                                                                context);
+                                                            // Set the current page to ChatBotScreen
+                                                            setState(() {
+                                                              _currentIndex =
+                                                                  index;
+                                                            });
+                                                            _pageController
+                                                                .jumpToPage(
+                                                                    index);
+                                                          },
+                                                        ),
+                                                        TextButton(
+                                                          child: Text(
+                                                            'Cancel',
+                                                            style: AppStyle
+                                                                .txtHelveticaNowTextBold14
+                                                                .copyWith(
+                                                                    color: ColorConstant
+                                                                        .blueGray800,
+                                                                    letterSpacing:
+                                                                        0.2),
+                                                          ),
+                                                          onPressed: () {
+                                                            Navigator.of(
+                                                                    dialogContext)
+                                                                .pop();
+                                                          },
+                                                        ),
+                                                      ],
+                                                    );
+                                                  },
+                                                );
+                                              },
+                                              child: Text(
+                                                'Try AI Assistant for Free',
+                                                style: AppStyle
+                                                    .txtHelveticaNowTextBold12
+                                                    .copyWith(
+                                                  color: ColorConstant.blueA700,
+                                                  decoration:
+                                                      TextDecoration.underline,
                                                 ),
                                               ),
-                                            ],
-                                          );
-                                        } else {
-                                          return SizedBox.shrink();
-                                        }
-                                      }),
+                                            ),
+                                          ],
+                                        );
+                                      } else {
+                                        return SizedBox.shrink();
+                                      }
+                                    },
+                                  ),
                                 ],
                               ),
                             ),
@@ -765,52 +873,113 @@ class _MainBudgetHomeScreenState extends State<MainBudgetHomeScreen> {
                                           MainAxisAlignment.center,
                                       children: [
                                         FutureBuilder<bool?>(
-                                            future: isFreeTrialExpired(),
-                                            builder: (BuildContext context,
-                                                AsyncSnapshot<bool?> snapshot) {
-                                              // While we're waiting for the future to resolve, show a loading spinner
-                                              if (snapshot.connectionState ==
-                                                  ConnectionState.waiting) {
-                                                return CircularProgressIndicator();
-                                              } else if (snapshot.data ==
-                                                      null ||
-                                                  snapshot.data == false) {
-                                                return Row(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment.center,
-                                                  children: [
-                                                    TextButton(
-                                                      onPressed: () async {
-                                                        // Start the free trial if button is pressed
-                                                        await startFreeTrial();
-                                                        // Close the dialog
-                                                        Navigator.pop(context);
-                                                        // Set the current page to ChatBotScreen
-                                                        setState(() {
-                                                          _currentIndex = index;
-                                                        });
-                                                        _pageController
-                                                            .jumpToPage(index);
-                                                      },
-                                                      child: Text(
-                                                        'Try AI Assistant for Free',
-                                                        style: AppStyle
-                                                            .txtHelveticaNowTextBold12
-                                                            .copyWith(
-                                                          color: ColorConstant
-                                                              .blueA700,
-                                                          decoration:
-                                                              TextDecoration
-                                                                  .underline,
-                                                        ),
+                                          future: isFreeTrialExpired(),
+                                          builder: (BuildContext context,
+                                              AsyncSnapshot<bool?> snapshot) {
+                                            // While we're waiting for the future to resolve, show a loading spinner
+                                            if (snapshot.connectionState ==
+                                                ConnectionState.waiting) {
+                                              return CircularProgressIndicator();
+                                            } else if (snapshot.data == null ||
+                                                snapshot.data == false) {
+                                              return Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: [
+                                                  TextButton(
+                                                    onPressed: () async {
+                                                      await showDialog(
+                                                        context: context,
+                                                        builder: (BuildContext
+                                                            dialogContext) {
+                                                          return AlertDialog(
+                                                            title: Text(
+                                                              'Watch an ad to try AI Assistant for Free',
+                                                              style: AppStyle
+                                                                  .txtManropeRegular14
+                                                                  .copyWith(
+                                                                      color: ColorConstant
+                                                                          .blueGray500,
+                                                                      letterSpacing:
+                                                                          0.2),
+                                                            ),
+                                                            actions: <Widget>[
+                                                              TextButton(
+                                                                child: Text(
+                                                                  'OK',
+                                                                  style: AppStyle
+                                                                      .txtHelveticaNowTextBold14
+                                                                      .copyWith(
+                                                                          letterSpacing:
+                                                                              0.2,
+                                                                          color:
+                                                                              ColorConstant.blueA700),
+                                                                ),
+                                                                onPressed:
+                                                                    () async {
+                                                                  Navigator.of(
+                                                                          dialogContext)
+                                                                      .pop();
+                                                                  await loadAndShowRewardedAd(
+                                                                      context);
+
+                                                                  // Start the free trial here
+                                                                  await startFreeTrial();
+                                                                  // Close the dialog
+                                                                  Navigator.pop(
+                                                                      context);
+                                                                  // Set the current page to ChatBotScreen
+                                                                  setState(() {
+                                                                    _currentIndex =
+                                                                        index;
+                                                                  });
+                                                                  _pageController
+                                                                      .jumpToPage(
+                                                                          index);
+                                                                },
+                                                              ),
+                                                              TextButton(
+                                                                child: Text(
+                                                                  'Cancel',
+                                                                  style: AppStyle
+                                                                      .txtHelveticaNowTextBold14
+                                                                      .copyWith(
+                                                                          color: ColorConstant
+                                                                              .blueGray800,
+                                                                          letterSpacing:
+                                                                              0.2),
+                                                                ),
+                                                                onPressed: () {
+                                                                  Navigator.of(
+                                                                          dialogContext)
+                                                                      .pop();
+                                                                },
+                                                              ),
+                                                            ],
+                                                          );
+                                                        },
+                                                      );
+                                                    },
+                                                    child: Text(
+                                                      'Try AI Assistant for Free',
+                                                      style: AppStyle
+                                                          .txtHelveticaNowTextBold12
+                                                          .copyWith(
+                                                        color: ColorConstant
+                                                            .blueA700,
+                                                        decoration:
+                                                            TextDecoration
+                                                                .underline,
                                                       ),
                                                     ),
-                                                  ],
-                                                );
-                                              } else {
-                                                return SizedBox.shrink();
-                                              }
-                                            }),
+                                                  ),
+                                                ],
+                                              );
+                                            } else {
+                                              return SizedBox.shrink();
+                                            }
+                                          },
+                                        ),
                                       ],
                                     ),
                                   ),

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:noughtplan/core/constants/budgets.dart';
 import 'package:noughtplan/presentation/allocate_funds_screen_edit/allocate_funds_screen_edit.dart';
+import 'package:noughtplan/presentation/budget_creation_page_view/budget_creation_page_view.dart';
+import 'package:noughtplan/presentation/budget_creation_page_view_edit/budget_creation_page_view_edit.dart';
 import 'package:noughtplan/presentation/category_discretionary_screen_edit/category_discretionary_screen_edit.dart';
 import 'package:noughtplan/presentation/category_necessary_screen_edit/category_necessary_screen_edit.dart';
 import 'package:noughtplan/presentation/chat_bot_screen/chat_bot_screen.dart';
@@ -117,6 +120,11 @@ class AppRoutes {
 
   static const String mainBudgetHomeScreen = '/main_budget_home_screen';
 
+  static const String budgetCreationPageView = '/budget_creation_page_view';
+
+  static const String budgetCreationPageViewEdit =
+      '/budget_creation_page_view_edit';
+
   static Map<String, WidgetBuilder> routes = {
     splashScreen: (context) => SplashScreen(),
     getStartedScreen: (context) => GetStartedScreen(),
@@ -128,14 +136,26 @@ class AppRoutes {
     enableFaceIdScreen: (context) => EnableFaceIdScreen(),
     enableFingerprintScreen: (context) => EnableFingerprintScreen(),
     generatorSalaryScreen: (context) => GeneratorSalaryScreen(),
-    generatorSalaryScreenEdit: (context) => GeneratorSalaryScreenEdit(),
+    generatorSalaryScreenEdit: (context) {
+      final selectedBudget =
+          ModalRoute.of(context)!.settings.arguments as Budget;
+      return GeneratorSalaryScreenEdit(selectedBudget: selectedBudget);
+    },
     categoryNecessaryScreen: (context) => CategoryNecessaryScreen(),
-    categoryNecessaryScreenEdit: (context) => CategoryNecessaryScreenEdit(),
+    categoryNecessaryScreenEdit: (context) {
+      final selectedBudget =
+          ModalRoute.of(context)!.settings.arguments as Budget;
+      return CategoryNecessaryScreenEdit(selectedBudget: selectedBudget);
+    },
     categoryDiscretionaryScreen: (context) => CategoryDiscretionaryScreen(),
     categoryDiscretionaryScreenEdit: (context) =>
         CategoryDiscretionaryScreenEdit(),
     allocateFundsScreen: (context) => AllocateFundsScreen(),
-    allocateFundsScreenEdit: (context) => AllocateFundsScreenEdit(),
+    allocateFundsScreenEdit: (context) {
+      final selectedBudget =
+          ModalRoute.of(context)!.settings.arguments as Budget;
+      return AllocateFundsScreenEdit(selectedBudget: selectedBudget);
+    },
     chatBotScreen: (context) => ChatBotScreen(),
     debtPageScreen: (context) => DebtPageScreen(),
     cutBackScreen: (context) => CutBackScreen(),
@@ -154,5 +174,12 @@ class AppRoutes {
     homePageScreen: (context) => HomePageScreen(),
     expenseTrackingScreen: (context) => ExpenseTrackingScreen(),
     mainBudgetHomeScreen: (context) => MainBudgetHomeScreen(),
+    budgetCreationPageView: (context) => BudgetCreationPageView(
+          initialIndex: 0,
+        ),
+    budgetCreationPageViewEdit: (context) => BudgetCreationPageViewEdit(
+          initialIndex: 0,
+          selectedBudget: ModalRoute.of(context)!.settings.arguments as Budget,
+        ),
   };
 }

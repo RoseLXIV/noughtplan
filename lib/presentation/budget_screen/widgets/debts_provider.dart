@@ -13,7 +13,7 @@ class DebtsNotifier extends StateNotifier<List<Map<String, dynamic>>> {
 
   DebtsNotifier({required this.budgetNotifier}) : super([]) {}
 
-  void loadDebts(String? budgetId) async {
+  Future<void> loadDebts(String? budgetId) async {
     // Assuming your BudgetStateNotifier class has a method to get the debts.
     final budgets = await budgetNotifier.fetchUserBudgets();
 

@@ -27,13 +27,13 @@ class EditLoadingDialogController {
                   mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
                     CircularProgressIndicator(),
-                    const SizedBox(height: 16.0),
+                    const SizedBox(height: 18.0),
                     StreamBuilder<String>(
                       stream: _stream(),
                       builder: (context, snapshot) {
                         return Text(snapshot.data ?? '',
-                            style: AppStyle.txtHelveticaNowTextBold16
-                                .copyWith(color: ColorConstant.blue90001));
+                            style: AppStyle.txtManropeBold14
+                                .copyWith(color: ColorConstant.gray900));
                       },
                     ),
                   ],
@@ -54,22 +54,22 @@ class EditLoadingDialogController {
   }
 
   Stream<String> _stream() async* {
-    yield 'Kicking off the budget makeover...'; // Initial value
+    yield 'The maths is mathsing...🤔'; // Initial value
     while (true) {
       await Future.delayed(Duration(seconds: 2));
-      yield 'Jazzing up the numbers...';
+      yield 'The numbers are crunching...⚙️';
       await Future.delayed(Duration(seconds: 2));
-      yield 'Revamping your budget, like a pro...';
+      yield 'The money is moneying...💰';
       await Future.delayed(Duration(seconds: 2));
-      yield 'Turning those changes into cool visuals...';
+      yield 'The figures are figuring...🧮';
       await Future.delayed(Duration(seconds: 2));
-      yield "Your budget's under construction...";
+      yield "The savings are saving...📈";
       await Future.delayed(Duration(seconds: 2));
-      yield 'Almost there, anticipation rising...';
+      yield 'Almost done, hold your breath...';
       await Future.delayed(Duration(seconds: 2));
-      yield 'Applying the final touches...';
+      yield 'Applying the final sparkle...';
       await Future.delayed(Duration(seconds: 2));
-      yield 'Voila! Your refreshed budget is here!'; // Final text
+      yield 'Boom! Your budget masterpiece is here!'; // Final text
       break; // Break the loop after the final text
     }
   }

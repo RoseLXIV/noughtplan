@@ -53,7 +53,7 @@ class HomePageScreen extends HookConsumerWidget {
     final authState = ref.watch(authStateProvider);
     final deviceId = authState.deviceId;
 
-    void linkUser() async {
+    Future<void> linkUser() async {
       final firebaseUser = FirebaseAuth.instance.currentUser;
       // print('Firebase User: $firebaseUser');
 
@@ -140,25 +140,32 @@ class HomePageScreen extends HookConsumerWidget {
         useAnimationController(duration: const Duration(seconds: 1));
     final firstTime = ref.watch(firstTimeProvider);
 
+    Future<void> refreshData() async {
+      await Future.wait([
+        budgetNotifier.fetchBudgetCount(),
+        checkIsSubscribed(), // This function will re-fetch subscription status
+      ]);
+    }
+
+    Future<void> fetchBudgets() async {
+      final fetchedBudgets = await budgetNotifier.fetchUserBudgets();
+      _budgets.value = fetchedBudgets;
+      SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+        statusBarColor: Colors.black,
+        statusBarIconBrightness: Brightness.light,
+      ));
+    }
+
     useEffect(() {
       Future.microtask(() async {
         await budgetNotifier.deleteBudgetsWithNoName();
         await budgetNotifier.fetchBudgetCount();
-        Future<void> fetchBudgets() async {
-          final fetchedBudgets = await budgetNotifier.fetchUserBudgets();
-          _budgets.value = fetchedBudgets;
-          SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
-            statusBarColor: Colors.black,
-            statusBarIconBrightness: Brightness.light,
-          ));
-        }
-
-        linkUser();
-        checkIsSubscribed();
-
+        await linkUser();
+        await checkIsSubscribed();
         await fetchBudgets();
+        // await refreshData();
 
-        checkIsSubscribed().then((value) {
+        await checkIsSubscribed().then((value) {
           print('User is ${value ? 'Subscribed' : 'Not Subscribed'}');
 
           if (firstTime) {
@@ -193,13 +200,6 @@ class HomePageScreen extends HookConsumerWidget {
 
     final randomGreeting = (greetings..shuffle()).first;
     ScrollController _scrollController = ScrollController();
-
-    Future<void> refreshData() async {
-      await Future.wait([
-        budgetNotifier.fetchBudgetCount(),
-        checkIsSubscribed(), // This function will re-fetch subscription status
-      ]);
-    }
 
     // print(budgets);
     return SafeArea(
@@ -542,7 +542,7 @@ class HomePageScreen extends HookConsumerWidget {
               Container(
                 width: double.maxFinite,
                 height: double.maxFinite,
-                padding: getPadding(left: 30, right: 30, bottom: 11, top: 130),
+                padding: getPadding(left: 30, right: 30, bottom: 11, top: 140),
                 child: RefreshIndicator(
                   onRefresh: refreshData,
                   child: SingleChildScrollView(
@@ -667,7 +667,7 @@ class HomePageScreen extends HookConsumerWidget {
                                           itemBuilder: (context, index) {
                                             final budget = userBudgets[index];
                                             return Dismissible(
-                                              key: Key(budget!.budgetId),
+                                              key: UniqueKey(),
                                               background: Column(
                                                 mainAxisAlignment:
                                                     MainAxisAlignment.center,
@@ -735,50 +735,106 @@ class HomePageScreen extends HookConsumerWidget {
                                                   DismissDirection.endToStart,
                                               confirmDismiss:
                                                   (direction) async {
-                                                // Show confirmation dialog
                                                 return await showDialog<bool>(
                                                   context: context,
                                                   builder:
                                                       (BuildContext context) {
-                                                    return AlertDialog(
-                                                      title: Text(
-                                                          'Confirm Deletion',
-                                                          style: AppStyle
-                                                              .txtHelveticaNowTextBold18),
-                                                      content: Text(
-                                                          'Are you sure you want to delete this budget?',
-                                                          style: AppStyle
-                                                              .txtManropeRegular14),
-                                                      actions: <Widget>[
-                                                        TextButton(
-                                                          onPressed: () =>
-                                                              Navigator.of(
-                                                                      context)
-                                                                  .pop(false),
-                                                          child: Text('Cancel',
+                                                    TextEditingController
+                                                        deleteController =
+                                                        TextEditingController();
+                                                    return StatefulBuilder(
+                                                      builder:
+                                                          (context, setState) {
+                                                        return AlertDialog(
+                                                          title: Text(
+                                                              'Confirm Deletion',
                                                               style: AppStyle
-                                                                  .txtHelveticaNowTextBold14),
-                                                        ),
-                                                        TextButton(
-                                                          onPressed: () =>
-                                                              Navigator.of(
-                                                                      context)
-                                                                  .pop(true),
-                                                          child: Text('Delete',
-                                                              style: AppStyle
-                                                                  .txtHelveticaNowTextBold14
-                                                                  .copyWith(
-                                                                color:
-                                                                    ColorConstant
-                                                                        .redA700,
-                                                              )),
-                                                        ),
-                                                      ],
+                                                                  .txtHelveticaNowTextBold18),
+                                                          content: Column(
+                                                            mainAxisSize:
+                                                                MainAxisSize
+                                                                    .min,
+                                                            crossAxisAlignment:
+                                                                CrossAxisAlignment
+                                                                    .start,
+                                                            children: [
+                                                              Text(
+                                                                  'Are you sure you want to delete this budget?',
+                                                                  style: AppStyle
+                                                                      .txtManropeRegular14),
+                                                              SizedBox(
+                                                                  height: 10),
+                                                              TextField(
+                                                                style: AppStyle
+                                                                    .txtHelveticaNowTextBold14
+                                                                    .copyWith(
+                                                                        color: ColorConstant
+                                                                            .redA700),
+                                                                controller:
+                                                                    deleteController,
+                                                                decoration: InputDecoration(
+                                                                    hintText:
+                                                                        "Type 'DELETE' to confirm",
+                                                                    hintStyle: AppStyle
+                                                                        .txtHelveticaNowTextBold14
+                                                                        .copyWith(
+                                                                            color:
+                                                                                ColorConstant.redA700)),
+                                                                onChanged:
+                                                                    (value) {
+                                                                  setState(
+                                                                      () {}); // triggers a new build of the AlertDialog
+                                                                },
+                                                              ),
+                                                            ],
+                                                          ),
+                                                          actions: <Widget>[
+                                                            TextButton(
+                                                              child: Text(
+                                                                  'Confirm'),
+                                                              onPressed: deleteController
+                                                                          .text ==
+                                                                      'DELETE'
+                                                                  ? () async {
+                                                                      await budgetNotifier
+                                                                          .deleteBudget(
+                                                                              budget!.budgetId);
+                                                                      ref.read(refreshKey.notifier).state = !ref
+                                                                          .read(
+                                                                              refreshKey.notifier)
+                                                                          .state;
+                                                                      _onDismissed(
+                                                                          index);
+                                                                      await budgetNotifier
+                                                                          .fetchUserBudgets();
+                                                                      await refreshData();
+                                                                      Navigator.of(
+                                                                              context)
+                                                                          .pop(
+                                                                              true);
+                                                                    }
+                                                                  : null,
+                                                            ),
+                                                            TextButton(
+                                                              child: Text(
+                                                                  'Cancel'),
+                                                              onPressed: () {
+                                                                Navigator.of(
+                                                                        context)
+                                                                    .pop(false);
+                                                              },
+                                                            ),
+                                                          ],
+                                                        );
+                                                      },
                                                     );
                                                   },
                                                 );
                                               },
                                               onDismissed: (direction) async {
+                                                final budgetId =
+                                                    budget!.budgetId;
+                                                print('budgetId: $budgetId');
                                                 await budgetNotifier
                                                     .deleteBudget(
                                                         budget.budgetId);
@@ -792,6 +848,7 @@ class HomePageScreen extends HookConsumerWidget {
                                                 _onDismissed(index);
                                                 await budgetNotifier
                                                     .fetchUserBudgets();
+                                                await refreshData();
                                               },
                                               child: InkWell(
                                                 onTap: () {
@@ -805,7 +862,8 @@ class HomePageScreen extends HookConsumerWidget {
                                                   );
                                                 },
                                                 child: ListItemWidget(
-                                                  budgetName: budget.budgetName,
+                                                  budgetName:
+                                                      budget!.budgetName,
                                                   budgetType: budget.budgetType,
                                                   totalExpenses: budget.salary,
                                                   spendingType:
@@ -1442,7 +1500,7 @@ class HomePageScreen extends HookConsumerWidget {
                       ),
                       onPressed: () {
                         Navigator.pushNamed(
-                            context, '/generator_salary_screen');
+                            context, '/budget_creation_page_view');
                       },
                       child: Icon(
                         Icons.add_rounded,

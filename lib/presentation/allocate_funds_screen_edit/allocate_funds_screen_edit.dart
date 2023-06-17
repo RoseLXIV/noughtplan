@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 import 'package:flutter_neumorphic/flutter_neumorphic.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -53,6 +54,9 @@ final isAllAmountsEnteredProvider = StateProvider<bool>((ref) {
 });
 
 class AllocateFundsScreenEdit extends HookConsumerWidget {
+  final Budget selectedBudget;
+
+  AllocateFundsScreenEdit({required this.selectedBudget});
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final _animationController =
@@ -65,16 +69,27 @@ class AllocateFundsScreenEdit extends HookConsumerWidget {
         ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?;
 
     final Map<String, double> necessaryCategoriesWithAmount =
-        args?['necessaryCategoriesWithAmount'] as Map<String, double>? ?? {};
-
-    final Map<String, double> extractedDebtLoanCategories =
-        args?['extractedDebtLoanCategories'] as Map<String, double>? ?? {};
-
-    final Map<String, double> discretionaryCategoriesWithAmount =
-        args?['discretionaryCategoriesWithAmount'] as Map<String, double>? ??
+        (args?['necessaryCategoriesWithAmount'] as Map<String, double>?) ??
+            selectedBudget.necessaryExpense ??
             {};
 
-    final Budget selectedBudget = args?['selectedBudget'];
+    final Map<String, double> extractedDebtLoanCategories =
+        (args?['extractedDebtLoanCategories'] as Map<String, double>?) ??
+            selectedBudget.debtExpense ??
+            {};
+
+    final Map<String, double> discretionaryCategoriesWithAmount =
+        (args?['discretionaryCategoriesWithAmount'] as Map<String, double>?) ??
+            selectedBudget.discretionaryExpense ??
+            {};
+
+    List<String> combinedCategories = [
+      ...necessaryCategoriesWithAmount.keys,
+      ...extractedDebtLoanCategories.keys,
+      ...discretionaryCategoriesWithAmount.keys,
+    ];
+
+    // final Budget selectedBudget = args?['selectedBudget'];
 
     // print('necessaryCategoriesWithAmount: $necessaryCategoriesWithAmount');
     // print('extractedDebtLoanCategories: $extractedDebtLoanCategories');
@@ -156,6 +171,8 @@ class AllocateFundsScreenEdit extends HookConsumerWidget {
     double allTotalEnteredAmount = totalEnteredAmountNecessary +
         totalEnteredAmountDiscretionary +
         totalEnteredAmountDebt;
+
+    bool isAllTotalEnteredAmountNonZero = allTotalEnteredAmount != 0;
 
     // Update the remainingFunds state
     double initialRemainingFunds =
@@ -295,6 +312,44 @@ class AllocateFundsScreenEdit extends HookConsumerWidget {
 
     final editLoadingDialogController = EditLoadingDialogController();
 
+    // Define variables for error messages
+
+    String combinedCategoriesErrorMessage =
+        'Please select and save at least one (1) category';
+    String remainingFundsErrorMessage = 'Remaining funds cannot be negative';
+    String totalAmountErrorMessage = 'Please enter at least one (1) amount';
+
+// Check conditions for error messages
+
+    bool showCombinedCategoriesError = combinedCategories.isEmpty;
+    bool showRemainingFundsError = remainingFunds < 0;
+    bool showTotalAmountError = !isAllTotalEnteredAmountNonZero;
+
+// Build the error message widget
+    Widget errorMessageWidget(String errorMessage) {
+      return Padding(
+        padding: getPadding(bottom: 6),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            CustomImageView(
+              svgPath: ImageConstant.imgAlertcircle,
+              height: getSize(16),
+              width: getSize(16),
+              color: ColorConstant.redA700,
+            ),
+            Padding(
+              padding: getPadding(left: 6),
+              child: Text(errorMessage,
+                  style: AppStyle.txtManropeSemiBold12
+                      .copyWith(color: ColorConstant.redA700)),
+            ),
+          ],
+        ),
+      );
+    }
+
     return SafeArea(
       child: WillPopScope(
         onWillPop: () async {
@@ -315,19 +370,20 @@ class AllocateFundsScreenEdit extends HookConsumerWidget {
                     children: [
                       Positioned(
                         top: 0,
-                        left: 0,
+                        left: 10,
                         right: 0,
                         child: Transform(
-                          transform: Matrix4.identity()..scale(1.0, 1.0, 0.1),
+                          transform: Matrix4.identity()..scale(1.0, -1.0, 0.1),
                           alignment: Alignment.center,
                           child: CustomImageView(
-                            imagePath: ImageConstant.imgTopographic8309x375,
+                            imagePath: ImageConstant.expenseTop,
                             height: MediaQuery.of(context).size.height *
-                                0.5, // Set the height to 50% of the screen height
+                                0.6, // Set the height to 50% of the screen height
                             width: MediaQuery.of(context)
                                 .size
                                 .width, // Set the width to the full screen width
                             alignment: Alignment.topCenter,
+                            fit: BoxFit.cover,
                           ),
                         ),
                       ),
@@ -342,7 +398,7 @@ class AllocateFundsScreenEdit extends HookConsumerWidget {
                             mainAxisAlignment: MainAxisAlignment.start,
                             children: [
                               CustomAppBar(
-                                  height: getVerticalSize(80),
+                                  height: getVerticalSize(70),
                                   leadingWidth: 25,
                                   leading: CustomImageView(
                                     onTap: () {
@@ -358,6 +414,23 @@ class AllocateFundsScreenEdit extends HookConsumerWidget {
                                     text: "Allocate Funds",
                                   ),
                                   actions: [
+                                    Padding(
+                                      padding: getPadding(right: 20),
+                                      child: InkWell(
+                                        onTap: () {
+                                          Navigator.pushNamed(
+                                              context, '/home_page_screen');
+                                        },
+                                        child: Container(
+                                          // width: 70,
+                                          child: SvgPicture.asset(
+                                            ImageConstant.imgHome2,
+                                            height: 24,
+                                            width: 24,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
                                     GestureDetector(
                                       onTap: () {
                                         showDialog(
@@ -958,398 +1031,436 @@ class AllocateFundsScreenEdit extends HookConsumerWidget {
                     ],
                   ),
                 ),
-                Align(
-                  alignment: Alignment.bottomCenter,
-                  child: Container(
-                    padding:
-                        getPadding(left: 24, top: 10, right: 24, bottom: 12),
-                    decoration: AppDecoration.outlineBluegray5000c,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: [
-                        CustomImageView(
-                          svgPath: ImageConstant.imgCarousel4,
-                          margin: getMargin(bottom: 10),
-                        ),
-                        CustomButton(
-                          onTap: () async {
-                            TextEditingController budgetNameController =
-                                TextEditingController();
-                            showDialog(
-                                context: context,
-                                builder: (BuildContext context) {
-                                  return StatefulBuilder(builder:
-                                      (BuildContext context,
-                                          StateSetter setState) {
-                                    return AlertDialog(
-                                      title: Text('Confirm Budget',
-                                          style: AppStyle
-                                              .txtHelveticaNowTextBold18
-                                              .copyWith(
-                                                  letterSpacing:
-                                                      getHorizontalSize(0.2))),
-                                      content: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Text(
-                                            'Please review your budget information. You can always make changes later.',
-                                            style: AppStyle.txtManropeRegular14
-                                                .copyWith(
-                                              letterSpacing:
-                                                  getHorizontalSize(0.2),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () {
-                                            Navigator.of(context).pop();
-                                          },
-                                          child: Text('Cancel',
+                KeyboardVisibilityBuilder(builder: (context, visible) {
+                  return Visibility(
+                    visible: !visible,
+                    child: Align(
+                      alignment: Alignment.bottomCenter,
+                      child: Container(
+                        padding:
+                            getPadding(left: 24, top: 6, right: 24, bottom: 12),
+                        decoration: AppDecoration.outlineBluegray5000c,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+                            Column(
+                              children: [
+                                Visibility(
+                                  visible: showCombinedCategoriesError,
+                                  child: errorMessageWidget(
+                                      combinedCategoriesErrorMessage),
+                                ),
+                                Visibility(
+                                  visible: showRemainingFundsError,
+                                  child: errorMessageWidget(
+                                      remainingFundsErrorMessage),
+                                ),
+                                Visibility(
+                                  visible: showTotalAmountError,
+                                  child: errorMessageWidget(
+                                      totalAmountErrorMessage),
+                                ),
+                              ],
+                            ),
+                            CustomButtonAllocate(
+                              enabled: combinedCategories.isNotEmpty &&
+                                  remainingFunds >= 0 &&
+                                  isAllTotalEnteredAmountNonZero,
+                              onTap: () async {
+                                TextEditingController budgetNameController =
+                                    TextEditingController();
+                                showDialog(
+                                    context: context,
+                                    builder: (BuildContext context) {
+                                      return StatefulBuilder(builder:
+                                          (BuildContext context,
+                                              StateSetter setState) {
+                                        return AlertDialog(
+                                          title: Text('Confirm Budget',
                                               style: AppStyle
-                                                  .txtHelveticaNowTextBold14
+                                                  .txtHelveticaNowTextBold18
                                                   .copyWith(
                                                       letterSpacing:
                                                           getHorizontalSize(
-                                                              0.2),
-                                                      color: ColorConstant
-                                                          .blueA700)),
-                                        ),
-                                        TextButton(
-                                          onPressed: () async {
-                                            // Move the original onTap code inside this onPressed callback
-                                            // ...
-                                            FocusScope.of(context).unfocus();
+                                                              0.2))),
+                                          content: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Text(
+                                                'Please review your budget information. You can always make changes later.',
+                                                style: AppStyle
+                                                    .txtManropeRegular14
+                                                    .copyWith(
+                                                  letterSpacing:
+                                                      getHorizontalSize(0.2),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () {
+                                                Navigator.of(context).pop();
+                                              },
+                                              child: Text('Cancel',
+                                                  style: AppStyle
+                                                      .txtHelveticaNowTextBold14
+                                                      .copyWith(
+                                                          letterSpacing:
+                                                              getHorizontalSize(
+                                                                  0.2),
+                                                          color: ColorConstant
+                                                              .blueA700)),
+                                            ),
+                                            TextButton(
+                                              onPressed: () async {
+                                                // Move the original onTap code inside this onPressed callback
+                                                // ...
+                                                FocusScope.of(context)
+                                                    .unfocus();
 
-                                            final budgetState = ref.watch(
-                                                budgetStateProvider.notifier);
-                                            print(
-                                                'Remaining Funds on Next Button: ${remainingFunds}');
-                                            List<String> allCategories = Set<
-                                                        String>.from(
-                                                    necessaryCategoriesWithAmount
-                                                        .keys)
-                                                .toList();
-
-                                            List<String>
-                                                allCategoriesDiscretionary =
-                                                Set<String>.from(
-                                                        discretionaryCategoriesWithAmount
+                                                final budgetState = ref.watch(
+                                                    budgetStateProvider
+                                                        .notifier);
+                                                print(
+                                                    'Remaining Funds on Next Button: ${remainingFunds}');
+                                                List<
+                                                    String> allCategories = Set<
+                                                            String>.from(
+                                                        necessaryCategoriesWithAmount
                                                             .keys)
                                                     .toList();
 
-                                            List<
-                                                String> allCategoriesDebt = Set<
-                                                        String>.from(
-                                                    extractedDebtLoanCategories
-                                                        .keys)
-                                                .toList();
+                                                List<String>
+                                                    allCategoriesDiscretionary =
+                                                    Set<String>.from(
+                                                            discretionaryCategoriesWithAmount
+                                                                .keys)
+                                                        .toList();
 
-                                            final Map<String, double>
-                                                savingsCategories = {
-                                              "Emergency Fund": 0,
-                                              "Retirement Savings": 0,
-                                              "Investments": 0,
-                                              "Education Savings": 0,
-                                              "Vacation Fund": 0,
-                                              "Down Payment": 0,
-                                              "Home Improvement Fund": 0,
-                                              "Home Equity Loan": 0,
-                                              "Debt Payoff": 0,
-                                              "Wedding Fund": 0,
-                                              "Vehicle Savings": 0,
-                                              "General Savings": 0,
-                                            };
+                                                List<String> allCategoriesDebt =
+                                                    Set<String>.from(
+                                                            extractedDebtLoanCategories
+                                                                .keys)
+                                                        .toList();
 
-                                            Map<String, double>
-                                                individualAmountsNecessary =
-                                                getIndividualAmounts(
-                                                    ref, allCategories);
+                                                final Map<String, double>
+                                                    savingsCategories = {
+                                                  "Emergency Fund": 0,
+                                                  "Retirement Savings": 0,
+                                                  "Investments": 0,
+                                                  "Education Savings": 0,
+                                                  "Vacation Fund": 0,
+                                                  "Down Payment": 0,
+                                                  "Home Improvement Fund": 0,
+                                                  "Home Equity Loan": 0,
+                                                  "Debt Payoff": 0,
+                                                  "Wedding Fund": 0,
+                                                  "Vehicle Savings": 0,
+                                                  "General Savings": 0,
+                                                };
 
-                                            Map<String, double>
-                                                individualAmountsDiscretionary =
-                                                getIndividualAmountsDiscretionary(
-                                                    ref,
-                                                    allCategoriesDiscretionary);
+                                                Map<String, double>
+                                                    individualAmountsNecessary =
+                                                    getIndividualAmounts(
+                                                        ref, allCategories);
 
-                                            double totalSavings = 0;
+                                                Map<String, double>
+                                                    individualAmountsDiscretionary =
+                                                    getIndividualAmountsDiscretionary(
+                                                        ref,
+                                                        allCategoriesDiscretionary);
 
-                                            individualAmountsNecessary
-                                                .forEach((key, value) {
-                                              RegExp regex = RegExp(
-                                                  r'savings|saving|investment',
-                                                  caseSensitive: false);
-                                              if (regex.hasMatch(key)) {
-                                                totalSavings += value;
-                                              } else if (savingsCategories
-                                                  .containsKey(key)) {
-                                                totalSavings += value;
-                                              }
-                                            });
+                                                double totalSavings = 0;
 
-                                            individualAmountsDiscretionary
-                                                .forEach((key, value) {
-                                              RegExp regex = RegExp(
-                                                  r'savings|saving|investment',
-                                                  caseSensitive: false);
-                                              if (regex.hasMatch(key)) {
-                                                totalSavings += value;
-                                              } else if (savingsCategories
-                                                  .containsKey(key)) {
-                                                totalSavings += value;
-                                              }
-                                            });
-
-                                            double totalSavingsAndSurplus =
-                                                totalSavings + remainingFunds;
-
-                                            print(
-                                                'Total Savings: $totalSavingsAndSurplus');
-
-                                            Map<String, double>
-                                                individualAmountsDebt =
-                                                getIndividualAmountsDebt(
-                                                    ref, allCategoriesDebt);
-
-                                            // final generateSalaryController =
-                                            //     ref.watch(generateSalaryProvider
-                                            //         .notifier);
-                                            final String? budgetId =
-                                                selectedBudget.budgetId;
-
-                                            double exchangeRate = 1.0;
-                                            String currency =
-                                                await budgetState.getCurrency(
-                                                    budgetId: budgetId);
-
-                                            print('Budget ID: $budgetId');
-                                            print(
-                                                'Currency for the current Budget: $currency');
-
-                                            if (currency == 'JMD') {
-                                              exchangeRate =
-                                                  await fetchExchangeRate(
-                                                      'JMD', 'USD');
-                                            }
-
-                                            double totalEnteredAmountNecessary =
                                                 individualAmountsNecessary
-                                                    .values
-                                                    .fold(0, (a, b) => a + b);
-                                            double
-                                                totalEnteredAmountDiscretionary =
+                                                    .forEach((key, value) {
+                                                  RegExp regex = RegExp(
+                                                      r'savings|saving|investment',
+                                                      caseSensitive: false);
+                                                  if (regex.hasMatch(key)) {
+                                                    totalSavings += value;
+                                                  } else if (savingsCategories
+                                                      .containsKey(key)) {
+                                                    totalSavings += value;
+                                                  }
+                                                });
+
                                                 individualAmountsDiscretionary
-                                                    .values
-                                                    .fold(0, (a, b) => a + b);
-                                            double totalEnteredAmountDebt =
-                                                individualAmountsDebt.values
-                                                    .fold(0, (a, b) => a + b);
+                                                    .forEach((key, value) {
+                                                  RegExp regex = RegExp(
+                                                      r'savings|saving|investment',
+                                                      caseSensitive: false);
+                                                  if (regex.hasMatch(key)) {
+                                                    totalSavings += value;
+                                                  } else if (savingsCategories
+                                                      .containsKey(key)) {
+                                                    totalSavings += value;
+                                                  }
+                                                });
 
-                                            double
-                                                totalEnteredAmountNecessaryUSD =
-                                                totalEnteredAmountNecessary *
-                                                    exchangeRate;
+                                                double totalSavingsAndSurplus =
+                                                    totalSavings +
+                                                        remainingFunds;
 
-                                            final remainingFundsController = ref
-                                                .read(remainingFundsProviderEdit
-                                                    .notifier);
-                                            double salary =
-                                                remainingFundsController
-                                                    .initialValue;
-
-                                            print('Salary: $salary');
-
-                                            print(
-                                                'Total Necessary Expense USD: $totalEnteredAmountNecessaryUSD');
-
-                                            double
-                                                totalEnteredAmountDiscretionaryUSD =
-                                                totalEnteredAmountDiscretionary *
-                                                    exchangeRate;
-
-                                            print(
-                                                'Total Discretionary Expense USD: $totalEnteredAmountDiscretionaryUSD');
-
-                                            String? spendingType =
-                                                await budgetState
-                                                    .updateSpendingType(
-                                              budgetId: budgetId,
-                                              totalNecessaryExpense:
-                                                  totalEnteredAmountNecessaryUSD,
-                                              totalDiscretionaryExpense:
-                                                  totalEnteredAmountDiscretionaryUSD,
-                                            );
-
-                                            if (spendingType != null) {
-                                              print(
-                                                  'Spending type updated to $spendingType');
-
-                                              String? savingType =
-                                                  await budgetState
-                                                      .updateSavingType(
-                                                budgetId: budgetId,
-                                                spendingType: spendingType,
-                                                totalSavings:
-                                                    totalSavingsAndSurplus,
-                                                salary: salary,
-                                              );
-
-                                              if (savingType != null) {
                                                 print(
-                                                    'Saving type updated to $savingType');
+                                                    'Total Savings: $totalSavingsAndSurplus');
 
-                                                double totalDebt =
+                                                Map<String, double>
+                                                    individualAmountsDebt =
+                                                    getIndividualAmountsDebt(
+                                                        ref, allCategoriesDebt);
+
+                                                // final generateSalaryController =
+                                                //     ref.watch(generateSalaryProvider
+                                                //         .notifier);
+                                                final String? budgetId =
+                                                    selectedBudget.budgetId;
+
+                                                double exchangeRate = 1.0;
+                                                String currency =
+                                                    await budgetState
+                                                        .getCurrency(
+                                                            budgetId: budgetId);
+
+                                                print('Budget ID: $budgetId');
+                                                print(
+                                                    'Currency for the current Budget: $currency');
+
+                                                if (currency == 'JMD') {
+                                                  exchangeRate =
+                                                      await fetchExchangeRate(
+                                                          'JMD', 'USD');
+                                                }
+
+                                                double
+                                                    totalEnteredAmountNecessary =
+                                                    individualAmountsNecessary
+                                                        .values
+                                                        .fold(
+                                                            0, (a, b) => a + b);
+                                                double
+                                                    totalEnteredAmountDiscretionary =
+                                                    individualAmountsDiscretionary
+                                                        .values
+                                                        .fold(
+                                                            0, (a, b) => a + b);
+                                                double totalEnteredAmountDebt =
                                                     individualAmountsDebt.values
                                                         .fold(
                                                             0, (a, b) => a + b);
-                                                String? debtType =
+
+                                                double
+                                                    totalEnteredAmountNecessaryUSD =
+                                                    totalEnteredAmountNecessary *
+                                                        exchangeRate;
+
+                                                final remainingFundsController =
+                                                    ref.read(
+                                                        remainingFundsProviderEdit
+                                                            .notifier);
+                                                double salary =
+                                                    remainingFundsController
+                                                        .initialValue;
+
+                                                print('Salary: $salary');
+
+                                                print(
+                                                    'Total Necessary Expense USD: $totalEnteredAmountNecessaryUSD');
+
+                                                double
+                                                    totalEnteredAmountDiscretionaryUSD =
+                                                    totalEnteredAmountDiscretionary *
+                                                        exchangeRate;
+
+                                                print(
+                                                    'Total Discretionary Expense USD: $totalEnteredAmountDiscretionaryUSD');
+
+                                                String? spendingType =
                                                     await budgetState
-                                                        .updateDebtType(
+                                                        .updateSpendingType(
                                                   budgetId: budgetId,
-                                                  debt: totalDebt,
-                                                  income: salary,
+                                                  totalNecessaryExpense:
+                                                      totalEnteredAmountNecessaryUSD,
+                                                  totalDiscretionaryExpense:
+                                                      totalEnteredAmountDiscretionaryUSD,
                                                 );
 
-                                                if (debtType != null) {
+                                                if (spendingType != null) {
                                                   print(
-                                                      'Debt type updated to $debtType');
+                                                      'Spending type updated to $spendingType');
+
+                                                  String? savingType =
+                                                      await budgetState
+                                                          .updateSavingType(
+                                                    budgetId: budgetId,
+                                                    spendingType: spendingType,
+                                                    totalSavings:
+                                                        totalSavingsAndSurplus,
+                                                    salary: salary,
+                                                  );
+
+                                                  if (savingType != null) {
+                                                    print(
+                                                        'Saving type updated to $savingType');
+
+                                                    double totalDebt =
+                                                        individualAmountsDebt
+                                                            .values
+                                                            .fold(
+                                                                0,
+                                                                (a, b) =>
+                                                                    a + b);
+                                                    String? debtType =
+                                                        await budgetState
+                                                            .updateDebtType(
+                                                      budgetId: budgetId,
+                                                      debt: totalDebt,
+                                                      income: salary,
+                                                    );
+
+                                                    if (debtType != null) {
+                                                      print(
+                                                          'Debt type updated to $debtType');
+                                                    } else {
+                                                      print(
+                                                          'Failed to update debt type');
+                                                    }
+                                                  } else {
+                                                    print(
+                                                        'Failed to update saving type');
+                                                  }
                                                 } else {
                                                   print(
-                                                      'Failed to update debt type');
+                                                      'Failed to update spending type');
                                                 }
-                                              } else {
+
                                                 print(
-                                                    'Failed to update saving type');
-                                              }
-                                            } else {
-                                              print(
-                                                  'Failed to update spending type');
-                                            }
+                                                    'getIndividualAmounts: $individualAmountsNecessary');
+                                                print(
+                                                    'Discretionary Categories With Amount: $individualAmountsDiscretionary');
+                                                print(
+                                                    'Extracted Debt Loan Categories: $individualAmountsDebt');
+                                                print(
+                                                    'Spending Type: $spendingType');
+                                                editLoadingDialogController
+                                                    .show(context);
 
-                                            print(
-                                                'getIndividualAmounts: $individualAmountsNecessary');
-                                            print(
-                                                'Discretionary Categories With Amount: $individualAmountsDiscretionary');
-                                            print(
-                                                'Extracted Debt Loan Categories: $individualAmountsDebt');
-                                            print(
-                                                'Spending Type: $spendingType');
-                                            editLoadingDialogController
-                                                .show(context);
+                                                await budgetState
+                                                    .updateBudgetInfoSubscriberSalary(
+                                                  budgetId: budgetId ?? '',
+                                                  salary: salary,
+                                                );
 
-                                            await budgetState.updateAmounts(
-                                              budgetId: budgetId,
-                                              necessaryAmounts:
-                                                  individualAmountsNecessary,
-                                            );
+                                                await budgetState.updateAmounts(
+                                                  budgetId: budgetId,
+                                                  necessaryAmounts:
+                                                      individualAmountsNecessary,
+                                                );
 
-                                            await budgetState
-                                                .updateDiscretionaryAmounts(
-                                              budgetId: budgetId,
-                                              discretionaryAmounts:
-                                                  individualAmountsDiscretionary,
-                                            );
+                                                await budgetState
+                                                    .updateDiscretionaryAmounts(
+                                                  budgetId: budgetId,
+                                                  discretionaryAmounts:
+                                                      individualAmountsDiscretionary,
+                                                );
 
-                                            await budgetState.updateDebtAmounts(
-                                              budgetId: budgetId,
-                                              debtAmounts:
-                                                  individualAmountsDebt,
-                                            );
+                                                await budgetState
+                                                    .updateDebtAmounts(
+                                                  budgetId: budgetId,
+                                                  debtAmounts:
+                                                      individualAmountsDebt,
+                                                );
 
-                                            await budgetState.updateSurplus(
-                                              budgetId: budgetId,
-                                              remainingFunds: remainingFunds,
-                                            );
+                                                await budgetState.updateSurplus(
+                                                  budgetId: budgetId,
+                                                  remainingFunds:
+                                                      remainingFunds,
+                                                );
 
-                                            await budgetState
-                                                .deleteZeroValueCategories(
-                                              budgetId: budgetId,
-                                            );
-                                            editLoadingDialogController.hide();
-                                            // await budgetState
-                                            //     .updateBudgetNameAndDate(
-                                            //   budgetId: budgetId,
-                                            //   budgetName:
-                                            //       budgetNameController
-                                            //           .text,
-                                            // );
+                                                await budgetState
+                                                    .deleteZeroValueCategories(
+                                                  budgetId: budgetId,
+                                                );
+                                                editLoadingDialogController
+                                                    .hide();
 
-                                            if (budgetState.state.status ==
-                                                BudgetStatus.success) {
-                                              // BudgetId newBudgetId = generateNewBudgetId();
-
-                                              // await budgetState.saveBudgetId(
-                                              //     budgetId: newBudgetId);
-
-                                              // Show SnackBar with success message
-                                              ScaffoldMessenger.of(context)
-                                                  .showSnackBar(
-                                                SnackBar(
-                                                  content: Text(
-                                                    'Your budget has been updated!',
-                                                    textAlign: TextAlign.center,
-                                                    style: AppStyle
-                                                        .txtHelveticaNowTextBold16WhiteA700
-                                                        .copyWith(
-                                                      letterSpacing:
-                                                          getHorizontalSize(
-                                                              0.3),
+                                                if (budgetState.state.status ==
+                                                    BudgetStatus.success) {
+                                                  // Show SnackBar with success message
+                                                  ScaffoldMessenger.of(context)
+                                                      .showSnackBar(
+                                                    SnackBar(
+                                                      content: Text(
+                                                        'Your budget has been updated!',
+                                                        textAlign:
+                                                            TextAlign.center,
+                                                        style: AppStyle
+                                                            .txtHelveticaNowTextBold16WhiteA700
+                                                            .copyWith(
+                                                          letterSpacing:
+                                                              getHorizontalSize(
+                                                                  0.3),
+                                                        ),
+                                                      ),
+                                                      backgroundColor:
+                                                          ColorConstant
+                                                              .greenA700,
                                                     ),
-                                                  ),
-                                                  backgroundColor:
-                                                      ColorConstant.greenA700,
-                                                ),
-                                              );
-                                            } else {
-                                              // Show SnackBar with failure message
-                                              ScaffoldMessenger.of(context)
-                                                  .showSnackBar(
-                                                SnackBar(
-                                                  content: Text(
-                                                    'Something went wrong! Please try again later.',
-                                                    textAlign: TextAlign.center,
-                                                    style: AppStyle
-                                                        .txtHelveticaNowTextBold16WhiteA700
-                                                        .copyWith(
-                                                      letterSpacing:
-                                                          getHorizontalSize(
-                                                              0.3),
+                                                  );
+                                                } else {
+                                                  // Show SnackBar with failure message
+                                                  ScaffoldMessenger.of(context)
+                                                      .showSnackBar(
+                                                    SnackBar(
+                                                      content: Text(
+                                                        'Something went wrong! Please try again later.',
+                                                        textAlign:
+                                                            TextAlign.center,
+                                                        style: AppStyle
+                                                            .txtHelveticaNowTextBold16WhiteA700
+                                                            .copyWith(
+                                                          letterSpacing:
+                                                              getHorizontalSize(
+                                                                  0.3),
+                                                        ),
+                                                      ),
+                                                      backgroundColor:
+                                                          ColorConstant.redA700,
                                                     ),
-                                                  ),
-                                                  backgroundColor:
-                                                      ColorConstant.redA700,
-                                                ),
-                                              );
-                                            }
+                                                  );
+                                                }
 
-                                            Navigator.pushNamed(
-                                              context,
-                                              '/home_page_screen',
-                                            );
-                                          },
-                                          child: Text('Confirm',
-                                              style: AppStyle
-                                                  .txtHelveticaNowTextBold14
-                                                  .copyWith(
-                                                letterSpacing:
-                                                    getHorizontalSize(0.2),
-                                                color: ColorConstant.blueA700,
-                                              )),
-                                        ),
-                                      ],
-                                    );
-                                  });
-                                });
-                          },
-                          height: getVerticalSize(56),
-                          text: "Finalize Changes",
+                                                Navigator.pushNamed(
+                                                  context,
+                                                  '/home_page_screen',
+                                                );
+                                              },
+                                              child: Text('Confirm',
+                                                  style: AppStyle
+                                                      .txtHelveticaNowTextBold14
+                                                      .copyWith(
+                                                    letterSpacing:
+                                                        getHorizontalSize(0.2),
+                                                    color:
+                                                        ColorConstant.blueA700,
+                                                  )),
+                                            ),
+                                          ],
+                                        );
+                                      });
+                                    });
+                              },
+                              height: getVerticalSize(56),
+                              text: "Finalize Changes",
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
-                  ),
-                ),
+                  );
+                }),
               ],
             ),
           ),

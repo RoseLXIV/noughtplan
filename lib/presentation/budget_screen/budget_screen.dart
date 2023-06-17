@@ -13,6 +13,7 @@ import 'package:noughtplan/core/budget/providers/budget_state_provider.dart';
 import 'package:noughtplan/core/budget/providers/interstitial_ads_class_provider.dart';
 import 'package:noughtplan/core/constants/budgets.dart';
 import 'package:noughtplan/core/providers/first_time_provider.dart';
+import 'package:noughtplan/presentation/budget_creation_page_view_edit/budget_creation_page_view_edit.dart';
 import 'package:noughtplan/presentation/budget_screen/widgets/call_chat_gpt_highlights.dart';
 import 'package:noughtplan/presentation/budget_screen/widgets/debts_provider.dart';
 import 'package:noughtplan/presentation/budget_screen/widgets/goals_provider.dart';
@@ -193,6 +194,7 @@ class BudgetScreen extends HookConsumerWidget {
 
     Map<String, double> totalAmounts =
         getTotalAmountPerCategory(selectedBudget.actualExpenses);
+    // print('Budgets : $_budgets.value');
 
     if (_budgets.value != null) {
       // Future.microtask(() async {
@@ -204,15 +206,8 @@ class BudgetScreen extends HookConsumerWidget {
       _updatedSelectedBudget = updatedSelectedBudget;
 
       if (updatedSelectedBudget != null) {
-        // final actualExpensesNotifier =
-        //     ref.read(actualExpensesProvider.notifier);
-        // actualExpensesNotifier
-        //     .updateActualExpenses(updatedSelectedBudget.actualExpenses);
-
-        // Update the totalAmounts
         totalAmounts = calculateTotalAmounts(updatedSelectedBudget);
       }
-      // });
     }
 
     Map<String, double> totalAmountsWithIncome =
@@ -250,6 +245,7 @@ class BudgetScreen extends HookConsumerWidget {
       Future.microtask(
         () async {
           final fetchedBudgets = await budgetNotifier.fetchUserBudgets();
+          print('fetched budgets: ${fetchedBudgets.length}');
           if (context.mounted) {
             _budgets.value = fetchedBudgets;
           }
@@ -470,22 +466,23 @@ class BudgetScreen extends HookConsumerWidget {
     final firstTime = ref.watch(firstTimeProvider);
 
     useEffect(() {
-      _animationController.repeat(reverse: true);
-      updateExpensesOnLoad();
+      Future.microtask(() async {
+        _animationController.repeat(reverse: true);
+        updateExpensesOnLoad();
 
-      loadListData(selectedBudget.budgetId).then((listData) {
-        if (listData != null) {
-          ref.read(insightsNotifierProvider.notifier).setDataList(listData);
-        }
+        // await loadListData(selectedBudget.budgetId).then((listData) {
+        //   if (listData != null) {
+        //     ref.read(insightsNotifierProvider.notifier).setDataList(listData);
+        //   }
+        // });
+        // await checkTimerStatus().then((remainingDuration) {
+        //   if (remainingDuration != null && remainingDuration > 0) {
+        //     updateTimerText(remainingDuration);
+        //   }
+        // });
+        await ref.read(goalsProvider.notifier).loadGoals(budgetId);
+        await ref.read(debtsProvider.notifier).loadDebts(budgetId);
       });
-      checkTimerStatus().then((remainingDuration) {
-        if (remainingDuration != null && remainingDuration > 0) {
-          updateTimerText(remainingDuration);
-        }
-      });
-      ref.read(goalsProvider.notifier).loadGoals(budgetId);
-      ref.read(debtsProvider.notifier).loadDebts(budgetId);
-
       return () {}; // Clean-up function
     }, []);
 
@@ -628,7 +625,7 @@ class BudgetScreen extends HookConsumerWidget {
           onAdLoaded: (InterstitialAd ad) {
             ad.fullScreenContentCallback = FullScreenContentCallback(
               onAdDismissedFullScreenContent: (InterstitialAd ad) {
-                Navigator.pushNamed(context, '/generator_salary_screen_edit',
+                Navigator.pushNamed(context, '/budget_creation_page_view_edit',
                     arguments: {'selectedBudget': _updatedSelectedBudget});
                 ad.dispose();
               },
@@ -835,13 +832,19 @@ class BudgetScreen extends HookConsumerWidget {
                                                         ),
                                                         TextButton(
                                                           onPressed: () {
-                                                            Navigator.pushNamed(
-                                                                context,
-                                                                '/generator_salary_screen_edit',
-                                                                arguments: {
-                                                                  'selectedBudget':
-                                                                      _updatedSelectedBudget
-                                                                });
+                                                            Navigator.push(
+                                                              context,
+                                                              MaterialPageRoute(
+                                                                builder:
+                                                                    (context) =>
+                                                                        BudgetCreationPageViewEdit(
+                                                                  initialIndex:
+                                                                      0,
+                                                                  selectedBudget:
+                                                                      _updatedSelectedBudget,
+                                                                ),
+                                                              ),
+                                                            );
                                                           },
                                                           child: Text('Confirm',
                                                               style: AppStyle
@@ -2934,7 +2937,7 @@ class BudgetScreen extends HookConsumerWidget {
                                                                       child:
                                                                           SizedBox(
                                                                         width: MediaQuery.of(context).size.width *
-                                                                            0.86,
+                                                                            0.85,
                                                                         child:
                                                                             DebtsListWidget(
                                                                           // Make sure to replace this with the appropriate Widget for showing a single Debt

@@ -25,34 +25,52 @@ class RemainingFundsController extends StateNotifier<double> {
   }
 
   void updateFundsForAutoAssign(
-      WidgetRef ref, double amount, double necessaryTotal, double editedTotal) {
+      WidgetRef ref,
+      double amount,
+      double necessaryTotal,
+      double editedTotal,
+      double debtTotal,
+      double savingsTotal) {
     double editedTotal = ref
         .read(enteredAmountsDiscretionaryProvider.notifier)
         .getEditedAmounts(ref);
-    state = _initialValue - necessaryTotal - editedTotal;
+    state =
+        _initialValue - necessaryTotal - editedTotal - debtTotal - savingsTotal;
 
     state = state - amount;
   }
 
   void resetRemainingFunds(WidgetRef ref, double necessaryTotal,
-      double editedTotal, double debtTotal) {
-    state = _initialRemainingFunds - necessaryTotal - debtTotal - editedTotal;
+      double editedTotal, double debtTotal, double savingsTotal) {
+    state = _initialRemainingFunds -
+        necessaryTotal -
+        debtTotal -
+        savingsTotal -
+        editedTotal;
   }
 
   double get stateFunds => state;
 
-  void resetFundsNecessary(double discretionaryTotal, double debtTotal) {
-    state = _initialValue - discretionaryTotal - debtTotal;
+  void resetFundsNecessary(
+      double discretionaryTotal, double debtTotal, double savingsTotal) {
+    state = _initialValue - discretionaryTotal - debtTotal - savingsTotal;
   }
 
-  void resetFundsDiscretionary(double necessaryTotal, double debtTotal) {
-    state = _initialValue - necessaryTotal - debtTotal;
+  void resetFundsDiscretionary(
+      double necessaryTotal, double debtTotal, double savingsTotal) {
+    state = _initialValue - necessaryTotal - debtTotal - savingsTotal;
 
     resetEditedFlagsDiscretionary();
   }
 
-  void resetFundsDebt(double necessaryTotal, double discretionaryTotal) {
-    state = _initialValue - necessaryTotal - discretionaryTotal;
+  void resetFundsDebt(
+      double necessaryTotal, double discretionaryTotal, double savingsTotal) {
+    state = _initialValue - necessaryTotal - discretionaryTotal - savingsTotal;
+  }
+
+  void resetFundsSavings(
+      double necessaryTotal, double discretionaryTotal, double debtTotal) {
+    state = _initialValue - necessaryTotal - discretionaryTotal - debtTotal;
   }
 
   void resetEditedFlagsDiscretionary() {
@@ -69,9 +87,16 @@ class RemainingFundsController extends StateNotifier<double> {
     state = value;
   }
 
+  Future<void> updateSalary(double salary) async {
+    _initialValue = salary;
+    state = salary;
+  }
+
   Future<void> updateInitialValue(double value) async {
     await Future.delayed(Duration.zero);
-    state = value;
+    if (mounted) {
+      state = value;
+    }
   }
 
   double get initialValue => _initialValue;

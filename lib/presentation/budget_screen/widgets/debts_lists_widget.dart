@@ -374,7 +374,7 @@ class DebtsListWidget extends StatelessWidget {
                     Padding(
                       padding: getPadding(left: 0, right: 0, top: 4, bottom: 0),
                       child: Text(
-                        '\$${formatter.format(monthlyPayment)}',
+                        '\$${formatMillions(monthlyPayment)}',
                         textAlign: TextAlign.left,
                         style: AppStyle.txtHelveticaNowTextBold12
                             .copyWith(color: ColorConstant.blueGray800),
@@ -383,7 +383,7 @@ class DebtsListWidget extends StatelessWidget {
                     Padding(
                       padding: getPadding(left: 0, right: 0, top: 4, bottom: 0),
                       child: Text(
-                        '\$${formatter.format(monthlyPaymentIncreased5)}',
+                        '\$${formatMillions(monthlyPaymentIncreased5)}',
                         textAlign: TextAlign.left,
                         style: AppStyle.txtHelveticaNowTextBold12
                             .copyWith(color: ColorConstant.blueGray800),
@@ -392,7 +392,7 @@ class DebtsListWidget extends StatelessWidget {
                     Padding(
                       padding: getPadding(left: 0, right: 0, top: 4, bottom: 0),
                       child: Text(
-                        '\$${formatter.format(monthlyPaymentIncreased10)}',
+                        '\$${formatMillions(monthlyPaymentIncreased10)}',
                         textAlign: TextAlign.left,
                         style: AppStyle.txtHelveticaNowTextBold12
                             .copyWith(color: ColorConstant.blueGray800),
@@ -401,7 +401,7 @@ class DebtsListWidget extends StatelessWidget {
                     Padding(
                       padding: getPadding(left: 0, right: 0, top: 4, bottom: 0),
                       child: Text(
-                        '\$${formatter.format(monthlyPaymentIncreased20)}',
+                        '\$${formatMillions(monthlyPaymentIncreased20)}',
                         textAlign: TextAlign.left,
                         style: AppStyle.txtHelveticaNowTextBold12
                             .copyWith(color: ColorConstant.blue90001),
